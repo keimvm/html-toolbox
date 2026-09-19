@@ -5,7 +5,14 @@ import { PdfClient } from './pdf/client';
 import type { Inspection, PageElement } from './pdf/types';
 import type { PdfDocumentObject } from '@embedpdf/models';
 import { createSamplePdf } from './sample';
-import { currentPreviewPage } from './preview';
+import {
+  currentPreviewPage,
+  isPreviewZoom,
+  previewWidth,
+  stepZoom,
+  type PreviewZoom,
+} from './preview';
+import { SessionStore, sessionKey } from './session-store';
 import licenses from './licenses.txt?raw';
 
 function $<T extends HTMLElement = HTMLElement>(selector: string): T {
@@ -16,7 +23,15 @@ function $<T extends HTMLElement = HTMLElement>(selector: string): T {
 const editor = new Editor();
 let client: PdfClient | undefined;
 const pdf = () => (client ??= new PdfClient());
-const sources = new Map<string, { doc: PdfDocumentObject; name: string }>();
+const sources = new Map<
+  string,
+  { doc: PdfDocumentObject; name: string; data: Blob }
+>();
+const session = new SessionStore(sessionKey(location.href));
+let restoring = true;
+let recoveryReady = false;
+let recoveryRevision = 0;
+let zoom: PreviewZoom = 100;
 let filename = '';
 let busy = false;
 let inspecting = false;
@@ -36,6 +51,7 @@ interface PreviewPage {
   paper: HTMLElement;
   visible: boolean;
   pending: boolean;
+  revision: number;
   url?: string;
 }
 const previews = new Map<string, PreviewPage>();
@@ -49,6 +65,103 @@ function fail(error: unknown) {
   notify(
     error instanceof Error ? error.message : 'PDFを処理できませんでした。',
   );
+}
+function recoveryStatus(state: 'saving' | 'saved' | 'error') {
+  const status = $('#pc-session-status');
+  status.dataset.state = state;
+  status.textContent =
+    state === 'saving'
+      ? '復元用に保存中…'
+      : state === 'saved'
+        ? '再読み込みに対応'
+        : '復元用の保存に失敗';
+  status.title =
+    'このブラウザー内に復元用データを保存します。「閉じる」で削除します。';
+}
+function rememberSession() {
+  if (restoring || !editor.pages.length) return;
+  const revision = ++recoveryRevision;
+  recoveryReady = false;
+  recoveryStatus('saving');
+  void session
+    .save(
+      {
+        version: 1,
+        filename,
+        editor: editor.snapshot(),
+        zoom,
+        sourceIds: [...sources.keys()],
+      },
+      [...sources].map(([id, source]) => ({
+        id,
+        name: source.name,
+        data: source.data,
+      })),
+    )
+    .then(() => {
+      if (revision !== recoveryRevision) return;
+      recoveryReady = true;
+      recoveryStatus('saved');
+    })
+    .catch(() => {
+      if (revision !== recoveryRevision) return;
+      recoveryStatus('error');
+      notify(
+        '復元用データをブラウザーに保存できません。画面を再読み込みする前に「PDFを保存」で残してください。',
+      );
+    });
+}
+
+async function restoreSession() {
+  await task('前回のPDFを確認しています…', async () => {
+    try {
+      const saved = await session.load();
+      if (!saved) {
+        $('#pc-notice').hidden = true;
+        return;
+      }
+      for (const source of saved.sources) {
+        const doc = await pdf().call('open', {
+          id: source.id,
+          content: await source.data.arrayBuffer(),
+        });
+        sources.set(source.id, { doc, name: source.name, data: source.data });
+      }
+      const state = saved.state.editor;
+      const pages = [
+        ...state.pages,
+        ...state.initialPages,
+        ...state.history.flatMap((entry) => entry.pages),
+      ];
+      if (
+        pages.some(
+          (page) => !sources.get(page.sourceId)?.doc.pages[page.sourceIndex],
+        )
+      )
+        throw new Error('復元用データのページが一致しません。');
+      editor.restore(state);
+      filename = saved.state.filename;
+      zoom = saved.state.zoom;
+      render();
+      recoveryReady = true;
+      recoveryStatus('saved');
+      notify('前回のPDFと編集状態を復元しました。');
+    } catch (error) {
+      for (const id of sources.keys())
+        await pdf()
+          .call('close', { id })
+          .catch(() => {});
+      sources.clear();
+      editor.open([]);
+      render();
+      recoveryStatus('error');
+      notify(
+        `前回のPDFを復元できませんでした。PDFを開き直してください。${error instanceof Error ? error.message : ''}`,
+      );
+    } finally {
+      restoring = false;
+    }
+  });
 }
 function setDisabled(action: string, disabled: boolean) {
   const button = document.querySelector<HTMLButtonElement>(
@@ -88,6 +201,7 @@ function updateControls() {
   document
     .querySelectorAll<HTMLButtonElement>('[data-page]')
     .forEach((button) => (button.disabled = busy));
+  updateZoomControls();
 }
 async function task(message: string, operation: () => Promise<void>) {
   if (busy) return;
@@ -229,6 +343,7 @@ function selectPage(id: string, scroll = true) {
   if (id !== editor.selectedId) {
     editor.select(id);
     updateSelection();
+    rememberSession();
     const button = document.querySelector<HTMLElement>(`[data-page="${id}"]`);
     if (button) {
       const rail = $('.pc-rail');
@@ -247,6 +362,55 @@ function selectPage(id: string, scroll = true) {
     }
   }
   if (scroll) scrollToSelectedPreview();
+}
+function effectiveZoom() {
+  const preview = previews.get(editor.selectedId);
+  return zoom === 'fit' && preview
+    ? (preview.paper.clientWidth / ((size(preview.page).width * 96) / 72)) * 100
+    : zoom === 'fit'
+      ? 100
+      : zoom;
+}
+function updateZoomControls() {
+  const percent = effectiveZoom();
+  setDisabled('zoom-out', !editor.pages.length || percent <= 25);
+  setDisabled('zoom-in', !editor.pages.length || percent >= 300);
+  const select = $<HTMLSelectElement>('#pc-zoom');
+  select.value = String(zoom);
+  select.disabled = busy || !editor.pages.length;
+}
+function layoutPreviews() {
+  const style = getComputedStyle(stage);
+  const available =
+    stage.clientWidth -
+    parseFloat(style.paddingLeft) -
+    parseFloat(style.paddingRight);
+  for (const preview of previews.values()) {
+    const width = previewWidth(size(preview.page).width, available, zoom);
+    if (Math.abs(parseFloat(preview.element.style.width) - width) < 0.1)
+      continue;
+    preview.element.style.width = `${width}px`;
+    preview.revision++;
+    clearPreviewImage(preview);
+    if (preview.visible) void loadPreview(preview);
+  }
+  updateZoomControls();
+}
+function setZoom(value: PreviewZoom) {
+  if (busy || !editor.pages.length || value === zoom) return;
+  const preview = previews.get(editor.selectedId)!;
+  const oldBounds = preview.paper.getBoundingClientRect();
+  const viewport = stage.getBoundingClientRect();
+  const y = (viewport.top - oldBounds.top) / oldBounds.height;
+  const centerX = viewport.left + stage.clientWidth / 2;
+  const x = (centerX - oldBounds.left) / oldBounds.width;
+  zoom = value;
+  layoutPreviews();
+  const bounds = preview.paper.getBoundingClientRect();
+  stage.scrollTop += bounds.top + bounds.height * y - viewport.top;
+  stage.scrollLeft += bounds.left + bounds.width * x - centerX;
+  selectedScrollTop = stage.scrollTop;
+  rememberSession();
 }
 function clearPreviewImage(preview: PreviewPage) {
   if (preview.url) URL.revokeObjectURL(preview.url);
@@ -270,13 +434,23 @@ const previewObserver = new IntersectionObserver(
 async function loadPreview(preview: PreviewPage) {
   if (preview.url || preview.pending) return;
   preview.pending = true;
+  const revision = preview.revision;
   try {
     const dimensions = size(preview.page);
     const blob = await pdf().call('render', {
       page: preview.page,
-      scale: Math.min(2, 1600 / Math.max(dimensions.width, dimensions.height)),
+      scale: Math.min(
+        4,
+        (preview.paper.clientWidth / dimensions.width) *
+          Math.min(devicePixelRatio, 2),
+      ),
     });
-    if (previews.get(preview.page.id) !== preview || !preview.visible) return;
+    if (
+      previews.get(preview.page.id) !== preview ||
+      !preview.visible ||
+      revision !== preview.revision
+    )
+      return;
     preview.url = URL.createObjectURL(blob);
     const image = document.createElement('img');
     image.src = preview.url;
@@ -285,12 +459,22 @@ async function loadPreview(preview: PreviewPage) {
     preview.paper.replaceChildren(image);
     if (preview.page.id === editor.selectedId) highlight();
   } catch (error) {
-    if (previews.get(preview.page.id) === preview && preview.visible) {
+    if (
+      previews.get(preview.page.id) === preview &&
+      preview.visible &&
+      revision === preview.revision
+    ) {
       preview.paper.textContent = 'ページを表示できませんでした。';
       fail(error);
     }
   } finally {
     preview.pending = false;
+    if (
+      previews.get(preview.page.id) === preview &&
+      preview.visible &&
+      revision !== preview.revision
+    )
+      void loadPreview(preview);
   }
 }
 function render() {
@@ -318,6 +502,7 @@ function render() {
       paper,
       visible: false,
       pending: false,
+      revision: 0,
     };
     clearPreviewImage(preview);
     previews.set(page.id, preview);
@@ -325,9 +510,11 @@ function render() {
   });
   stage.replaceChildren(fragment);
   updateSelection();
+  layoutPreviews();
   scrollToSelectedPreview();
   for (const preview of previews.values())
     previewObserver.observe(preview.element);
+  rememberSession();
 }
 let scrollFrame = 0;
 function syncPreviewSelection() {
@@ -351,8 +538,16 @@ stage.addEventListener('scroll', () => {
     syncPreviewSelection();
   });
 });
+let resizeFrame = 0;
 new ResizeObserver(() => {
-  scrollToSelectedPreview();
+  if (zoom !== 'fit' || resizeFrame) return;
+  // スクロールバーの出入りで領域が変わるため、同じ通知内で寸法を変更しない。
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = 0;
+    if (zoom !== 'fit') return;
+    layoutPreviews();
+    scrollToSelectedPreview();
+  });
 }).observe(stage);
 async function loadInspection() {
   const page = editor.selected;
@@ -492,7 +687,11 @@ function toggleInspector(open: boolean) {
 async function openBuffer(content: ArrayBuffer, name: string) {
   const id = crypto.randomUUID();
   const doc = await pdf().call('open', { id, content });
-  sources.set(id, { doc, name });
+  sources.set(id, {
+    doc,
+    name,
+    data: new Blob([content], { type: 'application/pdf' }),
+  });
   const pages = doc.pages.map((page) => ({
     id: `${id}-${page.index}`,
     sourceId: id,
@@ -585,6 +784,10 @@ async function closeDocument() {
   )
     return;
   await task('文書を閉じています…', async () => {
+    await session.flush();
+    if (session.hasData) await session.clear();
+    recoveryRevision++;
+    recoveryReady = false;
     inspectorVersion++;
     thumbnailObserver.disconnect();
     previewObserver.disconnect();
@@ -595,6 +798,8 @@ async function closeDocument() {
     sources.clear();
     editor.open([]);
     filename = '';
+    zoom = 100;
+    $('#pc-session-status').textContent = '';
     inspection = undefined;
     thumbnailUrls.forEach((url) => URL.revokeObjectURL(url));
     thumbnailUrls.clear();
@@ -641,6 +846,10 @@ $('#pdf-calm').addEventListener('click', (event) => {
   if (busy && !['dismiss', 'close-save', 'close-about'].includes(action ?? ''))
     return;
   switch (action) {
+    case 'zoom-in':
+    case 'zoom-out':
+      setZoom(stepZoom(effectiveZoom(), action === 'zoom-in' ? 1 : -1));
+      break;
     case 'open':
     case 'add':
       input.click();
@@ -735,6 +944,11 @@ input.addEventListener('change', () => {
   input.value = '';
   if (files.length) void openFiles(files);
 });
+$('#pc-zoom').addEventListener('change', (event) => {
+  const value = (event.target as HTMLSelectElement).value;
+  const next = value === 'fit' ? value : Number(value);
+  if (isPreviewZoom(next)) setZoom(next);
+});
 $('#pc-save-form').addEventListener('submit', (event) => {
   event.preventDefault();
   if (!busy) void save();
@@ -825,7 +1039,8 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && inspecting) toggleInspector(false);
 });
 window.addEventListener('beforeunload', (event) => {
-  if (editor.changed || busy) event.preventDefault();
+  if (busy || (editor.pages.length && !recoveryReady)) event.preventDefault();
 });
 renderIcons();
 updateControls();
+void restoreSession();

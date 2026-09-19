@@ -34,6 +34,7 @@
             <div class="pc-file-meta">
               <span id="pc-file-count">4ページ</span
               ><span id="pc-change-status">サンプル文書</span>
+              <span id="pc-session-status" role="status"></span>
             </div>
           </div>
           <div class="pc-actions">
@@ -114,6 +115,45 @@
                   disabled
                 >
                   <i data-lucide="undo-2" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div
+                class="pc-zoom"
+                role="group"
+                aria-label="プレビューの拡大縮小"
+              >
+                <button
+                  type="button"
+                  class="pc-button pc-icon-button"
+                  data-action="zoom-out"
+                  aria-label="縮小"
+                  title="縮小"
+                >
+                  −
+                </button>
+                <select
+                  id="pc-zoom"
+                  class="pc-input"
+                  aria-label="プレビューの倍率"
+                >
+                  <option value="fit">幅に合わせる</option>
+                  <option value="25">25%</option>
+                  <option value="50">50%</option>
+                  <option value="75">75%</option>
+                  <option value="100" selected>100%</option>
+                  <option value="125">125%</option>
+                  <option value="150">150%</option>
+                  <option value="200">200%</option>
+                  <option value="300">300%</option>
+                </select>
+                <button
+                  type="button"
+                  class="pc-button pc-icon-button"
+                  data-action="zoom-in"
+                  aria-label="拡大"
+                  title="拡大"
+                >
+                  ＋
                 </button>
               </div>
               <button
@@ -307,6 +347,9 @@
           </div>
           <p>
             PDFはこのPC内で処理します。元のファイルは変更せず、保存時に別ファイルを作ります。
+          </p>
+          <p>
+            再読み込みに備えて、PDFと編集状態をこのブラウザー内に自動保存します。「閉じる」で復元用データを削除します。ファイルとして残す場合は「PDFを保存」を使ってください。
           </p>
           <p>
             画像・要素一覧はページ直下の要素が対象です。グループ内の画像は個別抽出の対象外です。文字情報のないスキャンPDFはOCRに対応していません。

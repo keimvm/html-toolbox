@@ -76,3 +76,36 @@ test('文書を閉じると選択と履歴を初期化する', () => {
   expect(editor.canUndo).toBe(false);
   expect(editor.changed).toBe(false);
 });
+
+test('復元後も追加・回転・並べ替え・削除を取り消して読み込み時の状態に戻れる', () => {
+  const editor = open();
+  editor.rotate();
+  editor.append([{ id: 'b-0', sourceId: 'b', sourceIndex: 0, rotation: 90 }]);
+  editor.move('b-0', 1);
+  editor.remove();
+  const snapshot = editor.snapshot();
+  const restored = new Editor();
+  restored.restore(snapshot);
+  expect(restored.pages).toEqual(editor.pages);
+  expect(restored.selectedId).toBe(editor.selectedId);
+  expect(restored.changed).toBe(true);
+  while (restored.canUndo) restored.undo();
+  expect(restored.pages).toEqual(pages);
+  expect(restored.changed).toBe(false);
+  expect(snapshot.pages).toEqual(editor.pages);
+});
+
+test('壊れた編集状態は現在の文書を上書きしない', () => {
+  const editor = open();
+  const state = editor.snapshot();
+  for (const invalid of [
+    null,
+    {},
+    { ...state, selectedId: 'missing' },
+    { ...state, pages: [pages[0], pages[0]] },
+    { ...state, history: [null] },
+  ]) {
+    expect(() => editor.restore(invalid)).toThrow('復元用の編集状態');
+    expect(editor.snapshot()).toEqual(state);
+  }
+});

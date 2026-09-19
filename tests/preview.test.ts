@@ -1,8 +1,33 @@
 import { expect, test } from 'vitest';
-import { currentPreviewPage } from '../src/preview';
+import {
+  currentPreviewPage,
+  previewWidth,
+  stepZoom,
+  isPreviewZoom,
+} from '../src/preview';
 import { Editor } from '../src/editor';
 
 const viewport = { top: 100, bottom: 700 };
+
+test('倍率はPDFの寸法を基準にし、幅合わせでは表示領域を使う', () => {
+  expect(previewWidth(600, 500, 100)).toBe(800);
+  expect(previewWidth(600, 500, 200)).toBe(1600);
+  expect(previewWidth(600, 500, 25)).toBe(200);
+  expect(previewWidth(600, 500, 'fit')).toBe(500);
+  expect(previewWidth(600, 0, 'fit')).toBe(1);
+});
+test('拡大縮小は上下限を守り、幅合わせ相当の倍率からも次の段階へ進む', () => {
+  expect(stepZoom(100, 1)).toBe(125);
+  expect(stepZoom(100, -1)).toBe(75);
+  expect(stepZoom(88, 1)).toBe(100);
+  expect(stepZoom(88, -1)).toBe(75);
+  expect(stepZoom(400, 1)).toBe(300);
+  expect(stepZoom(10, -1)).toBe(25);
+  expect(isPreviewZoom('fit')).toBe(true);
+  expect(isPreviewZoom(200)).toBe(true);
+  for (const value of [NaN, 0, 400, '100', null])
+    expect(isPreviewZoom(value)).toBe(false);
+});
 
 test('長いページの途中では同じページを選び、上端を通過したら次へ進む', () => {
   expect(
