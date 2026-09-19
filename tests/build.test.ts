@@ -4,12 +4,12 @@ import { expect, test } from 'vitest';
 
 const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 
-test('配布物はindex.htmlの1ファイルだけになる', async () => {
-  expect(await readdir(dist)).toEqual(['index.html']);
+test('配布物はPDF編集.htmlの1ファイルだけになる', async () => {
+  expect(await readdir(dist)).toEqual(['PDF編集.html']);
 });
 
 test('JavaScriptとCSSがHTML内に含まれる', async () => {
-  const html = await readFile(`${dist}/index.html`, 'utf8');
+  const html = await readFile(`${dist}/PDF編集.html`, 'utf8');
   // WASM入りの大きなHTMLを、全体にまたがる正規表現で走査しない。
   for (const tag of ['script', 'style']) {
     const opening = new RegExp(`<${tag}\\b[^>]*>`, 'iu').exec(html);
@@ -26,7 +26,7 @@ test('JavaScriptとCSSがHTML内に含まれる', async () => {
 });
 
 test('PDFiumと日本語フォントのバイナリ、Workerのコードとライセンスを含む', async () => {
-  const html = await readFile(`${dist}/index.html`, 'utf8');
+  const html = await readFile(`${dist}/PDF編集.html`, 'utf8');
   expect(html.includes('data:application/wasm;base64,AGFzbQ')).toBe(true);
   expect(html.includes('data:font/otf;base64,T1RUTw')).toBe(true);
   expect(html.includes('new Worker(')).toBe(true);

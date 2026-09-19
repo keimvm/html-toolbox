@@ -1,5 +1,7 @@
 # 検証手順と記録
 
+現在の配布ファイル名は`dist/PDF編集.html`です。過去の検証記録にある`dist/index.html`は、変更前に確認したファイル名です。
+
 ## 自動検査
 
 ```sh
@@ -7,7 +9,7 @@ pnpm install --frozen-lockfile
 pnpm check
 ```
 
-`check`ではPrettier、ESLint、TypeScript、Viteビルド、Vitest、`git diff --check`を順に実行します。Vitestはページ編集の状態・実PDFの保存再読込・文字と画像の抽出、および作り直した配布物が`index.html`の1ファイルであること、JavaScript・CSS・WASM・日本語フォントが埋め込まれることを検査します。配布物の静的検査は、ブラウザーの動的通信を網羅して検出するものではありません。
+`check`ではPrettier、ESLint、TypeScript、Viteビルド、Vitest、`git diff --check`を順に実行します。Vitestはページ編集の状態・実PDFの保存再読込・文字と画像の抽出、および作り直した配布物が`PDF編集.html`の1ファイルであること、JavaScript・CSS・WASM・日本語フォントが埋め込まれることを検査します。配布物の静的検査は、ブラウザーの動的通信を網羅して検出するものではありません。
 
 GitHub ActionsでもLinux・macOS・Windowsで同じコマンドを実行する設定です。CIが実際に通ったことと、設定を追加したことは区別して記録します。
 
@@ -16,22 +18,22 @@ GitHub ActionsでもLinux・macOS・Windowsで同じコマンドを実行する�
 以下はブラウザー確認を行う際の手順です。エージェントがPlaywrightスキルやPlaywright CLIを使用するのは、ユーザーから明示的な使用指示があった場合だけとし、通常の開発では使用しません。
 
 1. `pnpm dev`を起動し、ChromeまたはEdgeで`http://127.0.0.1:5173`を開く。起動メッセージ、表示崩れ、コンソールエラーを確認する。
-2. `pnpm build`を実行する。新しいブラウザープロファイルで、生成した`dist/index.html`を直接開く。開発サーバーの起動は不要。
+2. `pnpm build`を実行する。新しいブラウザープロファイルで、生成した`dist/PDF編集.html`を直接開く。開発サーバーの起動は不要。
 3. DevToolsのNetworkでオフラインにし、キャッシュを無効にして再読み込みする。起動メッセージが表示され、外部URLや別ファイルのリクエストが発生しないことを確認する。
 4. PDF機能の追加後は、既知の合成PDFで読み込み・操作・保存も確認する。オフラインで起動できただけで、PDF機能の受入完了とはしない。
 
-Playwright CLIでも専用セッションの新しいコンテキストを使って確認できます。リポジトリの絶対パスを指定します。WindowsのURLは`file:///C:/.../dist/index.html`の形式です。
+Playwright CLIでも専用セッションの新しいコンテキストを使って確認できます。リポジトリの絶対パスを指定します。WindowsのURLは`file:///C:/.../dist/PDF編集.html`の形式です。
 
 ```sh
 pnpm exec playwright-cli -s=pdf-edit-offline open --browser=chrome --config=tests/browser-file.config.json
-pnpm exec playwright-cli -s=pdf-edit-offline goto file:///絶対パス/pdf-edit/dist/index.html
+pnpm exec playwright-cli -s=pdf-edit-offline goto file:///絶対パス/pdf-edit/dist/PDF編集.html
 pnpm exec playwright-cli -s=pdf-edit-offline snapshot
 pnpm exec playwright-cli -s=pdf-edit-offline console
 pnpm exec playwright-cli -s=pdf-edit-offline requests --static
 pnpm exec playwright-cli -s=pdf-edit-offline close
 ```
 
-この専用設定は新しいプロファイル・オフライン状態で起動します。CLIは標準で`file://`を拒否するため、この確認時に限って`allowUnrestrictedFileAccess`を有効にしています。対象は自分でビルドした`dist/index.html`とし、通常のWeb閲覧にはこの設定を使いません。操作対象のURLと結果を記録してください。
+この専用設定は新しいプロファイル・オフライン状態で起動します。CLIは標準で`file://`を拒否するため、この確認時に限って`allowUnrestrictedFileAccess`を有効にしています。対象は自分でビルドした`dist/PDF編集.html`とし、通常のWeb閲覧にはこの設定を使いません。操作対象のURLと結果を記録してください。
 
 ## 環境構築時点（2026年9月19日）
 
@@ -101,7 +103,7 @@ Viteビルドでは、EmbedPDF modelsのNode.js向け`crypto`をブラウザー�
 
 ### 残る受入確認
 
-1. 新規プロファイルのChrome・Edgeで`dist/index.html`を直接開き、キャッシュを無効にしネット接続なしで、日本語PDFの読み込みから編集・抽出・保存まで行う。Networkで外部URLや別ファイルへのリクエストがないことを確認する。
+1. 新規プロファイルのChrome・Edgeで`dist/PDF編集.html`を直接開き、キャッシュを無効にしネット接続なしで、日本語PDFの読み込みから編集・抽出・保存まで行う。Networkで外部URLや別ファイルへのリクエストがないことを確認する。
 2. Mac・Windowsでファイル選択・ドラッグ＆ドロップ・ページのドラッグ移動、JPEG・個別PNG・テキスト保存、ダウンロードのキャンセル、小さいウィンドウとキーボード操作を確認する。
 3. 保存したPDFを別のPDF閲覧ソフトで開き、混在サイズ、CropBox、縦横回転、注釈、フォームを含む文書の見た目とページ構成を照合する。
 4. 画像の透過・マスク・色空間、グループを含むPDF、大容量・多数ページの処理時間とメモリ使用量を確認し、対応範囲の記述と実際が一致しているか見直す。
@@ -125,3 +127,11 @@ PDFのダウンロード開始時に保存済みとする処理を削除した�
 - `pnpm check`：整形・ESLint・型検査・配布用ビルド・Vitest 15件・差分の空白検査を通過。既知の`crypto`外部化の警告は継続。
 - 配布物は引き続き`dist/index.html`の1ファイル。ソースと配布HTMLのfaviconのdata URLが一致し、復号した内容がSVGとして解析できることを静的に確認した。
 - ブラウザーでのタブ表示、コンソール、通信履歴、`file://`・オフライン、Windows・Edge・CIは今回未確認。実機確認ではタブにアイコンが表示されること、faviconによるエラーや外部・別ファイルへの通信がないことを確認する。Playwrightは使用していない。
+
+## 配布ファイル名の変更（2026年9月19日）
+
+ビルド時に埋め込み済みのHTMLを`PDF編集.html`として出力するよう変更した。開発用の`index.html`は維持し、配布用の旧名ファイルは残さない。README、作業ガイド、検証手順、既存の配布物テストを新しい名前に合わせた。
+
+- `pnpm check`：整形・ESLint・型検査・配布用ビルド・Vitest 15件・差分の空白検査を通過。`dist/`が`PDF編集.html`の1ファイルだけであり、JavaScript・CSS・WASM・日本語フォント・Workerなどが引き続き埋め込まれることを確認した。既知の`crypto`外部化の警告は継続。
+- 一時的に`pnpm preview --port 4175`を起動し、日本語ファイル名をURLエンコードしたパスをHTTPで取得した。応答は200、Content-Typeは`text/html`で、内容が配布HTMLとバイト単位で一致した。サーバーは確認後に終了した。
+- ブラウザー操作、コンソール、実行時通信、`file://`・オフライン、Windows・Edge・CIは今回未確認。実機では、新しいファイル名で直接開き、faviconとPDF機能が動くことを確認する。Playwrightは使用していない。

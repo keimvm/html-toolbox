@@ -5,6 +5,23 @@ export default defineConfig({
   plugins: [
     viteSingleFile(),
     {
+      name: 'distribution-filename',
+      apply: 'build',
+      enforce: 'post',
+      generateBundle(_options, bundle) {
+        const html = bundle['index.html'];
+        if (!html || html.type !== 'asset') {
+          this.error('配布用のHTMLが生成されませんでした。');
+        }
+        this.emitFile({
+          type: 'asset',
+          fileName: 'PDF編集.html',
+          source: html.source,
+        });
+        delete bundle['index.html'];
+      },
+    },
+    {
       name: 'offline-distribution-policy',
       apply: 'build',
       transformIndexHtml() {

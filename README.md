@@ -6,7 +6,7 @@
 
 ## 使い方
 
-1. `pnpm build`で生成した`dist/index.html`をChromeかEdgeで開く。
+1. `pnpm build`で生成した`dist/PDF編集.html`をChromeかEdgeで開く。
 2. 「PDFを開く」かドラッグ＆ドロップで文書を読み込む。「サンプルで試す」では合成PDFを使用する。
 3. 左でページを選択し、回転・削除・ドラッグまたは矢印ボタンで並べ替える。「元に戻す」（⌘/Ctrl+Z）で直前の操作を取り消せる。
 4. 「PDFを追加」で別のPDFを末尾に結合する。複数ファイルも選択できる。
@@ -60,7 +60,7 @@ pnpm dev
 | コマンド            | 内容                                                     |
 | ------------------- | -------------------------------------------------------- |
 | `pnpm dev`          | 開発サーバーを起動                                       |
-| `pnpm build`        | 型検査後、`dist/index.html`を生成                        |
+| `pnpm build`        | 型検査後、`dist/PDF編集.html`を生成                      |
 | `pnpm preview`      | ビルド済みHTMLをHTTPで確認（127.0.0.1:4173）             |
 | `pnpm typecheck`    | ブラウザー用コードと開発用コードを型検査                 |
 | `pnpm lint`         | ESLintで検査。警告も失敗として扱う                       |
@@ -69,7 +69,9 @@ pnpm dev
 | `pnpm test`         | ビルドを作り直してVitestを実行                           |
 | `pnpm check`        | 整形・Lint・型・ビルド・テスト・差分の空白をまとめて検査 |
 
-`dist/`は生成物としてGit管理から除外しています。配布するファイルは`pnpm build`で生成する`dist/index.html`だけです。起動確認には、このファイルをChromeまたはEdgeで直接開いてください。`preview`で表示できても、`file://`での動作確認の代わりにはなりません。
+`dist/`は生成物としてGit管理から除外しています。配布するファイルは`pnpm build`で生成する`dist/PDF編集.html`だけです。起動確認には、このファイルをChromeまたはEdgeで直接開いてください。`preview`で表示できても、`file://`での動作確認の代わりにはなりません。
+
+開発用の入口は`index.html`のまま、ビルド時に配布ファイル名を`PDF編集.html`へ変更します。`pnpm preview`で確認する場合は[PDF編集.html](http://127.0.0.1:4173/PDF編集.html)を開いてください。
 
 ## 構成
 
