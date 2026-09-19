@@ -88,16 +88,16 @@ pnpm dev
 
 ## 配布版の公開
 
-公開するコミットに`v`で始まるタグを付けてGitHubへpushすると、[Releaseワークフロー](.github/workflows/release.yml)が`pnpm check`を実行し、生成したHTMLをGitHub Releasesへ添付します。たとえば、最初の配布版は次のように公開します。
+公開するコミットに`v`で始まるタグを付けてGitHubへpushすると、[Releaseワークフロー](.github/workflows/release.yml)が`pnpm check`を実行し、生成したHTMLをGitHub Releasesへ添付します。次の例のタグは、公開する版に合わせて変更してください。
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 GitHubでは添付ファイル名が補正されることがあるため、`dist/PDF編集.html`を内容を変えずに`pdf-edit.html`という名前で添付します。[GitHubのファイル名に関する仕様](https://docs.github.com/en/rest/releases/assets#upload-a-release-asset)を参照してください。`dist/`は引き続きGit管理対象外です。
 
-公開したリリースをLatestに設定するため、READMEのダウンロードリンクは次の公開時もそのまま使えます。初回のリリースが成功するまでは、このリンクからダウンロードできません。リリース本文には試作版であることと、未確認の環境を記載します。
+公開したリリースをLatestに設定するため、READMEのダウンロードリンクは次の公開時もそのまま使えます。リリース本文には試作版であることと、未確認の環境を記載します。
 
 ## 構成
 
