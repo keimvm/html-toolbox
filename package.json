@@ -31,5 +31,11 @@
     "vite": "8.3.0",
     "vite-plugin-singlefile": "2.3.3",
     "vitest": "5.0.1"
+  },
+  "dependencies": {
+    "@embedpdf/engines": "2.15.0",
+    "@embedpdf/fonts-jp": "1.0.0",
+    "@embedpdf/models": "2.15.0",
+    "@embedpdf/pdfium": "2.15.0"
   }
 }
