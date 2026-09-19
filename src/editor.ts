@@ -15,7 +15,7 @@ export class Editor {
   pages: EditorPage[] = [];
   selectedId = '';
   private history: Snapshot[] = [];
-  private savedSignature = '[]';
+  private initialSignature = '[]';
 
   get selected() {
     return this.pages.find((page) => page.id === this.selectedId);
@@ -30,14 +30,14 @@ export class Editor {
   }
 
   get changed() {
-    return JSON.stringify(this.pages) !== this.savedSignature;
+    return JSON.stringify(this.pages) !== this.initialSignature;
   }
 
   open(pages: EditorPage[]) {
     this.pages = structuredClone(pages);
     this.selectedId = pages[0]?.id ?? '';
     this.history = [];
-    this.markSaved();
+    this.initialSignature = JSON.stringify(this.pages);
   }
 
   select(id: string) {
@@ -99,9 +99,5 @@ export class Editor {
     this.pages = previous.pages;
     this.selectedId = previous.selectedId;
     return true;
-  }
-
-  markSaved() {
-    this.savedSignature = JSON.stringify(this.pages);
   }
 }

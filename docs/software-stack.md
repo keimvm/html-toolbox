@@ -92,6 +92,7 @@ ViteにはWorkerを埋め込む機能があり、EmbedPDFにはWebAssemblyのデ
 - Workerをインライン化し、PDFiumのWASMとNoto Sans JP Regularをdata URLとして埋め込む。バイナリは直接復号し、フォントは独自URLから取得せず、エンジンの公開`fontLoader`へ渡す。
 - 配布HTMLではCSPの`connect-src 'none'`などで外部通信を禁止する。開発サーバー向けのCSPとは分けている。
 - 保存形式は全ページのPDF、選択中ページのPNG・JPEG、個別画像のPNG、ページの文字のUTF-8テキスト。
+- ダウンロードの完了・キャンセルは確認できないため、変更状態は文書を開いた時点との差分として保持する。PDFのダウンロード後も、変更が残っていれば文書を閉じる・画面を離れる際の確認を維持する。
 
 ## 現在の状態と未決事項
 

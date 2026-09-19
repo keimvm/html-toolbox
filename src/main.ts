@@ -451,7 +451,7 @@ async function save() {
       });
     const outputName = `${cleaned.replace(/\.(pdf|png|jpe?g)$/i, '')}.${type.toLowerCase()}`;
     download(blob, outputName);
-    if (type === 'PDF') editor.markSaved();
+    // ダウンロードの完了・キャンセルは確認できないため、変更状態を保つ。
     notify(`${outputName} のダウンロードを開始しました。`);
   });
 }

@@ -48,15 +48,17 @@ test('回転・別PDFの結合・取り消しを連続して行える', () => {
   editor.undo();
   expect(editor.changed).toBe(false);
 });
-test('保存後の取り消しは未保存になり、保存内容に戻れば変更なしになる', () => {
+test('開いた時点から変更があるかを判定し、回転を一周すると変更なしに戻る', () => {
   const editor = open();
+  expect(editor.changed).toBe(false);
+  for (let index = 0; index < 3; index++) {
+    editor.rotate();
+    expect(editor.changed).toBe(true);
+  }
   editor.rotate();
-  editor.markSaved();
   expect(editor.changed).toBe(false);
   editor.undo();
   expect(editor.changed).toBe(true);
-  editor.rotate();
-  expect(editor.changed).toBe(false);
 });
 test('範囲外や同じ位置への移動は履歴も変更状態も増やさない', () => {
   const editor = open();
