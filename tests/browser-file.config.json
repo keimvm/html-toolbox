@@ -1,0 +1,10 @@
+{
+  "browser": {
+    "isolated": true,
+    "contextOptions": {
+      "offline": true
+    }
+  },
+  "allowUnrestrictedFileAccess": true,
+  "outputDir": "output/playwright"
+}
