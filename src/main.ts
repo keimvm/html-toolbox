@@ -5,6 +5,7 @@ import { PdfClient } from './pdf/client';
 import type { Inspection, PageElement } from './pdf/types';
 import type { PdfDocumentObject } from '@embedpdf/models';
 import { createSamplePdf } from './sample';
+import { currentPreviewPage } from './preview';
 import licenses from './licenses.txt?raw';
 
 function $<T extends HTMLElement = HTMLElement>(selector: string): T {
@@ -22,14 +23,23 @@ let inspecting = false;
 let kind = 'images';
 let inspection: Inspection | undefined;
 let selectedElement: number | undefined;
-let viewVersion = 0;
 let inspectorVersion = 0;
-let previewUrl: string | undefined;
 let imageUrl: string | undefined;
 const thumbnailUrls = new Map<string, string>();
 const thumbnailPending = new Set<string>();
 const input = $<HTMLInputElement>('#pc-file-input');
 const saveDialog = $<HTMLDialogElement>('#pc-save-dialog');
+const stage = $('.pc-stage');
+interface PreviewPage {
+  page: EditorPage;
+  element: HTMLElement;
+  paper: HTMLElement;
+  visible: boolean;
+  pending: boolean;
+  url?: string;
+}
+const previews = new Map<string, PreviewPage>();
+let selectedScrollTop: number | undefined;
 
 function notify(message: string) {
   $('#pc-notice').hidden = false;
@@ -91,6 +101,7 @@ async function task(message: string, operation: () => Promise<void>) {
   } finally {
     busy = false;
     updateControls();
+    syncPreviewSelection();
   }
 }
 function size(page: EditorPage) {
@@ -181,57 +192,168 @@ function renderPages() {
       .querySelector<HTMLButtonElement>(`[data-page="${editor.selectedId}"]`)
       ?.focus({ preventScroll: true });
 }
-function render() {
-  renderPages();
+function updateSelection() {
   updateControls();
   const page = editor.selected;
-  const version = ++viewVersion;
   inspectorVersion++;
   inspection = undefined;
   selectedElement = undefined;
+  document.querySelectorAll<HTMLElement>('[data-page]').forEach((button) => {
+    button.setAttribute(
+      'aria-pressed',
+      String(button.dataset.page === page?.id),
+    );
+  });
+  for (const preview of previews.values())
+    preview.element.setAttribute(
+      'aria-current',
+      preview.page.id === page?.id ? 'page' : 'false',
+    );
+  highlight();
   if (!page) return;
-  $('#pc-view-title').textContent = `${editor.selectedIndex + 1}ページ目`;
-  const dimensions = size(page);
-  $('#pc-paper-size').textContent =
-    `${Math.round((dimensions.width * 25.4) / 72)} × ${Math.round((dimensions.height * 25.4) / 72)} mm`;
   $('#pc-page-position').textContent =
     `${editor.selectedIndex + 1} / ${editor.pages.length}`;
-  const preview = $('#pc-preview');
-  preview.style.setProperty(
-    '--page-ratio',
-    String(dimensions.width / dimensions.height),
-  );
-  preview.style.aspectRatio = `${dimensions.width} / ${dimensions.height}`;
-  preview.classList.toggle(
-    'pc-landscape',
-    dimensions.width > dimensions.height,
-  );
-  preview.innerHTML =
-    '<span class="pc-loading" role="status">ページを表示しています…</span>';
-  void pdf()
-    .call('render', {
-      page: { ...page },
-      scale: Math.min(2, 1600 / Math.max(dimensions.width, dimensions.height)),
-    })
-    .then((blob) => {
-      if (version !== viewVersion) return;
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      previewUrl = URL.createObjectURL(blob);
-      const image = document.createElement('img');
-      image.src = previewUrl;
-      image.alt = `${editor.selectedIndex + 1}ページ目のプレビュー`;
-      image.className = 'pc-rendered-page';
-      preview.replaceChildren(image);
-      highlight();
-    })
-    .catch((error: unknown) => {
-      if (version === viewVersion) {
-        preview.textContent = 'ページを表示できませんでした。';
-        fail(error);
-      }
-    });
   if (inspecting) void loadInspection();
 }
+function scrollToSelectedPreview() {
+  const preview = previews.get(editor.selectedId);
+  if (!preview) return;
+  stage.scrollTop +=
+    preview.element.getBoundingClientRect().top -
+    stage.getBoundingClientRect().top -
+    parseFloat(getComputedStyle(stage).paddingTop);
+  // 末尾で位置が制限されても、一覧や送りボタンで選んだページを保つ。
+  selectedScrollTop = stage.scrollTop;
+}
+function selectPage(id: string, scroll = true) {
+  if (id !== editor.selectedId) {
+    editor.select(id);
+    updateSelection();
+    const button = document.querySelector<HTMLElement>(`[data-page="${id}"]`);
+    if (button) {
+      const rail = $('.pc-rail');
+      const bounds = button.getBoundingClientRect();
+      const railBounds = rail.getBoundingClientRect();
+      if (bounds.top < railBounds.top)
+        rail.scrollTop += bounds.top - railBounds.top;
+      else if (bounds.bottom > railBounds.bottom)
+        rail.scrollTop += bounds.bottom - railBounds.bottom;
+      const pages = $('#pc-pages');
+      const pagesBounds = pages.getBoundingClientRect();
+      if (bounds.left < pagesBounds.left)
+        pages.scrollLeft += bounds.left - pagesBounds.left;
+      else if (bounds.right > pagesBounds.right)
+        pages.scrollLeft += bounds.right - pagesBounds.right;
+    }
+  }
+  if (scroll) scrollToSelectedPreview();
+}
+function clearPreviewImage(preview: PreviewPage) {
+  if (preview.url) URL.revokeObjectURL(preview.url);
+  preview.url = undefined;
+  preview.paper.innerHTML =
+    '<span class="pc-loading">ページを表示しています…</span>';
+}
+const previewObserver = new IntersectionObserver(
+  (entries) => {
+    for (const entry of entries) {
+      const id = (entry.target as HTMLElement).dataset.previewPage!;
+      const preview = previews.get(id);
+      if (!preview || preview.element !== entry.target) continue;
+      preview.visible = entry.isIntersecting;
+      if (preview.visible) void loadPreview(preview);
+      else clearPreviewImage(preview);
+    }
+  },
+  { root: stage, rootMargin: '600px 0px' },
+);
+async function loadPreview(preview: PreviewPage) {
+  if (preview.url || preview.pending) return;
+  preview.pending = true;
+  try {
+    const dimensions = size(preview.page);
+    const blob = await pdf().call('render', {
+      page: preview.page,
+      scale: Math.min(2, 1600 / Math.max(dimensions.width, dimensions.height)),
+    });
+    if (previews.get(preview.page.id) !== preview || !preview.visible) return;
+    preview.url = URL.createObjectURL(blob);
+    const image = document.createElement('img');
+    image.src = preview.url;
+    image.alt = preview.element.getAttribute('aria-label')! + 'のプレビュー';
+    image.className = 'pc-rendered-page';
+    preview.paper.replaceChildren(image);
+    if (preview.page.id === editor.selectedId) highlight();
+  } catch (error) {
+    if (previews.get(preview.page.id) === preview && preview.visible) {
+      preview.paper.textContent = 'ページを表示できませんでした。';
+      fail(error);
+    }
+  } finally {
+    preview.pending = false;
+  }
+}
+function render() {
+  renderPages();
+  previewObserver.disconnect();
+  for (const preview of previews.values()) clearPreviewImage(preview);
+  previews.clear();
+  const fragment = document.createDocumentFragment();
+  editor.pages.forEach((page, index) => {
+    const dimensions = size(page);
+    const element = document.createElement('section');
+    element.className = 'pc-preview-page';
+    element.dataset.previewPage = page.id;
+    element.setAttribute('aria-label', `${index + 1}ページ目`);
+    const meta = document.createElement('div');
+    meta.className = 'pc-view-meta';
+    meta.innerHTML = `<span>${index + 1}ページ目</span><span>${Math.round((dimensions.width * 25.4) / 72)} × ${Math.round((dimensions.height * 25.4) / 72)} mm</span>`;
+    const paper = document.createElement('div');
+    paper.className = 'pc-preview';
+    paper.style.aspectRatio = `${dimensions.width} / ${dimensions.height}`;
+    element.append(meta, paper);
+    const preview: PreviewPage = {
+      page: { ...page },
+      element,
+      paper,
+      visible: false,
+      pending: false,
+    };
+    clearPreviewImage(preview);
+    previews.set(page.id, preview);
+    fragment.append(element);
+  });
+  stage.replaceChildren(fragment);
+  updateSelection();
+  scrollToSelectedPreview();
+  for (const preview of previews.values())
+    previewObserver.observe(preview.element);
+}
+let scrollFrame = 0;
+function syncPreviewSelection() {
+  if (busy || !editor.pages.length) return;
+  if (stage.scrollTop === selectedScrollTop) return;
+  selectedScrollTop = undefined;
+  const entries = [...previews.values()];
+  const index = currentPreviewPage(
+    entries.map((preview) => preview.element.getBoundingClientRect()),
+    stage.getBoundingClientRect(),
+    stage.scrollTop > 0 &&
+      stage.scrollTop + stage.clientHeight >= stage.scrollHeight - 1,
+  );
+  const preview = entries[index];
+  if (preview) selectPage(preview.page.id, false);
+}
+stage.addEventListener('scroll', () => {
+  if (scrollFrame) return;
+  scrollFrame = requestAnimationFrame(() => {
+    scrollFrame = 0;
+    syncPreviewSelection();
+  });
+});
+new ResizeObserver(() => {
+  scrollToSelectedPreview();
+}).observe(stage);
 async function loadInspection() {
   const page = editor.selected;
   if (!page) return;
@@ -333,6 +455,7 @@ async function showImage(element: PageElement) {
 }
 function highlight() {
   document.querySelector('.pc-element-highlight')?.remove();
+  const preview = previews.get(editor.selectedId)?.paper;
   const element = inspection?.elements.find(
     (element) => element.index === selectedElement,
   );
@@ -340,7 +463,7 @@ function highlight() {
     !element ||
     !inspecting ||
     kind === 'text' ||
-    !document.querySelector('.pc-rendered-page')
+    !preview?.querySelector('.pc-rendered-page')
   )
     return;
   const box = document.createElement('div');
@@ -350,7 +473,7 @@ function highlight() {
   box.style.top = `${element.bounds.y * 100}%`;
   box.style.width = `${element.bounds.width * 100}%`;
   box.style.height = `${element.bounds.height * 100}%`;
-  $('#pc-preview').append(box);
+  preview.append(box);
 }
 function toggleInspector(open: boolean) {
   inspecting = open;
@@ -462,9 +585,12 @@ async function closeDocument() {
   )
     return;
   await task('文書を閉じています…', async () => {
-    viewVersion++;
     inspectorVersion++;
     thumbnailObserver.disconnect();
+    previewObserver.disconnect();
+    for (const preview of previews.values()) clearPreviewImage(preview);
+    previews.clear();
+    stage.replaceChildren();
     for (const id of sources.keys()) await pdf().call('close', { id });
     sources.clear();
     editor.open([]);
@@ -472,10 +598,8 @@ async function closeDocument() {
     inspection = undefined;
     thumbnailUrls.forEach((url) => URL.revokeObjectURL(url));
     thumbnailUrls.clear();
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (imageUrl) URL.revokeObjectURL(imageUrl);
-    previewUrl = imageUrl = undefined;
-    $('#pc-preview').replaceChildren();
+    imageUrl = undefined;
     $('#pc-inspector-content').replaceChildren();
     $('#pc-notice').hidden = true;
     render();
@@ -489,11 +613,14 @@ function move(id: string, target: number) {
 }
 
 $('#pdf-calm').addEventListener('click', (event) => {
+  const preview = (event.target as Element).closest<HTMLElement>(
+    '[data-preview-page]',
+  );
+  if (preview && !busy) selectPage(preview.dataset.previewPage!, false);
   const button = (event.target as Element).closest<HTMLButtonElement>('button');
   if (!button || button.disabled) return;
   if (button.dataset.page) {
-    editor.select(button.dataset.page);
-    render();
+    selectPage(button.dataset.page);
     return;
   }
   if (button.dataset.kind) {
@@ -551,10 +678,7 @@ $('#pdf-calm').addEventListener('click', (event) => {
     case 'next': {
       const page =
         editor.pages[editor.selectedIndex + (action === 'previous' ? -1 : 1)];
-      if (page) {
-        editor.select(page.id);
-        render();
-      }
+      if (page) selectPage(page.id);
       break;
     }
     case 'inspect':
@@ -703,18 +827,5 @@ document.addEventListener('keydown', (event) => {
 window.addEventListener('beforeunload', (event) => {
   if (editor.changed || busy) event.preventDefault();
 });
-// 通知やパネルで表示領域が変わっても、ページと送りボタンが収まる大きさにする。
-const stage = $('.pc-stage');
-new ResizeObserver(() => {
-  const style = getComputedStyle(stage);
-  const available =
-    stage.clientHeight -
-    parseFloat(style.paddingTop) -
-    parseFloat(style.paddingBottom) -
-    $('.pc-view-meta').offsetHeight -
-    $('.pc-pager').offsetHeight -
-    2 * parseFloat(style.rowGap);
-  stage.style.setProperty('--preview-height', `${Math.max(160, available)}px`);
-}).observe(stage);
 renderIcons();
 updateControls();

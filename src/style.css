@@ -305,32 +305,27 @@ button {
 }
 #pdf-calm .pc-stage {
   padding: 22px 32px 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  min-height: 594px;
 }
 #pdf-calm .pc-view-meta {
   display: flex;
   justify-content: space-between;
-  width: min(100%, 368px);
+  width: 100%;
   color: var(--pc-muted);
   font-size: 11px;
 }
 #pdf-calm .pc-preview {
-  width: min(100%, 368px);
+  width: 100%;
   aspect-ratio: 210 / 297;
   position: relative;
-}
-#pdf-calm .pc-preview.pc-landscape {
-  width: min(100%, 490px);
-  aspect-ratio: 297 / 210;
-  margin-block: 40px;
 }
 #pdf-calm .pc-pager {
   display: flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 8px 16px;
+  background: var(--pc-surface);
+  border-top: 1px solid var(--pc-line);
   gap: 15px;
   color: var(--pc-muted);
   font-size: 12px;
@@ -780,23 +775,29 @@ button {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   padding: 24px 28px 16px;
 }
-#pdf-calm .pc-preview,
-#pdf-calm .pc-preview.pc-landscape {
-  width: min(
-    100%,
-    max(220px, calc(var(--preview-height, 480px) * var(--page-ratio, 0.707)))
-  );
-  margin: 0;
-  flex-shrink: 0;
+#pdf-calm .pc-preview-page {
+  width: min(100%, 760px);
+  margin: 0 auto 28px;
+}
+#pdf-calm .pc-preview-page:last-child {
+  margin-bottom: 0;
+}
+#pdf-calm .pc-preview-page[aria-current='page'] .pc-view-meta {
+  color: var(--pc-accent);
+  font-weight: 600;
+}
+#pdf-calm .pc-preview {
   background: white;
   box-shadow:
     0 3px 5px #1e352013,
     0 18px 38px #1e35200c;
 }
 #pdf-calm .pc-view-meta {
-  width: min(100%, 560px);
+  margin-bottom: 12px;
 }
 #pdf-calm .pc-rendered-page {
   display: block;
@@ -907,12 +908,11 @@ button {
     min-height: 100dvh;
     height: auto;
   }
-  #pdf-calm .pc-stage {
-    overflow: visible;
+  #pdf-calm .pc-viewer {
+    height: max(360px, 75dvh);
   }
-  #pdf-calm .pc-preview,
-  #pdf-calm .pc-preview.pc-landscape {
-    width: min(100%, 480px);
+  #pdf-calm .pc-rail {
+    max-height: 75dvh;
   }
   #pdf-calm .pc-workbench {
     min-height: 60dvh;

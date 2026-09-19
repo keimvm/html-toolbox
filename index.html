@@ -91,7 +91,7 @@
               </button>
             </div>
           </aside>
-          <main class="pc-viewer" aria-label="選択中のページ">
+          <main class="pc-viewer" aria-label="PDFプレビュー">
             <div class="pc-toolbar">
               <div class="pc-tools">
                 <button type="button" class="pc-button" data-action="rotate">
@@ -126,30 +126,29 @@
                 <i data-lucide="scan-text" aria-hidden="true"></i>画像・文字
               </button>
             </div>
-            <div class="pc-stage">
-              <div class="pc-view-meta">
-                <span id="pc-view-title">2ページ目</span
-                ><span id="pc-paper-size">A4・縦</span>
-              </div>
-              <div class="pc-preview" id="pc-preview"></div>
-              <div class="pc-pager">
-                <button
-                  type="button"
-                  class="pc-button pc-icon-button"
-                  data-action="previous"
-                  aria-label="前のページ"
-                >
-                  <i data-lucide="chevron-left" aria-hidden="true"></i></button
-                ><span id="pc-page-position">2 / 4</span
-                ><button
-                  type="button"
-                  class="pc-button pc-icon-button"
-                  data-action="next"
-                  aria-label="次のページ"
-                >
-                  <i data-lucide="chevron-right" aria-hidden="true"></i>
-                </button>
-              </div>
+            <div
+              class="pc-stage"
+              role="region"
+              aria-label="ページをスクロールして読む"
+              tabindex="0"
+            ></div>
+            <div class="pc-pager">
+              <button
+                type="button"
+                class="pc-button pc-icon-button"
+                data-action="previous"
+                aria-label="前のページ"
+              >
+                <i data-lucide="chevron-left" aria-hidden="true"></i></button
+              ><span id="pc-page-position">2 / 4</span
+              ><button
+                type="button"
+                class="pc-button pc-icon-button"
+                data-action="next"
+                aria-label="次のページ"
+              >
+                <i data-lucide="chevron-right" aria-hidden="true"></i>
+              </button>
             </div>
           </main>
           <aside
