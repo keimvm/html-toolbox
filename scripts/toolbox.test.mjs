@@ -9,6 +9,7 @@ import {
   decorateToolHtml,
   checkTools,
   collect,
+  iconDataUrl,
   isValidVersion,
   packageRelease,
   readTools,
@@ -56,11 +57,14 @@ test('リポジトリの tools.json は有効で、各フォルダがある', as
 const homeSlot = '<template id="toolbox-home"></template>';
 const toolHtml = (text) => `<html><body><header>${homeSlot}<h1>${text}</h1></header></body></html>`;
 
+const homeLink =
+  '<a id="toolbox-home" class="tb-button tb-icon-button" href="../index.html" aria-label="トップへ戻る" title="トップへ戻る"></a>';
+
 test('トップへのリンクは指定位置に入り、版番号は最後の </body> の直前に入る', () => {
   const html = toolHtml('PDF編集').replace('</header>', '</header><script>"</body>"</script><p>x</p>');
   const result = decorateToolHtml(html, '2026.09.26');
-  assert.ok(result.includes('<header><a id="toolbox-home" class="tb-button" href="../index.html">'));
-  assert.ok(result.includes('トップへ戻る</a><h1>PDF編集</h1>'));
+  // 文言は表示せず、アイコン（ui/theme.css）と読み上げ名・ツールチップだけにする。
+  assert.ok(result.includes(`<header>${homeLink}<h1>PDF編集</h1>`));
   assert.ok(result.includes('<script>"</body>"</script><p>x</p><style>'));
   assert.ok(result.endsWith('>toolbox 2026.09.26</div></body></html>'));
   assert.equal(result.includes(homeSlot), false);
@@ -83,13 +87,16 @@ test('配布加工はトップへのリンクの挿入位置の不足・重複�
   );
 });
 
-test('入口ページに一覧・版番号・注意書きと共通の配色・切り替えが入り、外部を読み込まない', async () => {
+test('入口ページにカードの一覧・版番号・注意書きと共通の配色・切り替えが入り、外部を読み込まない', async () => {
   const theme = await readFile(new URL('../ui/theme.css', import.meta.url), 'utf8');
   const themeToggle = await readFile(new URL('../ui/theme-toggle.js', import.meta.url), 'utf8');
+  const icon = iconDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox='0 0 32 32'></svg>\n`);
+  assert.equal(icon.startsWith('data:image/svg+xml,%3Csvg'), true);
+  assert.equal(icon.endsWith('%3C%2Fsvg%3E'), true);
   const html = renderIndex(
     [
-      { dir: 'a-tool', name: '<ツールA>', description: '説明 & 注意' },
-      { dir: 'b.tool', name: 'ツールB', description: '説明B' },
+      { dir: 'a-tool', name: '<ツールA>', description: '説明 & 注意', icon },
+      { dir: 'b.tool', name: 'ツールB', description: '説明B', icon },
     ],
     '2026.09.26.2',
     { theme, themeToggle },
@@ -99,7 +106,8 @@ test('入口ページに一覧・版番号・注意書きと共通の配色・�
   assert.ok(html.includes('class="tb-button tb-icon-button tb-theme-toggle"'));
   assert.ok(html.includes('<strong>2026.09.26.2</strong>'));
   assert.ok(html.includes('Chrome または Edge で開いてください'));
-  assert.ok(html.includes('href="tools/a-tool.html"'));
+  assert.ok(html.includes('<a class="card" href="tools/a-tool.html">'));
+  assert.ok(html.includes(`<img class="icon" src="${icon.replaceAll("'", '&#39;')}" alt="">`));
   assert.ok(html.includes('&lt;ツールA&gt;'));
   assert.ok(html.includes('説明 &amp; 注意'));
   assert.ok(html.indexOf('a-tool') < html.indexOf('b.tool'), 'tools.json の順に並ぶ');
@@ -124,6 +132,8 @@ async function fixture(t) {
     );
     await writeFile(join(cwd, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n');
     await writeFile(join(cwd, '.node-version'), '24.21.0\n');
+    await mkdir(join(cwd, 'src'));
+    await writeFile(join(cwd, 'src', 'icon.svg'), `<svg><title>${dir}</title></svg>\n`);
     await writeFile(join(cwd, 'dist', '配布.html'), toolHtml(dir));
   }
   return root;
@@ -142,6 +152,8 @@ test('ツールの設定漏れは依存取得の前に検出する', async (t) =
   await writeFile(join(cwd, '.node-version'), 'lts/*');
   await assert.rejects(readTools(root), /Node.js/);
   await writeFile(join(cwd, '.node-version'), '24.21.0');
+  await rm(join(cwd, 'src', 'icon.svg'));
+  await assert.rejects(readTools(root), /icon.svg/);
   await rm(join(cwd, 'pnpm-lock.yaml'));
   await assert.rejects(readTools(root), /pnpm-lock.yaml/);
 });
@@ -228,13 +240,17 @@ test('全ツールの zip に戻るリンクと版番号を追加し、登録順
   assert.ok(entries.every((name) => /^[A-Za-z0-9./-]+$/.test(name)));
   const index = await readFile(join(target, 'index.html'), 'utf8');
   assert.ok(index.indexOf('alpha.html') < index.indexOf('beta.html'));
+  // カードのアイコンは各ツールの src/icon.svg を埋め込む。
+  for (const dir of ['alpha', 'beta']) {
+    assert.ok(index.includes(`src="${iconDataUrl(`<svg><title>${dir}</title></svg>`)}"`));
+  }
   for (const dir of ['alpha', 'beta']) {
     const html = await readFile(join(target, 'tools', `${dir}.html`), 'utf8');
     assert.ok(html.includes(`最新 ${dir}`));
     assert.equal(html.match(/id="toolbox-version"/g).length, 1);
-    assert.equal(html.match(/<a id="toolbox-home" class="tb-button" href="\.\.\/index.html">/g).length, 1);
+    assert.equal(html.split(homeLink).length, 2);
     assert.equal(html.includes(homeSlot), false);
-    const homeHref = /<a id="toolbox-home" class="tb-button" href="([^"]+)">/.exec(html)[1];
+    const homeHref = /<a id="toolbox-home" [^>]*href="([^"]+)"/.exec(html)[1];
     const toolUrl = pathToFileURL(join(target, 'tools', `${dir}.html`));
     assert.equal(new URL(homeHref, toolUrl).href, pathToFileURL(join(target, 'index.html')).href);
     assert.ok(html.includes('toolbox 2026.09.26'));

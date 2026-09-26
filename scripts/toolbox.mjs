@@ -49,7 +49,7 @@ export async function readTools(rootDir = root) {
   const tools = validateTools(JSON.parse(await readFile(join(rootDir, 'tools.json'), 'utf8')));
   for (const { dir } of tools) {
     const toolDir = join(rootDir, 'tools', dir);
-    for (const file of ['package.json', 'pnpm-lock.yaml', '.node-version']) {
+    for (const file of ['package.json', 'pnpm-lock.yaml', '.node-version', 'src/icon.svg']) {
       const info = await stat(join(toolDir, file)).catch(() => null);
       if (!info?.isFile()) {
         throw new Error(`tools/${dir}/${file} がありません。`);
@@ -101,7 +101,7 @@ export function escapeHtml(text) {
 }
 
 /**
- * 配布用のHTMLにトップへのリンクと右下の版番号を追加する。
+ * 配布用のHTMLにトップへのリンク（ホームのアイコン）と右下の版番号を追加する。
  * リンクの見た目はツールが読み込む ui/theme.css の共通ヘッダーに従う。版番号は配色の指定（ライト・ダーク）に従う。
  */
 export function decorateToolHtml(html, version) {
@@ -112,7 +112,7 @@ export function decorateToolHtml(html, version) {
   }
   html = html.replace(
     homeSlot,
-    '<a id="toolbox-home" class="tb-button" href="../index.html"><span aria-hidden="true">←</span> トップへ戻る</a>',
+    '<a id="toolbox-home" class="tb-button tb-icon-button" href="../index.html" aria-label="トップへ戻る" title="トップへ戻る"></a>',
   );
   const end = html.lastIndexOf('</body>');
   if (end === -1) {
@@ -128,14 +128,22 @@ export function decorateToolHtml(html, version) {
   return html.slice(0, end) + badge + html.slice(end);
 }
 
-/** theme は ui/theme.css、themeToggle は ui/theme-toggle.js の内容。 */
+/** ツールの src/icon.svg を入口ページに埋め込む data URL にする。 */
+export function iconDataUrl(svg) {
+  return `data:image/svg+xml,${encodeURIComponent(svg.trim())}`;
+}
+
+/**
+ * tools の各要素は tools.json の内容に、icon（iconDataUrl の結果）を加えたもの。
+ * theme は ui/theme.css、themeToggle は ui/theme-toggle.js の内容。
+ */
 export function renderIndex(tools, version, { theme, themeToggle }) {
   const v = escapeHtml(version);
   const items = tools
     .map(
       (tool) => `      <li>
-        <a href="tools/${escapeHtml(tool.dir)}.html">
-          <span class="name">${escapeHtml(tool.name)}</span>
+        <a class="card" href="tools/${escapeHtml(tool.dir)}.html">
+          <span class="card-title"><img class="icon" src="${escapeHtml(tool.icon)}" alt=""><span class="name">${escapeHtml(tool.name)}</span></span>
           <span class="description">${escapeHtml(tool.description)}</span>
         </a>
       </li>`,
@@ -157,7 +165,7 @@ ${theme}
         color: var(--tb-ink);
         font: 15px/1.7 var(--tb-font);
       }
-      main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+      main { max-width: 960px; margin: 0 auto; padding: 32px 16px 48px; }
       header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
       h1 { margin: 0; font-size: 26px; letter-spacing: .02em; }
       .meta { display: flex; align-items: center; gap: 8px; }
@@ -170,18 +178,32 @@ ${theme}
         border-radius: var(--tb-radius);
         background: var(--tb-warning-tint);
       }
-      ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-      li a {
-        display: block;
-        padding: 16px 18px;
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+        gap: 16px;
+      }
+      li { display: flex; }
+      .card {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 18px;
         border: 1px solid var(--tb-line);
         border-radius: var(--tb-radius-large);
         background: var(--tb-surface);
         color: inherit;
         text-decoration: none;
+        transition: border-color .15s, box-shadow .15s;
       }
-      li a:hover { border-color: var(--tb-accent); }
-      .name { display: block; color: var(--tb-accent); font-weight: 700; font-size: 17px; }
+      .card:hover { border-color: var(--tb-accent); box-shadow: 0 4px 16px var(--tb-shadow); }
+      .card-title { display: flex; align-items: center; gap: 12px; }
+      .icon { width: 40px; height: 40px; flex: none; }
+      .name { color: var(--tb-accent); font-weight: 700; font-size: 17px; }
       .description { display: block; color: var(--tb-muted); }
     </style>
     <script type="module">
@@ -242,18 +264,22 @@ export async function packageRelease(version, rootDir = root) {
   await rm(`${target}.zip`, { force: true });
   await mkdir(join(target, 'tools'), { recursive: true });
 
-  for (const { dir } of tools) {
+  const cards = [];
+  for (const tool of tools) {
+    const { dir } = tool;
     const source = join(buildDir, `${dir}.html`);
     const html = await readFile(source, 'utf8').catch(() => {
       throw new Error(`build/${dir}.html がありません。先に collect を実行してください。`);
     });
     await writeFile(join(target, 'tools', `${dir}.html`), decorateToolHtml(html, version));
+    const icon = await readFile(join(rootDir, 'tools', dir, 'src', 'icon.svg'), 'utf8');
+    cards.push({ ...tool, icon: iconDataUrl(icon) });
   }
   const [theme, themeToggle] = await Promise.all([
     readFile(themePath, 'utf8'),
     readFile(themeTogglePath, 'utf8'),
   ]);
-  await writeFile(join(target, 'index.html'), renderIndex(tools, version, { theme, themeToggle }));
+  await writeFile(join(target, 'index.html'), renderIndex(cards, version, { theme, themeToggle }));
 
   // -X でOS固有の拡張属性を入れない。中の名前は英数字だけなので文字コードの問題は起きない。
   execFileSync('zip', ['-qrX', `${name}.zip`, name], { cwd: outDir, stdio: 'inherit' });

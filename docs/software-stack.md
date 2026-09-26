@@ -40,7 +40,7 @@ ui/                  ← 全ツールと入口ページで共通の配色・部�
 - 通常は Git の差分から、変更した登録済みツールだけを Linux・macOS・Windows で検証する。直下と各ツールの README・AGENTS.md・docs だけの変更ではツールのビルドを省略する。ツール一覧・共通スクリプト・ワークフローなどの変更と手動実行は全ツールを検証する。
 - 差分は push では直前のコミットとの比較、PR ではベースとの分岐点からの比較を使う。改名・削除も対象とし、比較失敗を「変更なし」にはしない。
 - 通常 CI とリリースは `.github/workflows/tool.yml` を共用する。依存取得 → `pnpm check` → 単一 HTML の確認・収集まで同じ手順を実行し、リリース時だけ収集した HTML を artifact に保存する。[GitHub の再利用可能なワークフロー](https://docs.github.com/ja/actions/how-tos/reuse-automations/reuse-workflows)を使用する。
-- 一覧の読み込み時に packageManager・scripts.check・ロックファイル・Node.js の版指定を検査する。ツールの追加時にワークフローを編集する必要はない。
+- 一覧の読み込み時に packageManager・scripts.check・ロックファイル・Node.js の版指定・アイコン（`src/icon.svg`）を検査する。ツールの追加時にワークフローを編集する必要はない。
 - 直下スクリプトは Node.js の標準機能だけを使う。変更対象の選択や手元の一括実行のために、ルートの npm 依存や workspace は導入しない。
 - 手元では `node scripts/toolbox.mjs check [ツール名]` で依存取得から収集まで実行できる。`release <版>` は全ツールを作り直し、zip まで生成する。ローカルの Node.js は自動切り替えしない。
 
