@@ -178,3 +178,11 @@ READMEの冒頭に、GitHub Releasesの最新添付ファイル`pdf-edit.html`�
 - 配布対象コミット`8edd9ef`をmainへ反映し、`v0.1.0`タグで[Releaseワークフロー](https://github.com/keimvm/pdf-edit/actions/runs/35450221767)が成功。[mainのCheckワークフロー](https://github.com/keimvm/pdf-edit/actions/runs/35450221672)もLinux・macOS・Windowsの3 OSすべてで成功した。
 - [v0.1.0](https://github.com/keimvm/pdf-edit/releases/tag/v0.1.0)に`pdf-edit.html`（18,822,016バイト）を公開。GitHub APIでLatestがこの版を指し、READMEのリンクと同名の添付ファイルがあることを確認した。認証済みのGitHub CLIで再ダウンロードし、ローカルの`dist/PDF編集.html`とバイト単位で一致。両方のSHA-256は`6a291cade667600dfb5461820bfbfd4f863f702f35a9a7504c02ab9d8cdedd8e`。
 - ブラウザー操作、コンソール、実行時通信、配布HTMLの`file://`起動、完全オフライン、Windows・Edgeでの実機確認は今回未実施。公開後はREADMEのリンクからHTMLを保存し、既存のブラウザー確認手順を実施する。Playwrightは使用していない。
+
+## toolboxへの移動（2026年9月26日）
+
+`keimvm/pdf-edit`のmain（`88633c6`）を、履歴付きでtoolboxリポジトリの`tools/pdf-edit/`へ移した。単体のReleaseワークフローは外し、配布はtoolboxのzipに一本化した。CIはtoolbox直下のCheckワークフローが、Linux・macOS・Windowsで引き続き`pnpm check`を実行する。
+
+- `tools/pdf-edit/`でmacOS・Node.js 26.10.0・pnpm 12.4.2の`pnpm install --frozen-lockfile`と`pnpm check`を通過。Vitest **33件**を確認した。
+- toolboxのzipでは、`dist/PDF編集.html`を`tools/pdf-edit.html`へ名前を変え、画面右下に版番号を書き足す。localhostのHTTPで入口ページから開き、版番号の表示、サンプルPDFの読み込み、コンソールエラーがないことを確認した。
+- 配布HTMLの`file://`起動、完全オフライン、Windows・Edgeでの実機確認は未実施。版ごとに配置場所とファイル名が変わるため、ブラウザー内の復元データは版をまたいで引き継がれない見込み（未検証）。

@@ -1,0 +1,54 @@
+name: Check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tools: ${{ steps.list.outputs.tools }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: node --test 'scripts/*.test.mjs'
+      - id: list
+        run: echo "tools=$(node scripts/toolbox.mjs list)" >> "$GITHUB_OUTPUT"
+
+  tool:
+    needs: scripts
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: ${{ fromJSON(needs.scripts.outputs.tools) }}
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    name: ${{ matrix.tool }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tools/${{ matrix.tool }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: tools/${{ matrix.tool }}/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: tools/${{ matrix.tool }}/.node-version
+          cache: pnpm
+          cache-dependency-path: tools/${{ matrix.tool }}/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check

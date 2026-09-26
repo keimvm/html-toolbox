@@ -4,17 +4,15 @@
 
 ページ一覧・プレビュー・画像と文字の取り出しパネルを備えた試作版です。実際のPDFを読み込み、ページを編集して別のPDFに保存できます。PDFium・Worker・日本語フォントをHTML内に埋め込み、配布版ではCSPで外部通信も禁止します。`file://`・完全オフライン・Windows・Edgeでの受入は未完了です。
 
-## ダウンロード
+## 入手方法
 
-**[PDF編集をダウンロード（HTML）](https://github.com/keimvm/pdf-edit/releases/latest/download/pdf-edit.html)**
+toolboxの一部として配布します。toolboxのリリースに添付される`toolbox-<版>.zip`を解凍し、`index.html`の一覧から「PDF編集」を開いてください。配布の手順はリポジトリ直下の[README](../../README.md)を参照してください。
 
-保存した`pdf-edit.html`をChromeまたはEdgeで開くと使えます。インストールやビルドは不要です。Mac・Windows向けに同じファイルを配布します。
-
-[リリース一覧](https://github.com/keimvm/pdf-edit/releases)から過去の版も取得できます。リポジトリが非公開の場合は、アクセス権のあるGitHubアカウントでログインしてください。
+以前は単体の`pdf-edit.html`を[keimvm/pdf-edit](https://github.com/keimvm/pdf-edit/releases)のリリースで配布していました。toolboxへ移したあとは、単体では配布しません。
 
 ## 使い方
 
-1. 上のリンクからダウンロードしたHTMLをChromeかEdgeで開く。
+1. toolboxの`index.html`から「PDF編集」を開く。ChromeかEdgeを使う。
 2. 「PDFを開く」かドラッグ＆ドロップで文書を読み込む。「サンプルで試す」では合成PDFを使用する。
 3. 中央のプレビューを縦にスクロールして読み進める。表示位置に合わせて左のページ選択も切り替わる。左のページ一覧や下部の前後ボタンからも移動できる。上部の「−／＋」と倍率選択で25〜300%に拡大・縮小でき、「幅に合わせる」では表示領域に収める。拡大してはみ出した部分は横にもスクロールできる。
 4. 選択中のページを回転・削除・ドラッグまたは矢印ボタンで並べ替える。「元に戻す」（⌘/Ctrl+Z）で直前の操作を取り消せる。
@@ -56,7 +54,7 @@ brew install node@24 pnpm
 export PATH="$(brew --prefix node@24)/bin:$PATH"
 ```
 
-リポジトリ内で実行します。
+`tools/pdf-edit/`で実行します。
 
 ```sh
 pnpm install --frozen-lockfile
@@ -88,16 +86,7 @@ pnpm dev
 
 ## 配布版の公開
 
-公開するコミットに`v`で始まるタグを付けてGitHubへpushすると、[Releaseワークフロー](.github/workflows/release.yml)が`pnpm check`を実行し、生成したHTMLをGitHub Releasesへ添付します。次の例のタグは、公開する版に合わせて変更してください。
-
-```sh
-git tag v0.1.1
-git push origin v0.1.1
-```
-
-GitHubでは添付ファイル名が補正されることがあるため、`dist/PDF編集.html`を内容を変えずに`pdf-edit.html`という名前で添付します。[GitHubのファイル名に関する仕様](https://docs.github.com/en/rest/releases/assets#upload-a-release-asset)を参照してください。`dist/`は引き続きGit管理対象外です。
-
-公開したリリースをLatestに設定するため、READMEのダウンロードリンクは次の公開時もそのまま使えます。リリース本文には試作版であることと、未確認の環境を記載します。
+toolboxのリリースで公開します。リリースのワークフローが`pnpm check`を実行し、`dist/PDF編集.html`を`tools/pdf-edit.html`へ名前を変えてzipに入れます。その際、画面の右下にtoolboxの版番号を書き足します。`dist/`の中身や、このフォルダのファイルは変えません。
 
 ## 構成
 
@@ -106,8 +95,7 @@ GitHubでは添付ファイル名が補正されることがあるため、`dist
 | `src/`、`index.html`                             | TypeScript・HTML・CSSの画面コード                   |
 | `vite.config.ts`                                 | Viteとvite-plugin-singlefileによる配布用ビルド      |
 | `tests/`                                         | Vitest。ページ操作・実PDFの保存再読込・配布物を検査 |
-| `.github/workflows/check.yml`                    | Linux・macOS・Windowsで`pnpm check`を実行するCI     |
-| `.github/workflows/release.yml`                  | タグから検査・ビルドし、配布HTMLをReleasesへ添付    |
+| `../../.github/workflows/check.yml`              | Linux・macOS・Windowsで`pnpm check`を実行するCI     |
 | [AGENTS.md](AGENTS.md)                           | エージェント向けの作業手順と実装上の制約            |
 | [docs/software-stack.md](docs/software-stack.md) | 初版の合意範囲、技術候補、採用前の検証事項          |
 | [docs/RFP.md](docs/RFP.md)                       | 当初の目的と要望                                    |

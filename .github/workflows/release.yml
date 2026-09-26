@@ -1,0 +1,93 @@
+name: Release
+
+# GitHub の画面でリリースを公開すると、tools.json のツールを検査・ビルドし、
+# toolbox-<版>.zip をそのリリースに添付する。版番号はリリースのタグから取る。
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+env:
+  VERSION: ${{ github.event.release.tag_name }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tools: ${{ steps.list.outputs.tools }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: 版番号が日付形式か確認
+        run: node scripts/toolbox.mjs check-version "$VERSION"
+      - run: node --test 'scripts/*.test.mjs'
+      - id: list
+        run: echo "tools=$(node scripts/toolbox.mjs list)" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: true
+      matrix:
+        tool: ${{ fromJSON(needs.prepare.outputs.tools) }}
+    name: build ${{ matrix.tool }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: tools/${{ matrix.tool }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: tools/${{ matrix.tool }}/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: tools/${{ matrix.tool }}/.node-version
+          cache: pnpm
+          cache-dependency-path: tools/${{ matrix.tool }}/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: 検査とビルド
+        run: pnpm check
+      - name: ビルドしたHTMLを集める
+        working-directory: .
+        run: node scripts/toolbox.mjs collect "${{ matrix.tool }}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tool-${{ matrix.tool }}
+          path: build/${{ matrix.tool }}.html
+          if-no-files-found: error
+          retention-days: 7
+
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: tool-*
+          path: build
+          merge-multiple: true
+      - name: zipを作る
+        run: node scripts/toolbox.mjs package "$VERSION"
+      - name: zipをリリースに添付
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "$VERSION" "out/toolbox-$VERSION.zip" --clobber
