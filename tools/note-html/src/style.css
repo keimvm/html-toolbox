@@ -123,10 +123,6 @@ body {
   align-items: center;
   gap: 6px;
 }
-.folder-actions button {
-  min-height: 34px;
-  padding: 5px 10px;
-}
 .folder-actions .icon {
   width: 19px;
   height: 19px;

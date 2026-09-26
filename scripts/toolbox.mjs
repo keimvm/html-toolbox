@@ -15,6 +15,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 // 入口ページにも各ツールと同じ配色・部品と、配色の切り替えを使う。
 const themePath = new URL('../ui/theme.css', import.meta.url);
 const themeTogglePath = new URL('../ui/theme-toggle.js', import.meta.url);
+const toolboxIconPath = new URL('../ui/toolbox-icon.png', import.meta.url);
 
 const DIR_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*$/;
 
@@ -128,7 +129,7 @@ export function decorateToolHtml(html, version) {
   return html.slice(0, end) + badge + html.slice(end);
 }
 
-/** ツールの src/icon.png を入口ページに埋め込む data URL にする。 */
+/** PNG を HTML に埋め込む data URL にする。 */
 export function iconDataUrl(png) {
   return `data:image/png;base64,${png.toString('base64')}`;
 }
@@ -136,8 +137,9 @@ export function iconDataUrl(png) {
 /**
  * tools の各要素は tools.json の内容に、icon（iconDataUrl の結果）を加えたもの。
  * theme は ui/theme.css、themeToggle は ui/theme-toggle.js の内容。
+ * favicon は ui/toolbox-icon.png の data URL。
  */
-export function renderIndex(tools, version, { theme, themeToggle }) {
+export function renderIndex(tools, version, { theme, themeToggle, favicon }) {
   const v = escapeHtml(version);
   const items = tools
     .map(
@@ -158,6 +160,7 @@ export function renderIndex(tools, version, { theme, themeToggle }) {
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>toolbox ${v}</title>
+    <link rel="icon" type="image/png" href="${escapeHtml(favicon)}" />
     <style>
 ${theme}
       * { box-sizing: border-box; }
@@ -325,11 +328,14 @@ export async function packageRelease(version, rootDir = root) {
     const icon = await readFile(join(rootDir, 'tools', dir, 'src', 'icon.png'));
     cards.push({ ...tool, icon: iconDataUrl(icon) });
   }
-  const [theme, themeToggle] = await Promise.all([
+  const [theme, themeToggle, toolboxIcon] = await Promise.all([
     readFile(themePath, 'utf8'),
     readFile(themeTogglePath, 'utf8'),
+    readFile(toolboxIconPath),
   ]);
-  await writeFile(join(target, 'index.html'), renderIndex(cards, version, { theme, themeToggle }));
+  await writeFile(join(target, 'index.html'), renderIndex(cards, version, {
+    theme, themeToggle, favicon: iconDataUrl(toolboxIcon),
+  }));
 
   // -X でOS固有の拡張属性を入れない。中の名前は英数字だけなので文字コードの問題は起きない。
   execFileSync('zip', ['-qrX', `${name}.zip`, name], { cwd: outDir, stdio: 'inherit' });

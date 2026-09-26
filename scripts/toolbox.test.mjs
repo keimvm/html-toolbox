@@ -104,7 +104,7 @@ test('入口ページにカードの一覧・版番号と共通の配色・切�
       { dir: 'b.tool', name: 'ツールB', description: '説明B', icon },
     ],
     '2026.09.26.2',
-    { theme, themeToggle },
+    { theme, themeToggle, favicon: icon },
   );
   assert.ok(html.includes(theme));
   assert.ok(html.includes(themeToggle));

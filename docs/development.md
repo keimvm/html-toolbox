@@ -96,6 +96,7 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 - アイコンは各ツールの `src/icon.png`（128×128、角丸のエバーグリーン地にアイボリーの図柄と真鍮色の差し色）を正とし、ビルドで data URL として埋め込みます（PDF編集は Vite のアセット、ローカルノートは Node.js 標準の `Buffer.toString('base64')`）。favicon は `header.js` が同じ画像から設定するため、HTML に `link rel="icon"` を書きません。生成に使ったプロンプトと画像の処理は [favicon-prompts.md](favicon-prompts.md) に記録しています。
 - 部品は `:where()` で詳細度を 0 にしているため、ツールの CSS で余白などを上書きできます。逆に、ツールの CSS でボタン全体に `color` や `font` を指定すると部品の指定も打ち消すため、`:where(:not(.tb-button))` のように部品を除外してください。
 - 入口ページは `scripts/toolbox.mjs` が `theme.css` と `theme-toggle.js` を埋め込んで作り、版番号の右に切り替えボタンを置きます。ツールは `tools.json` の順にカードで並べ、カードには各ツールの `src/icon.png`（data URL）・表示名・説明を載せます。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
+- 入口ページ専用の favicon は `ui/toolbox-icon.png`（128×128、道具箱の図柄）です。`scripts/toolbox.mjs` が既存の `iconDataUrl()` で変換し、`link rel="icon"` に直接埋め込みます。配布物へ画像ファイルを追加せず、オフラインでも表示できます。
 - ローカルノートがエクスポートする HTML には本文用の `document.css` だけを入れるため、常にライトで出力されます。
 - メニューは `<button popovertarget="対象ID">` と `<div id="対象ID" popover="auto" class="tb-popover">` を組み合わせます。開閉・排他表示・外側クリック・Escape・展開状態の支援技術への通知は [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using)、配置は CSS のアンカー配置に任せます。`hidden` や `aria-expanded` に開閉状態を重複して保持しません。ローカルノートの Tab による閉鎖・操作後の閉鎖は固有処理として残します。
 - TypeScript からは同じ名前の `.d.ts` で型を参照します。Vite の開発サーバーでは、`server.fs.allow` に `../../ui` を加えます（PDF編集の `vite.config.ts`）。

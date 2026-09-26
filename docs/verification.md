@@ -1,5 +1,16 @@
 # toolbox の開発・リリース検証
 
+## ローカルノートのアイコン操作と toolbox favicon（2026年9月26日）
+
+ローカルノートのヘッダーの「フォルダを開く」「再読み込み」を既存の `.tb-icon-button` に揃え、表示文言を削除した。読み上げ名とツールチップは保持。入口ページには内蔵 image_gen で生成した `ui/toolbox-icon.png` を、既存の `iconDataUrl()` で favicon として埋め込んだ。
+
+- `node --test 'scripts/*.test.mjs' 'ui/*.test.mjs'`：25件成功。
+- `node scripts/toolbox.mjs release 2026.09.26`：全3ツールの検査・テスト・ビルド、収集と zip 作成に成功。PDFium 依存の既知の `crypto` 外部化警告は継続。
+- 入口ページの favicon の data URL を復号し、128×128の元 PNG とバイト単位で一致することを確認。`unzip -t` で zip の整合性を確認した。
+- Codex 内ブラウザーのローカル HTTP 表示で、ノートのヘッダーがアイコンのみになり、読み上げ名が「フォルダを開く」「再読み込み」として残ることを確認した。
+
+今回の変更について `file://`、完全オフライン、Windows・Edge の実機確認は未実施。Playwright スキル・CLIは使用していない。
+
 ## 案内文の削除と生成アイコンへの変更（2026年9月26日）
 
 入口ページのブラウザー案内と表示枠を削除し、見出しからカードまでの余白を調整した。内蔵 image_gen で PDF編集とローカルノートのアイコンを生成し、macOS 標準の `sips` で128×128の PNG に縮小。各ツールの `src/icon.png` を favicon・ヘッダー・入口カードに共用する。PNG は既存の Vite と Node.js 標準の Base64 変換で HTML に埋め込み、新しい依存は追加していない。[最終プロンプト](favicon-prompts.md)を記録した。
