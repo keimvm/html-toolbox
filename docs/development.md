@@ -10,7 +10,7 @@
 | ------------------------------- | -------------------------------------------------------------------------------- |
 | `tools.json`                    | zip に入れるツールの一覧。書いた順に入口ページへ並ぶ                             |
 | `tools/<フォルダ名>/`           | 各ツール。依存関係・ロックファイル・Node.js の版指定はツールごとに持つ           |
-| `scripts/toolbox.mjs`           | 一覧の検査、ビルド済み HTML の収集、入口ページの生成、版番号の書き足し、zip 作成 |
+| `scripts/toolbox.mjs`           | 一覧の検査、ビルド済み HTML の収集、入口ページの生成、戻るリンク・版番号の追加、zip 作成 |
 | `scripts/ci-tools.mjs`          | Git の差分から CI の検証対象を選ぶ |
 | `.github/workflows/check.yml`   | main への push・PR でスクリプトと変更対象のツールを検証（Linux・macOS・Windows） |
 | `.github/workflows/tool.yml`    | 通常 CI・リリース共通の依存取得・検証・ビルド・HTML 収集 |
@@ -67,6 +67,7 @@ Check は PR と main への push で動きます。作業ブランチへの pus
    - `package.json` の `packageManager` で pnpm の版（`pnpm@x.y.z`）を、`.node-version` で Node.js の版（`x.y.z`）を固定する。
    - `pnpm install --frozen-lockfile` で依存関係を取得できる。
    - `pnpm check` で検査とビルドを行い、`dist/` に外部を何も読み込まない HTML を1つだけ出力する。別のファイルやフォルダは残さない。
+   - ヘッダー左端、ツール名の手前に `<template id="toolbox-home"></template>` を1つ置く。ビルド後にもこの文字列を残し、画面が狭い場合はヘッダーを折り返せるようにする。
 3. `tools.json` に追加する。
 
 ```json
@@ -83,7 +84,9 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 
 追加後に `node scripts/toolbox.mjs check <フォルダ名>` を実行し、PR を作ります。ワークフローへのツール名の追記は不要です。`node scripts/toolbox.mjs list` で、一覧と必要な設定ファイルだけを素早く検査できます。単一 HTML に収まることは共通処理が検査しますが、外部通信や `file://` での動作は各ツールで検証してください。
 
-版番号は、zip を作るときに各ツールの `</body>` の直前へ、右下に固定表示する小さな要素（`#toolbox-version`、インラインの `<style>` 付き）として書き足します。ツールの CSP でインラインの style を許していない場合は表示されません。
+zip を作るときに、上記の空の `template` を「← トップへ戻る」のリンク（`#toolbox-home`、`href="../index.html"`）に置き換えます。通常のリンクなので、同じタブで戻り、ツールの既存の離脱確認が働きます。作業状態の削除や独自の確認処理は追加しません。挿入位置が不足・重複している場合は収集・梱包を失敗させます。開発画面や加工前の HTML では `template` は表示されません。
+
+版番号は、各ツールの `</body>` の直前へ、右下に固定表示する小さな要素（`#toolbox-version`）として書き足します。戻るリンクと版番号のスタイルもインラインの `<style>` で追加するため、ツールの CSP ではインラインの style を許可してください。加工は配布用のコピーにだけ行い、元のソース・`dist/`・`build/` は変えません。
 
 ## 手元で zip を作る
 

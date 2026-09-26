@@ -97,14 +97,28 @@ export function escapeHtml(text) {
   );
 }
 
-/** ツールの画面の右下に版番号を表示する要素を、</body> の直前に書き足す。 */
-export function addVersionBadge(html, version) {
+/** 配布用のHTMLにトップへのリンクと右下の版番号を追加する。 */
+export function decorateToolHtml(html, version) {
+  const homeSlot = '<template id="toolbox-home"></template>';
+  const home = html.indexOf(homeSlot);
+  if (home === -1 || home !== html.lastIndexOf(homeSlot)) {
+    throw new Error(`ツールのHTMLには ${homeSlot} をヘッダー内に1つだけ置いてください。`);
+  }
+  html = html.replace(
+    homeSlot,
+    '<a id="toolbox-home" href="../index.html"><span aria-hidden="true">←</span> トップへ戻る</a>',
+  );
   const end = html.lastIndexOf('</body>');
   if (end === -1) {
     throw new Error('ツールのHTMLに </body> がありません。');
   }
   const badge =
-    '<style>#toolbox-version{all:initial;position:fixed;right:2px;bottom:2px;z-index:2147483647;' +
+    '<style>#toolbox-home{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;' +
+    'box-sizing:border-box;min-height:36px;padding:7px 8px;border-radius:7px;' +
+    'color:inherit;font:inherit;line-height:1.5;text-decoration:none;white-space:nowrap}' +
+    '#toolbox-home:hover{background:rgba(53,91,73,.08);text-decoration:underline}' +
+    '#toolbox-home:focus-visible{outline:2px solid currentColor;outline-offset:2px}' +
+    '#toolbox-version{all:initial;position:fixed;right:2px;bottom:2px;z-index:2147483647;' +
     'pointer-events:none;padding:0 5px;border-radius:3px;background:rgba(255,255,255,.85);' +
     'color:#555;box-shadow:0 0 0 1px rgba(0,0,0,.12);font:10px/1.5 system-ui,sans-serif}</style>' +
     `<div id="toolbox-version" aria-hidden="true">toolbox ${escapeHtml(version)}</div>`;
@@ -221,8 +235,8 @@ export async function collect(dir, rootDir = root) {
     );
   }
   const source = join(dist, entries[0].name);
-  // 版番号を付けられることを通常の CI でも確かめる。
-  addVersionBadge(await readFile(source, 'utf8'), '2000.01.01');
+  // トップへのリンクと版番号を付けられることを通常の CI でも確かめる。
+  decorateToolHtml(await readFile(source, 'utf8'), '2000.01.01');
   await mkdir(buildDir, { recursive: true });
   await copyFile(source, join(buildDir, `${dir}.html`));
   console.log(`tools/${dir}/dist/${entries[0].name} → build/${dir}.html`);
@@ -244,7 +258,7 @@ export async function packageRelease(version, rootDir = root) {
     const html = await readFile(source, 'utf8').catch(() => {
       throw new Error(`build/${dir}.html がありません。先に collect を実行してください。`);
     });
-    await writeFile(join(target, 'tools', `${dir}.html`), addVersionBadge(html, version));
+    await writeFile(join(target, 'tools', `${dir}.html`), decorateToolHtml(html, version));
   }
   await writeFile(join(target, 'index.html'), renderIndex(tools, version));
 

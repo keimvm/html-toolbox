@@ -4,8 +4,9 @@ import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:f
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { test } from 'node:test';
+import { pathToFileURL } from 'node:url';
 import {
-  addVersionBadge,
+  decorateToolHtml,
   checkTools,
   collect,
   isValidVersion,
@@ -52,12 +53,34 @@ test('リポジトリの tools.json は有効で、各フォルダがある', as
   assert.ok(tools.length > 0);
 });
 
-test('版番号の表示は最後の </body> の直前に入る', () => {
-  const html = '<html><body><script>"</body>"</script><p>x</p></body></html>';
-  const result = addVersionBadge(html, '2026.09.26');
-  assert.ok(result.startsWith('<html><body><script>"</body>"</script><p>x</p><style>'));
+const homeSlot = '<template id="toolbox-home"></template>';
+const toolHtml = (text) => `<html><body><header>${homeSlot}<h1>${text}</h1></header></body></html>`;
+
+test('トップへのリンクは指定位置に入り、版番号は最後の </body> の直前に入る', () => {
+  const html = toolHtml('PDF編集').replace('</header>', '</header><script>"</body>"</script><p>x</p>');
+  const result = decorateToolHtml(html, '2026.09.26');
+  assert.ok(result.includes('<header><a id="toolbox-home" href="../index.html">'));
+  assert.ok(result.includes('トップへ戻る</a><h1>PDF編集</h1>'));
+  assert.ok(result.includes('<script>"</body>"</script><p>x</p><style>'));
   assert.ok(result.endsWith('>toolbox 2026.09.26</div></body></html>'));
-  assert.throws(() => addVersionBadge('<html></html>', '2026.09.26'));
+  assert.equal(result.includes(homeSlot), false);
+  assert.equal(/\b(?:target|onclick)=/.test(result), false);
+  assert.equal(/\b(?:src|href)="(?:https?:)?\/\//.test(result), false);
+  assert.ok(html.includes(homeSlot));
+  assert.equal(html.includes('href="../index.html"'), false);
+});
+
+test('配布加工はトップへのリンクの挿入位置の不足・重複と body の閉じ忘れを拒否する', () => {
+  for (const html of [
+    toolHtml('x').replace(homeSlot, ''),
+    toolHtml('x').replace(homeSlot, homeSlot.repeat(2)),
+  ]) {
+    assert.throws(() => decorateToolHtml(html, '2026.09.26'), /toolbox-home/);
+  }
+  assert.throws(
+    () => decorateToolHtml(toolHtml('x').replace('</body>', ''), '2026.09.26'),
+    /<\/body>/,
+  );
 });
 
 test('入口ページに一覧・版番号・注意書きが入り、外部を読み込まない', () => {
@@ -95,7 +118,7 @@ async function fixture(t) {
     );
     await writeFile(join(cwd, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n');
     await writeFile(join(cwd, '.node-version'), '24.21.0\n');
-    await writeFile(join(cwd, 'dist', '配布.html'), `<html><body>${dir}</body></html>`);
+    await writeFile(join(cwd, 'dist', '配布.html'), toolHtml(dir));
   }
   return root;
 }
@@ -117,21 +140,31 @@ test('ツールの設定漏れは依存取得の前に検出する', async (t) =
   await assert.rejects(readTools(root), /pnpm-lock.yaml/);
 });
 
-test('収集は単一 HTML 以外や版番号を付けられない出力を拒否し、古い収集結果を消す', async (t) => {
+test('収集は単一 HTML 以外や配布加工できない出力を拒否し、古い収集結果を消す', async (t) => {
   const root = await fixture(t);
   const dist = join(root, 'tools', 'alpha', 'dist');
   await assert.rejects(collect('unknown', root), /tools.json/);
-  for (const invalid of ['extra.js', 'second.html', 'directory.html', 'missing-body', 'empty']) {
+  for (const invalid of [
+    'extra.js', 'second.html', 'directory.html', 'missing-body',
+    'missing-home', 'duplicate-home', 'empty',
+  ]) {
     await rm(dist, { recursive: true, force: true });
     await mkdir(dist);
     await mkdir(join(root, 'build'), { recursive: true });
     await writeFile(join(root, 'build', 'alpha.html'), '古い出力');
     if (invalid === 'missing-body') {
-      await writeFile(join(dist, 'index.html'), '<html></html>');
+      await writeFile(join(dist, 'index.html'), toolHtml('最新').replace('</body>', ''));
+    } else if (invalid === 'missing-home') {
+      await writeFile(join(dist, 'index.html'), toolHtml('最新').replace(homeSlot, ''));
+    } else if (invalid === 'duplicate-home') {
+      await writeFile(
+        join(dist, 'index.html'),
+        toolHtml('最新').replace(homeSlot, homeSlot.repeat(2)),
+      );
     } else if (invalid === 'directory.html') {
       await mkdir(join(dist, invalid));
     } else if (invalid !== 'empty') {
-      await writeFile(join(dist, 'index.html'), '<body>最新</body>');
+      await writeFile(join(dist, 'index.html'), toolHtml('最新'));
       await writeFile(join(dist, invalid), '');
     }
     await assert.rejects(collect('alpha', root), /HTML/);
@@ -147,7 +180,7 @@ test('check は指定ツールだけを取得・検証し、作り直した HTML
     if (args[0] === 'check') {
       await assert.rejects(access(join(cwd, 'dist')));
       await mkdir(join(cwd, 'dist'));
-      await writeFile(join(cwd, 'dist', '最新.html'), '<body>最新</body>');
+      await writeFile(join(cwd, 'dist', '最新.html'), toolHtml('最新'));
     }
   });
   assert.deepEqual(calls, [
@@ -155,11 +188,11 @@ test('check は指定ツールだけを取得・検証し、作り直した HTML
     ['beta', ['check']],
   ]);
   assert.deepEqual(await readdir(join(root, 'build')), ['beta.html']);
-  assert.equal(await readFile(join(root, 'build', 'beta.html'), 'utf8'), '<body>最新</body>');
+  assert.equal(await readFile(join(root, 'build', 'beta.html'), 'utf8'), toolHtml('最新'));
   await assert.rejects(checkTools('unknown', root), /tools.json/);
 });
 
-test('全ツールを取得・検証して zip にまとめ、登録順・版番号・英数字の名前を保持する', async (t) => {
+test('全ツールの zip に戻るリンクと版番号を追加し、登録順・英数字の名前・加工前HTMLを保持する', async (t) => {
   const root = await fixture(t);
   await mkdir(join(root, 'build'));
   await writeFile(join(root, 'build', 'old.html'), '<body>削除済みツール</body>');
@@ -168,7 +201,7 @@ test('全ツールを取得・検証して zip にまとめ、登録順・版番
     calls.push([basename(cwd), args]);
     if (args[0] === 'check') {
       await mkdir(join(cwd, 'dist'));
-      await writeFile(join(cwd, 'dist', '配布.html'), `<body>最新 ${basename(cwd)}</body>`);
+      await writeFile(join(cwd, 'dist', '配布.html'), toolHtml(`最新 ${basename(cwd)}`));
     }
   });
   assert.deepEqual(calls, [
@@ -193,6 +226,11 @@ test('全ツールを取得・検証して zip にまとめ、登録順・版番
     const html = await readFile(join(target, 'tools', `${dir}.html`), 'utf8');
     assert.ok(html.includes(`最新 ${dir}`));
     assert.equal(html.match(/id="toolbox-version"/g).length, 1);
+    assert.equal(html.match(/<a id="toolbox-home" href="\.\.\/index.html">/g).length, 1);
+    assert.equal(html.includes(homeSlot), false);
+    const homeHref = /<a id="toolbox-home" href="([^"]+)">/.exec(html)[1];
+    const toolUrl = pathToFileURL(join(target, 'tools', `${dir}.html`));
+    assert.equal(new URL(homeHref, toolUrl).href, pathToFileURL(join(target, 'index.html')).href);
     assert.ok(html.includes('toolbox 2026.09.26'));
     const zipped = execFileSync(
       'unzip',
@@ -202,8 +240,9 @@ test('全ツールを取得・検証して zip にまとめ、登録順・版番
     assert.equal(zipped, html);
     assert.equal(
       await readFile(join(root, 'tools', dir, 'dist', '配布.html'), 'utf8'),
-      `<body>最新 ${dir}</body>`,
+      toolHtml(`最新 ${dir}`),
     );
+    assert.equal(await readFile(join(root, 'build', `${dir}.html`), 'utf8'), toolHtml(`最新 ${dir}`));
   }
   assert.deepEqual(await readdir(join(root, 'build')), ['alpha.html', 'beta.html']);
 });
