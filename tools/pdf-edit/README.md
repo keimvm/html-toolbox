@@ -6,7 +6,7 @@
 
 ## 入手方法
 
-toolboxの一部として配布します。toolboxのリリースに添付される`toolbox-<版>.zip`を解凍し、`index.html`の一覧から「PDF編集」を開いてください。配布の手順はリポジトリ直下の[README](../../README.md)を参照してください。
+toolboxの一部として配布します。toolboxのリリースに添付される`toolbox-<版>.zip`を解凍し、`index.html`の一覧から「PDF編集」を開いてください。使い始める手順はリポジトリ直下の[README](../../README.md)を参照してください。
 
 以前は単体の`pdf-edit.html`を[keimvm/pdf-edit](https://github.com/keimvm/pdf-edit/releases)のリリースで配布していました。toolboxへ移したあとは、単体では配布しません。
 
@@ -86,7 +86,7 @@ pnpm dev
 
 ## 配布版の公開
 
-toolboxのリリースで公開します。リリースのワークフローが`pnpm check`を実行し、`dist/PDF編集.html`を`tools/pdf-edit.html`へ名前を変えてzipに入れます。その際、画面の右下にtoolboxの版番号を書き足します。`dist/`の中身や、このフォルダのファイルは変えません。
+toolboxのリリースで公開します。手順は[開発・リリース手順](../../docs/development.md)を参照してください。リリースのワークフローが`pnpm check`を実行し、`dist/PDF編集.html`を`tools/pdf-edit.html`へ名前を変えてzipに入れます。その際、画面の右下にtoolboxの版番号を書き足します。`dist/`の中身や、このフォルダのファイルは変えません。
 
 ## 構成
 

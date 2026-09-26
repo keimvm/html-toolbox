@@ -1,9 +1,17 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
 import { test } from 'node:test';
 import {
   addVersionBadge,
+  checkTools,
+  collect,
   isValidVersion,
+  packageRelease,
   readTools,
+  release,
   renderIndex,
   validateTools,
 } from './toolbox.mjs';
@@ -41,7 +49,7 @@ test('tools.json の不正な内容を拒否する', () => {
 
 test('リポジトリの tools.json は有効で、各フォルダがある', async () => {
   const tools = await readTools();
-  assert.ok(tools.some((tool) => tool.dir === 'pdf-edit'));
+  assert.ok(tools.length > 0);
 });
 
 test('版番号の表示は最後の </body> の直前に入る', () => {
@@ -68,4 +76,161 @@ test('入口ページに一覧・版番号・注意書きが入り、外部を�
   assert.ok(html.indexOf('a-tool') < html.indexOf('b.tool'), 'tools.json の順に並ぶ');
   assert.equal(/\b(?:src|href)="(?:https?:)?\/\//.test(html), false);
   assert.equal(/<script\b/.test(html), false);
+});
+
+async function fixture(t) {
+  const root = await mkdtemp(join(tmpdir(), 'toolbox-test-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const tools = ['alpha', 'beta'].map((dir) => ({ dir, name: dir, description: '説明' }));
+  await writeFile(join(root, 'tools.json'), JSON.stringify(tools));
+  for (const { dir } of tools) {
+    const cwd = join(root, 'tools', dir);
+    await mkdir(join(cwd, 'dist'), { recursive: true });
+    await writeFile(
+      join(cwd, 'package.json'),
+      JSON.stringify({
+        packageManager: 'pnpm@12.4.2',
+        scripts: { check: 'node check.mjs' },
+      }),
+    );
+    await writeFile(join(cwd, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n');
+    await writeFile(join(cwd, '.node-version'), '24.21.0\n');
+    await writeFile(join(cwd, 'dist', '配布.html'), `<html><body>${dir}</body></html>`);
+  }
+  return root;
+}
+
+test('ツールの設定漏れは依存取得の前に検出する', async (t) => {
+  const root = await fixture(t);
+  const cwd = join(root, 'tools', 'alpha');
+  const file = join(cwd, 'package.json');
+  const original = await readFile(file, 'utf8');
+  for (const patch of [{ packageManager: 'npm@12.4.2' }, { scripts: {} }]) {
+    await writeFile(file, JSON.stringify({ ...JSON.parse(original), ...patch }));
+    await assert.rejects(readTools(root), /package.json/);
+  }
+  await writeFile(file, original);
+  await writeFile(join(cwd, '.node-version'), 'lts/*');
+  await assert.rejects(readTools(root), /Node.js/);
+  await writeFile(join(cwd, '.node-version'), '24.21.0');
+  await rm(join(cwd, 'pnpm-lock.yaml'));
+  await assert.rejects(readTools(root), /pnpm-lock.yaml/);
+});
+
+test('収集は単一 HTML 以外や版番号を付けられない出力を拒否し、古い収集結果を消す', async (t) => {
+  const root = await fixture(t);
+  const dist = join(root, 'tools', 'alpha', 'dist');
+  await assert.rejects(collect('unknown', root), /tools.json/);
+  for (const invalid of ['extra.js', 'second.html', 'directory.html', 'missing-body', 'empty']) {
+    await rm(dist, { recursive: true, force: true });
+    await mkdir(dist);
+    await mkdir(join(root, 'build'), { recursive: true });
+    await writeFile(join(root, 'build', 'alpha.html'), '古い出力');
+    if (invalid === 'missing-body') {
+      await writeFile(join(dist, 'index.html'), '<html></html>');
+    } else if (invalid === 'directory.html') {
+      await mkdir(join(dist, invalid));
+    } else if (invalid !== 'empty') {
+      await writeFile(join(dist, 'index.html'), '<body>最新</body>');
+      await writeFile(join(dist, invalid), '');
+    }
+    await assert.rejects(collect('alpha', root), /HTML/);
+    await assert.rejects(access(join(root, 'build', 'alpha.html')));
+  }
+});
+
+test('check は指定ツールだけを取得・検証し、作り直した HTML を収集する', async (t) => {
+  const root = await fixture(t);
+  const calls = [];
+  await checkTools('beta', root, async (args, cwd) => {
+    calls.push([basename(cwd), args]);
+    if (args[0] === 'check') {
+      await assert.rejects(access(join(cwd, 'dist')));
+      await mkdir(join(cwd, 'dist'));
+      await writeFile(join(cwd, 'dist', '最新.html'), '<body>最新</body>');
+    }
+  });
+  assert.deepEqual(calls, [
+    ['beta', ['install', '--frozen-lockfile']],
+    ['beta', ['check']],
+  ]);
+  assert.deepEqual(await readdir(join(root, 'build')), ['beta.html']);
+  assert.equal(await readFile(join(root, 'build', 'beta.html'), 'utf8'), '<body>最新</body>');
+  await assert.rejects(checkTools('unknown', root), /tools.json/);
+});
+
+test('全ツールを取得・検証して zip にまとめ、登録順・版番号・英数字の名前を保持する', async (t) => {
+  const root = await fixture(t);
+  await mkdir(join(root, 'build'));
+  await writeFile(join(root, 'build', 'old.html'), '<body>削除済みツール</body>');
+  const calls = [];
+  await release('2026.09.26', root, async (args, cwd) => {
+    calls.push([basename(cwd), args]);
+    if (args[0] === 'check') {
+      await mkdir(join(cwd, 'dist'));
+      await writeFile(join(cwd, 'dist', '配布.html'), `<body>最新 ${basename(cwd)}</body>`);
+    }
+  });
+  assert.deepEqual(calls, [
+    ['alpha', ['install', '--frozen-lockfile']],
+    ['alpha', ['check']],
+    ['beta', ['install', '--frozen-lockfile']],
+    ['beta', ['check']],
+  ]);
+  const target = join(root, 'out', 'toolbox-2026.09.26');
+  const entries = execFileSync('unzip', ['-Z1', `${target}.zip`], { encoding: 'utf8' })
+    .trim()
+    .split('\n');
+  assert.deepEqual(entries.filter((name) => !name.endsWith('/')).sort(), [
+    'toolbox-2026.09.26/index.html',
+    'toolbox-2026.09.26/tools/alpha.html',
+    'toolbox-2026.09.26/tools/beta.html',
+  ]);
+  assert.ok(entries.every((name) => /^[A-Za-z0-9./-]+$/.test(name)));
+  const index = await readFile(join(target, 'index.html'), 'utf8');
+  assert.ok(index.indexOf('alpha.html') < index.indexOf('beta.html'));
+  for (const dir of ['alpha', 'beta']) {
+    const html = await readFile(join(target, 'tools', `${dir}.html`), 'utf8');
+    assert.ok(html.includes(`最新 ${dir}`));
+    assert.equal(html.match(/id="toolbox-version"/g).length, 1);
+    assert.ok(html.includes('toolbox 2026.09.26'));
+    const zipped = execFileSync(
+      'unzip',
+      ['-p', `${target}.zip`, `toolbox-2026.09.26/tools/${dir}.html`],
+      { encoding: 'utf8' },
+    );
+    assert.equal(zipped, html);
+    assert.equal(
+      await readFile(join(root, 'tools', dir, 'dist', '配布.html'), 'utf8'),
+      `<body>最新 ${dir}</body>`,
+    );
+  }
+  assert.deepEqual(await readdir(join(root, 'build')), ['alpha.html', 'beta.html']);
+});
+
+test('検証途中で失敗したら zip を作らず、同じ版の古い zip も残さない', async (t) => {
+  const root = await fixture(t);
+  const zip = join(root, 'out', 'toolbox-2026.09.26.zip');
+  await mkdir(join(root, 'out'));
+  await writeFile(zip, '古い zip');
+  const calls = [];
+  await assert.rejects(
+    release('2026.09.26', root, async (args, cwd) => {
+      calls.push([basename(cwd), args[0]]);
+      if (basename(cwd) === 'alpha' && args[0] === 'check') throw new Error('検証失敗');
+    }),
+    /検証失敗/,
+  );
+  assert.deepEqual(calls, [
+    ['alpha', 'install'],
+    ['alpha', 'check'],
+  ]);
+  await assert.rejects(access(zip));
+  await assert.rejects(packageRelease('2026.09.26', root), /build\/alpha.html/);
+  await assert.rejects(access(zip));
+  await assert.rejects(release('v1', root), /日付形式/);
+  await writeFile(zip, '古い zip');
+  await rm(join(root, 'tools', 'beta', 'pnpm-lock.yaml'));
+  await assert.rejects(release('2026.09.26', root), /pnpm-lock.yaml/);
+  await assert.rejects(access(zip));
 });

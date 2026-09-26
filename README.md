@@ -1,89 +1,41 @@
 # toolbox
 
-1ファイルのHTMLで作った便利ツールをまとめ、版番号付きの zip として配るためのリポジトリです。使う人は zip を解凍して `index.html` を Chrome か Edge で開くだけで、インストールもネット接続も要りません。
+toolbox は、PC 上で使える便利ツールをまとめたものです。受け取った zip を解凍し、入口ページを Chrome または Edge で開いて使います。アプリのインストールは不要です。
 
-目的と要件は [docs/requirements.md](docs/requirements.md)、[docs/software-requirements.md](docs/software-requirements.md)、[docs/software-stack.md](docs/software-stack.md) を参照してください。
+## 使い始める
 
-## 構成
+1. 配布された `toolbox-<版>.zip` を PC に保存します。
+2. zip を解凍します。
+3. 解凍したフォルダの `index.html` を Chrome または Edge で開きます。
+4. 一覧から使いたいツールを選びます。
 
-| 場所                            | 役割                                                                             |
-| ------------------------------- | -------------------------------------------------------------------------------- |
-| `tools.json`                    | zip に入れるツールの一覧。書いた順に入口ページへ並ぶ                             |
-| `tools/<フォルダ名>/`           | 各ツール。依存関係・ロックファイル・Node.js の版指定はツールごとに持つ           |
-| `scripts/toolbox.mjs`           | 一覧の検査、ビルド済み HTML の収集、入口ページの生成、版番号の書き足し、zip 作成 |
-| `.github/workflows/check.yml`   | push ごとにスクリプトのテストと、各ツールの `pnpm check`（Linux・macOS・Windows） |
-| `.github/workflows/release.yml` | リリースの公開時に検査・ビルドし、`toolbox-<版>.zip` をリリースへ添付           |
+zip の中から直接開かず、解凍してから使ってください。`index.html` と `tools` フォルダは一緒に置いておきます。別の場所へ移すときは、解凍したフォルダごと移してください。
 
-zip の中身は次のとおりです。ファイル名は英数字と `-` `.` だけにしています。
+## 使えるツール
 
-```
-toolbox-<版>/
-  index.html
-  tools/
-    <フォルダ名>.html
-```
+| ツール | できること |
+| --- | --- |
+| [PDF編集](tools/pdf-edit/README.md#使い方) | PDF のページの削除・並べ替え・回転・結合、画像や文字の取り出し |
 
-## 版を出す
+PDF編集では、元の PDF を上書きせず、編集結果を別のファイルとして保存します。PDF やその内容を外部へ送信しません。
 
-1. 変更を main へ push し、Check ワークフローが通っていることを確かめる。
-2. GitHub の Releases で「Draft a new release」を開き、タグに今日の日付の版（例：`2026.09.26`）を新しく作って公開する。同じ日の2回目以降は `2026.09.26.2` のように末尾に番号を付ける。
-3. Release ワークフローが終わると、そのリリースに `toolbox-<版>.zip` が添付される。
-4. zip をダウンロードして同僚に渡す。
+## 利用できる環境
 
-タグが日付形式でない場合や、どれか1つのツールで検査かビルドが失敗した場合は、ワークフローが失敗し zip は添付されません。失敗は Actions の画面で確認できます。ワークフローはタグの時点のソースを使うため、直したあとは新しい版（例：`2026.09.26.2`）でリリースを作ってください。失敗したリリースとタグは削除して構いません。
+- Windows または Mac
+- Chrome または Edge（Safari は対象外）
 
-## ツールを追加する
+ネット接続なしで使える構成です。ただし、会社 PC での動作と、対象環境での完全オフライン利用は確認中です。
 
-1. `tools/<フォルダ名>/` を作る。フォルダ名は英数字と `-` `.` だけにする。
-2. そのフォルダの中だけで次のことができるようにする。
-   - `package.json` の `packageManager` で pnpm の版を、`.node-version` で Node.js の版を指定する。
-   - `pnpm install --frozen-lockfile` で依存関係を取得できる。
-   - `pnpm check` で検査とビルドを行い、`dist/` に外部を何も読み込まない HTML を1つだけ出力する。
-3. `tools.json` に追加する。
+## 版の確認と更新
 
-```json
-[
-  {
-    "dir": "pdf-edit",
-    "name": "PDF編集",
-    "description": "入口ページに表示する説明"
-  }
-]
-```
+入口ページの上部と各ツールの右下に、`2026.09.26` のような版番号が表示されます。同じ日に複数の版が出た場合は、`2026.09.26.2` のように末尾に番号が付きます。
 
-`tools.json` に書いていないフォルダ（作りかけ・個人用）は zip にも CI にも入りません。
+新しい版を受け取ったら、作業結果をファイルに保存してから、新しい zip を解凍し、その中の `index.html` を開いてください。版ごとにフォルダが分かれるので、古い版に上書きする必要はありません。自動更新は行いません。
 
-版番号は、zip を作るときに各ツールの `</body>` の直前へ、右下に固定表示する小さな要素（`#toolbox-version`、インラインの `<style>` 付き）として書き足します。ツールの CSP でインラインの style を許していない場合は表示されません。
+PDF編集でブラウザー内に保存した作業状態は、新しい版では引き継げない場合があります。必要な PDF は、切り替える前に「PDFを保存」で保存してください。
 
-## 手元で zip を作る
+## 開けない・うまく動かないとき
 
-Node.js 24 以降と `zip` コマンドが必要です。
-
-```bash
-pnpm --dir tools/pdf-edit install --frozen-lockfile
-```
-
-```bash
-pnpm --dir tools/pdf-edit check
-```
-
-```bash
-node scripts/toolbox.mjs collect pdf-edit
-```
-
-```bash
-node scripts/toolbox.mjs package 2026.09.26
-```
-
-`out/toolbox-2026.09.26.zip` と、同じ中身の `out/toolbox-2026.09.26/` ができます。`build/` と `out/` は Git の管理対象外です。
-
-スクリプトのテストは次のとおりです。
-
-```bash
-node --test 'scripts/*.test.mjs'
-```
-
-## 未確認のこと
-
-- 会社の PC（Windows・Edge、Mac・Chrome）で、ネットにつながない状態で zip を解凍し、`file://` で入口ページとツールが動くこと。
-- GitHub 上での Release ワークフローの実行。
+- zip を解凍済みか、Chrome または Edge で開いているかを確認してください。
+- 一覧からツールを開けない場合は、`index.html` と `tools` フォルダが同じ場所にあるかを確認してください。
+- 解決しない場合は、版番号、使っている OS・ブラウザー、行った操作、表示されたメッセージを配布元へ伝えてください。

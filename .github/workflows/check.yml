@@ -2,6 +2,7 @@ name: Check
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -20,35 +21,47 @@ jobs:
       tools: ${{ steps.list.outputs.tools }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
       - run: node --test 'scripts/*.test.mjs'
       - id: list
-        run: echo "tools=$(node scripts/toolbox.mjs list)" >> "$GITHUB_OUTPUT"
+        name: 変更したツールを選ぶ
+        run: node scripts/ci-tools.mjs
 
   tool:
     needs: scripts
+    if: needs.scripts.outputs.tools != '[]'
     strategy:
       fail-fast: false
       matrix:
         tool: ${{ fromJSON(needs.scripts.outputs.tools) }}
         os: [ubuntu-latest, macos-latest, windows-latest]
     name: ${{ matrix.tool }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: tools/${{ matrix.tool }}
+    uses: ./.github/workflows/tool.yml
+    with:
+      tool: ${{ matrix.tool }}
+      os: ${{ matrix.os }}
+
+  # ツールが増減しても、ブランチ保護で必須にするチェック名は変わらない。
+  result:
+    name: Check result
+    needs: [scripts, tool]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          package_json_file: tools/${{ matrix.tool }}/package.json
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: tools/${{ matrix.tool }}/.node-version
-          cache: pnpm
-          cache-dependency-path: tools/${{ matrix.tool }}/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm check
+      - name: 検証結果を確認
+        env:
+          SCRIPTS_RESULT: ${{ needs.scripts.result }}
+          TOOL_RESULT: ${{ needs.tool.result }}
+          TOOLS: ${{ needs.scripts.outputs.tools }}
+        run: |
+          test "$SCRIPTS_RESULT" = success
+          if [ "$TOOLS" = '[]' ]; then
+            test "$TOOL_RESULT" = skipped
+          else
+            test "$TOOL_RESULT" = success
+          fi

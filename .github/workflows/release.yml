@@ -40,33 +40,10 @@ jobs:
       matrix:
         tool: ${{ fromJSON(needs.prepare.outputs.tools) }}
     name: build ${{ matrix.tool }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: tools/${{ matrix.tool }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          package_json_file: tools/${{ matrix.tool }}/package.json
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: tools/${{ matrix.tool }}/.node-version
-          cache: pnpm
-          cache-dependency-path: tools/${{ matrix.tool }}/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - name: 検査とビルド
-        run: pnpm check
-      - name: ビルドしたHTMLを集める
-        working-directory: .
-        run: node scripts/toolbox.mjs collect "${{ matrix.tool }}"
-      - uses: actions/upload-artifact@v7
-        with:
-          name: tool-${{ matrix.tool }}
-          path: build/${{ matrix.tool }}.html
-          if-no-files-found: error
-          retention-days: 7
+    uses: ./.github/workflows/tool.yml
+    with:
+      tool: ${{ matrix.tool }}
+      upload: true
 
   package:
     needs: build

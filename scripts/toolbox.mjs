@@ -1,6 +1,8 @@
 // toolbox の一覧読み込み・ビルド済みHTMLの収集・zip の作成を行う。
 //
 //   node scripts/toolbox.mjs list               tools.json のフォルダ名をJSON配列で出力
+//   node scripts/toolbox.mjs check [フォルダ名]  依存取得・検査・ビルド・収集（省略時は全ツール）
+//   node scripts/toolbox.mjs release <版>        全ツールを check して zip を作る
 //   node scripts/toolbox.mjs check-version <版> 版番号の形式を検査
 //   node scripts/toolbox.mjs collect <フォルダ名> tools/<名>/dist の HTML を build/<名>.html へ集める
 //   node scripts/toolbox.mjs package <版>       build/ から out/toolbox-<版>/ と out/toolbox-<版>.zip を作る
@@ -10,8 +12,6 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const buildDir = join(root, 'build');
-const outDir = join(root, 'out');
 
 const DIR_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*$/;
 
@@ -42,12 +42,30 @@ export function validateTools(tools) {
   return tools;
 }
 
-export async function readTools() {
-  const tools = validateTools(JSON.parse(await readFile(join(root, 'tools.json'), 'utf8')));
+export async function readTools(rootDir = root) {
+  const tools = validateTools(JSON.parse(await readFile(join(rootDir, 'tools.json'), 'utf8')));
   for (const { dir } of tools) {
-    const info = await stat(join(root, 'tools', dir)).catch(() => null);
-    if (!info?.isDirectory()) {
-      throw new Error(`tools/${dir}/ がありません。`);
+    const toolDir = join(rootDir, 'tools', dir);
+    for (const file of ['package.json', 'pnpm-lock.yaml', '.node-version']) {
+      const info = await stat(join(toolDir, file)).catch(() => null);
+      if (!info?.isFile()) {
+        throw new Error(`tools/${dir}/${file} がありません。`);
+      }
+    }
+    const pkg = JSON.parse(await readFile(join(toolDir, 'package.json'), 'utf8'));
+    if (!/^pnpm@\d+\.\d+\.\d+(?:\+.+)?$/.test(pkg.packageManager ?? '')) {
+      throw new Error(
+        `tools/${dir}/package.json の packageManager に pnpm の版を固定してください。`,
+      );
+    }
+    if (typeof pkg.scripts?.check !== 'string' || !pkg.scripts.check.trim()) {
+      throw new Error(`tools/${dir}/package.json に scripts.check が必要です。`);
+    }
+    const nodeVersion = (await readFile(join(toolDir, '.node-version'), 'utf8')).trim();
+    if (!/^\d+\.\d+\.\d+$/.test(nodeVersion)) {
+      throw new Error(
+        `tools/${dir}/.node-version に Node.js の版を x.y.z 形式で固定してください。`,
+      );
     }
   }
   return tools;
@@ -187,26 +205,34 @@ ${items}
 `;
 }
 
-async function collect(dir) {
-  const tools = await readTools();
+export async function collect(dir, rootDir = root) {
+  const tools = await readTools(rootDir);
   if (!tools.some((tool) => tool.dir === dir)) {
     throw new Error(`${dir} は tools.json にありません。`);
   }
-  const dist = join(root, 'tools', dir, 'dist');
-  const htmls = (await readdir(dist).catch(() => [])).filter((name) => name.endsWith('.html'));
-  if (htmls.length !== 1) {
+  const buildDir = join(rootDir, 'build');
+  // 収集に失敗したとき、以前の成功結果を次の package で使わない。
+  await rm(join(buildDir, `${dir}.html`), { force: true });
+  const dist = join(rootDir, 'tools', dir, 'dist');
+  const entries = await readdir(dist, { withFileTypes: true }).catch(() => []);
+  if (entries.length !== 1 || !entries[0].isFile() || !entries[0].name.endsWith('.html')) {
     throw new Error(
-      `tools/${dir}/dist/ にはビルドされたHTMLが1つだけ必要です（見つかった数：${htmls.length}）。`,
+      `tools/${dir}/dist/ は HTML 1ファイルだけにしてください。別ファイルやフォルダは zip に含められません。`,
     );
   }
+  const source = join(dist, entries[0].name);
+  // 版番号を付けられることを通常の CI でも確かめる。
+  addVersionBadge(await readFile(source, 'utf8'), '2000.01.01');
   await mkdir(buildDir, { recursive: true });
-  await copyFile(join(dist, htmls[0]), join(buildDir, `${dir}.html`));
-  console.log(`tools/${dir}/dist/${htmls[0]} → build/${dir}.html`);
+  await copyFile(source, join(buildDir, `${dir}.html`));
+  console.log(`tools/${dir}/dist/${entries[0].name} → build/${dir}.html`);
 }
 
-async function packageRelease(version) {
+export async function packageRelease(version, rootDir = root) {
   assertVersion(version);
-  const tools = await readTools();
+  const tools = await readTools(rootDir);
+  const buildDir = join(rootDir, 'build');
+  const outDir = join(rootDir, 'out');
   const name = `toolbox-${version}`;
   const target = join(outDir, name);
   await rm(target, { recursive: true, force: true });
@@ -227,13 +253,54 @@ async function packageRelease(version) {
   console.log(`out/${name}.zip`);
 }
 
-async function main([command, arg]) {
+function runPnpm(args, cwd) {
+  // Windows の pnpm.cmd は cmd.exe 経由で呼ぶ。引数は下の固定コマンドだけ。
+  const command = process.platform === 'win32' ? 'cmd.exe' : 'pnpm';
+  const commandArgs = process.platform === 'win32' ? ['/d', '/s', '/c', 'pnpm', ...args] : args;
+  execFileSync(command, commandArgs, { cwd, stdio: 'inherit' });
+}
+
+export async function checkTools(dir, rootDir = root, run = runPnpm) {
+  const tools = await readTools(rootDir);
+  const selected = dir ? tools.filter((tool) => tool.dir === dir) : tools;
+  if (selected.length === 0) throw new Error(`${dir} は tools.json にありません。`);
+  for (const tool of selected) {
+    await rm(join(rootDir, 'build', `${tool.dir}.html`), { force: true });
+  }
+  for (const tool of selected) {
+    const cwd = join(rootDir, 'tools', tool.dir);
+    console.log(`\n${tool.dir}: 依存取得・検査・ビルド`);
+    await rm(join(cwd, 'dist'), { recursive: true, force: true });
+    await run(['install', '--frozen-lockfile'], cwd);
+    await run(['check'], cwd);
+    await collect(tool.dir, rootDir);
+  }
+}
+
+export async function release(version, rootDir = root, run = runPnpm) {
+  assertVersion(version);
+  await rm(join(rootDir, 'build'), { recursive: true, force: true });
+  const target = join(rootDir, 'out', `toolbox-${version}`);
+  await rm(target, { recursive: true, force: true });
+  await rm(`${target}.zip`, { force: true });
+  await checkTools(undefined, rootDir, run);
+  await packageRelease(version, rootDir);
+}
+
+async function main([command, arg, ...extra]) {
+  if (extra.length || (command === 'list' && arg)) throw new Error('引数が多すぎます。');
   switch (command) {
     case 'list':
       console.log(JSON.stringify((await readTools()).map((tool) => tool.dir)));
       break;
     case 'check-version':
       assertVersion(arg);
+      break;
+    case 'check':
+      await checkTools(arg);
+      break;
+    case 'release':
+      await release(arg);
       break;
     case 'collect':
       await collect(arg);
@@ -242,7 +309,9 @@ async function main([command, arg]) {
       await packageRelease(arg);
       break;
     default:
-      throw new Error('使い方: node scripts/toolbox.mjs <list|check-version|collect|package> [引数]');
+      throw new Error(
+        '使い方: node scripts/toolbox.mjs <list|check|release|check-version|collect|package> [引数]',
+      );
   }
 }
 
