@@ -1,3 +1,4 @@
+import { createRecordStore } from '../../../ui/idb-record.js';
 import { sessionKey } from '../../../ui/session-key.js';
 
 const DATABASE = 'local-notes-session';
@@ -17,43 +18,7 @@ export function createDisplayStore(window, { timeoutMs = 3000 } = {}) {
 }
 
 function createStore(window, key, timeoutMs) {
-  function run(mode, value) {
-    return new Promise((resolve, reject) => {
-      let db; let transaction; let settled = false;
-      const finish = (error, result) => {
-        if (settled) return;
-        settled = true; clearTimeout(timer);
-        if (error) { try { transaction?.abort(); } catch { /* 完了済みの処理は中断不要。 */ } }
-        db?.close();
-        if (error) reject(error); else resolve(result);
-      };
-      const timer = setTimeout(() => finish(new Error('SessionStorageTimeout')), timeoutMs);
-      try {
-        const request = window.indexedDB.open(DATABASE, 1);
-        request.onblocked = () => finish(new Error('SessionStorageBlocked'));
-        request.onerror = () => finish(request.error);
-        request.onupgradeneeded = () => {
-          if (settled) { request.transaction.abort(); return; }
-          request.result.createObjectStore(STORE);
-        };
-        request.onsuccess = () => {
-          db = request.result;
-          if (settled) { db.close(); return; }
-          db.onversionchange = () => db.close();
-          try {
-            transaction = db.transaction(STORE, mode);
-            const store = transaction.objectStore(STORE);
-            const operation = mode === 'readonly' ? store.get(key) : store.put(value, key);
-            // request の成功だけでは書き込み完了ではない。transaction の確定を待つ。
-            transaction.oncomplete = () => finish(null, mode === 'readonly' ? operation.result : undefined);
-            transaction.onabort = () => finish(transaction.error || new Error('SessionStorageAborted'));
-            transaction.onerror = () => finish(transaction.error || new Error('SessionStorageError'));
-          } catch (error) { finish(error); }
-        };
-      } catch (error) { finish(error); }
-    });
-  }
-  return { load: () => run('readonly'), save: value => run('readwrite', value) };
+  return createRecordStore(window, { database: DATABASE, store: STORE, key, timeoutMs });
 }
 
 function validPath(path) {

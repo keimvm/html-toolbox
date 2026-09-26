@@ -76,6 +76,7 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 | `theme-toggle.js` | `setupThemeToggle(button)`。ボタンの押下でライト・ダークを切り替え、`localStorage` の `toolbox-theme` に残す。OS と同じ表示に戻すと記録を消す。ボタンのアイコンと読み上げ名を今の表示に合わせる。入口ページはこれを直接埋め込む |
 | `download.js` | `downloadBlob(blob, ファイル名, { signal })`。blob URL とリンクでダウンロードさせ、60秒後か `signal` の中断で URL を解放する |
 | `file-drop.js` | `watchFileDrop({ zone, onDrop, enabled })`。`zone` の外に落としたファイルでブラウザーが画面を離れないようにする。受け付ける間は `zone` に `data-tb-file-drag` を付け、`data-tb-drop-label` の文言を重ねて表示する。フォルダを含む場合は `onDrop` に `null` を渡す。`hasFiles`・`droppedFiles` も使える |
+| `idb-record.js` | `createRecordStore(window, { database, store, key, timeoutMs })`。IndexedDB の1つのキーに値を1つ置き、`load()`・`save(値)` で読み書きする。transaction の確定を待ち、停止・ブロック・中断では待ち続けず拒否する。ローカルノートの復元情報とプロンプト集の保存先の記録に使う。DB名・キー・値の形と検査は各ツールで管理する |
 | `session-key.js` | `sessionKey(href)`。クエリーとフラグメントを除いた HTML の配置 URL。両ツールの復元情報の保存先に使い、従来のキーを維持する。DB名・形式・保存処理は各ツールで管理する |
 
 - 配色は、ライトがアイボリーの地に深いエバーグリーン（`--tb-accent`）、ダークが黒に近い地にシャンパン色（同）です。真鍮色の `--tb-gold` は選択中の細い縁・区切りの短い線・フォーカス枠など細部の差し色に限り、文字色には使いません。大きな見出しは OS の明朝体（`--tb-font-display`）、それ以外は `--tb-font` を使います。浮いた面の影は `--tb-elevation` です。

@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { downloadBlob, RELEASE_DELAY } from './download.js';
 import { droppedFiles, hasFiles, watchFileDrop } from './file-drop.js';
+import { createRecordStore } from './idb-record.js';
 import { setupThemeToggle, THEME_KEY } from './theme-toggle.js';
 
 function fakeWindow() {
@@ -255,4 +256,81 @@ test('theme.css はダークモード・切り替え・印刷時のライト固�
   assert.match(css, /@media print \{\s*:root,\s*:root\[data-tb-theme\] \{\s*color-scheme: light;/);
   // 外部のフォントや画像を読み込まない。アイコンは data URL で持つ。
   assert.doesNotMatch(css, /url\((?!"data:image\/svg\+xml,)|@import/);
+});
+
+/** DB名ごとにストアを持つ最小の IndexedDB。値は structuredClone で複製し、transaction は非同期に確定する。 */
+function fakeIndexedDB() {
+  const databases = new Map();
+  return {
+    databases,
+    open(name) {
+      const request = {};
+      queueMicrotask(() => {
+        const exists = databases.has(name);
+        if (!exists) databases.set(name, new Map());
+        const stores = databases.get(name);
+        request.result = {
+          close() {},
+          transaction(storeName) {
+            const rows = stores.get(storeName);
+            const transaction = {
+              abort() {},
+              objectStore: () => ({
+                get(key) {
+                  const operation = {};
+                  queueMicrotask(() => {
+                    operation.result = structuredClone(rows.get(key));
+                    transaction.oncomplete();
+                  });
+                  return operation;
+                },
+                put(value, key) {
+                  const copy = structuredClone(value);
+                  queueMicrotask(() => {
+                    rows.set(key, copy);
+                    transaction.oncomplete();
+                  });
+                  return {};
+                },
+              }),
+            };
+            return transaction;
+          },
+        };
+        if (!exists) {
+          request.result.createObjectStore = (storeName) => stores.set(storeName, new Map());
+          request.onupgradeneeded();
+        }
+        request.onsuccess();
+      });
+      return request;
+    },
+  };
+}
+
+test('createRecordStore は指定した DB・キーに1つの値を置き、別の接続から読める', async () => {
+  const indexedDB = fakeIndexedDB();
+  const options = { database: 'toolbox-test', store: 'records', key: 'folder' };
+  const store = createRecordStore({ indexedDB }, options);
+  assert.equal(await store.load(), undefined);
+  await store.save({ version: 1, name: '日本語' });
+  assert.deepEqual(await createRecordStore({ indexedDB }, options).load(), { version: 1, name: '日本語' });
+  assert.equal(await createRecordStore({ indexedDB }, { ...options, key: 'other' }).load(), undefined);
+  assert.deepEqual([...indexedDB.databases.keys()], ['toolbox-test']);
+});
+
+test('createRecordStore は IndexedDB の不在・停止・ブロック・中断で待ち続けず拒否する', async () => {
+  const options = { database: 'd', store: 's', key: 'k' };
+  await assert.rejects(createRecordStore({}, options).load());
+  await assert.rejects(createRecordStore({ indexedDB: { open: () => ({}) } }, { ...options, timeoutMs: 10 }).load(), /Timeout/);
+  const blocked = { open() { const request = {}; queueMicrotask(() => request.onblocked()); return request; } };
+  await assert.rejects(createRecordStore({ indexedDB: blocked }, options).load(), /Blocked/);
+  const aborted = { open() {
+    const transaction = { objectStore: () => ({ put: () => ({}) }), abort() {} };
+    const request = { result: { close() {}, transaction() {
+      queueMicrotask(() => transaction.onabort()); return transaction;
+    } } };
+    queueMicrotask(() => request.onsuccess()); return request;
+  } };
+  await assert.rejects(createRecordStore({ indexedDB: aborted }, options).save({}), /Aborted/);
 });

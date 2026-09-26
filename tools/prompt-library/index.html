@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>プロンプト集</title>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <header class="tb-header pl-header">
+      <div class="tb-header-start">
+        <template id="toolbox-home"></template>
+        <span class="tb-header-brand"
+          ><img
+            class="tb-header-icon"
+            src="/src/icon.png"
+            alt=""
+          />プロンプト集</span
+        ><button
+          type="button"
+          class="tb-button tb-icon-button tb-theme-toggle"
+        ></button>
+      </div>
+      <div class="tb-header-end" id="pl-header-end" hidden>
+        <button type="button" class="tb-button tb-primary" id="pl-new">
+          新しいプロンプト
+        </button>
+        <button
+          type="button"
+          class="tb-button tb-icon-button"
+          popovertarget="pl-menu"
+          aria-label="保存先"
+          title="保存先"
+        >
+          <span aria-hidden="true">⋯</span>
+        </button>
+        <div id="pl-menu" popover="auto" class="tb-popover pl-menu">
+          <p class="pl-menu-label">保存先</p>
+          <p class="pl-menu-path">
+            <span id="pl-folder-name"></span
+            ><span class="pl-menu-file"> / prompt-library.json</span>
+          </p>
+          <button type="button" class="tb-button" id="pl-change-folder">
+            保存先を変える…
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="pl-main">
+      <section class="pl-start" id="pl-start" aria-labelledby="pl-start-title">
+        <h2 id="pl-start-title">保存先のフォルダ</h2>
+        <p id="pl-start-text">
+          プロンプトを保存するフォルダを選びます。フォルダに
+          <code>prompt-library.json</code>
+          を作り、プロンプトはそのファイルに保存します。
+        </p>
+        <p class="pl-alert" id="pl-start-error" role="alert" hidden></p>
+        <div class="pl-start-actions">
+          <button
+            type="button"
+            class="tb-button tb-primary"
+            id="pl-open-last"
+            hidden
+          ></button>
+          <button
+            type="button"
+            class="tb-button tb-primary"
+            id="pl-retry"
+            hidden
+          >
+            もう一度読み込む
+          </button>
+          <button type="button" class="tb-button" id="pl-pick" hidden>
+            保存先のフォルダを選ぶ
+          </button>
+        </div>
+      </section>
+
+      <section
+        class="pl-library"
+        id="pl-library"
+        hidden
+        aria-label="プロンプト"
+      >
+        <div class="pl-filter" id="pl-filter" hidden>
+          <span class="pl-filter-label" id="pl-filter-label"
+            >タグで絞り込む</span
+          >
+          <div
+            class="pl-tags"
+            id="pl-tags"
+            role="group"
+            aria-labelledby="pl-filter-label"
+          ></div>
+          <button
+            type="button"
+            class="tb-button tb-secondary pl-clear"
+            id="pl-clear"
+            hidden
+          >
+            選択を解除
+          </button>
+        </div>
+        <p class="pl-count" id="pl-count" aria-live="polite"></p>
+        <ul class="pl-list" id="pl-list"></ul>
+        <p class="pl-empty" id="pl-empty" hidden></p>
+      </section>
+    </main>
+
+    <p class="pl-toast" id="pl-toast" role="status" aria-live="polite"></p>
+
+    <dialog
+      class="tb-dialog pl-editor"
+      id="pl-editor"
+      aria-labelledby="pl-editor-title"
+    >
+      <form id="pl-editor-form">
+        <h2 id="pl-editor-title">新しいプロンプト</h2>
+        <div class="pl-field">
+          <label for="pl-title">タイトル</label>
+          <input
+            id="pl-title"
+            name="title"
+            class="tb-input"
+            required
+            autocomplete="off"
+          />
+        </div>
+        <div class="pl-field">
+          <label for="pl-body">本文</label>
+          <textarea
+            id="pl-body"
+            name="body"
+            class="tb-input"
+            rows="10"
+            required
+          ></textarea>
+          <p class="pl-hint">
+            貼った後に書き換える部分は、〇〇
+            などの目印にしておくと探しやすくなります。
+          </p>
+        </div>
+        <div class="pl-field">
+          <label for="pl-tag-input">タグ</label>
+          <input
+            id="pl-tag-input"
+            name="tags"
+            class="tb-input"
+            placeholder="例：要約 文章"
+            autocomplete="off"
+            aria-describedby="pl-tag-hint"
+          />
+          <p class="pl-hint" id="pl-tag-hint">
+            空白・カンマ・読点で区切ります。なくても保存できます。
+          </p>
+          <div
+            class="pl-tags pl-tag-choices"
+            id="pl-tag-choices"
+            role="group"
+            aria-label="使っているタグから選ぶ"
+          ></div>
+        </div>
+        <p class="pl-alert" id="pl-editor-error" role="alert" hidden></p>
+        <div class="tb-dialog-actions pl-editor-actions">
+          <button
+            type="button"
+            class="tb-button tb-danger pl-delete"
+            id="pl-delete"
+            hidden
+          >
+            削除…
+          </button>
+          <button type="button" class="tb-button tb-secondary" id="pl-cancel">
+            キャンセル
+          </button>
+          <button type="submit" class="tb-button tb-primary" id="pl-save">
+            保存
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog
+      class="tb-dialog"
+      id="pl-confirm"
+      aria-labelledby="pl-confirm-title"
+    >
+      <form method="dialog">
+        <h2 id="pl-confirm-title">プロンプトを削除しますか？</h2>
+        <p id="pl-confirm-text"></p>
+        <div class="tb-dialog-actions">
+          <button
+            type="submit"
+            class="tb-button tb-secondary"
+            value="cancel"
+            autofocus
+          >
+            キャンセル
+          </button>
+          <button type="submit" class="tb-button tb-danger" value="delete">
+            削除
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <noscript>JavaScriptを有効にして開いてください。</noscript>
+  </body>
+</html>

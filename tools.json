@@ -13,5 +13,10 @@
     "dir": "mojicode-converter",
     "name": "文字コード変換",
     "description": "文字とコードの値（Unicode・UTF-8・UTF-16・Shift_JIS）を、どちら向きにも変換して確かめられます。"
+  },
+  {
+    "dir": "prompt-library",
+    "name": "プロンプト集",
+    "description": "よく使うAIチャットのプロンプトをPCのフォルダに保存し、タグで絞り込んでコピーできます。"
   }
 ]
