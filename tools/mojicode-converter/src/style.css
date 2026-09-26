@@ -8,11 +8,6 @@ body {
   font-size: 14px;
   line-height: 1.6;
 }
-.mc-lead {
-  margin: 0;
-  color: var(--tb-muted);
-  font-size: 13px;
-}
 .mc-main {
   display: grid;
   /* 一覧の表が広くても、画面の幅を超えず表の中で横にスクロールさせる。 */
@@ -31,6 +26,7 @@ body {
 }
 .mc-panel-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 12px;
   margin-bottom: 12px;
@@ -55,11 +51,36 @@ body {
   color: var(--tb-muted);
   font-size: 12px;
 }
+.mc-mode {
+  padding: 2px 8px;
+  border-radius: var(--tb-radius);
+  color: var(--tb-muted);
+  background: var(--tb-subtle);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.mc-mode-edit {
+  color: var(--tb-accent);
+  background: var(--tb-tint);
+}
+
+/* 編集できる欄は枠を明確にし、表示専用の欄は枠なしの面にする。 */
+.mc-main .tb-input:not([readonly], [aria-invalid='true'], :focus) {
+  border-color: color-mix(in srgb, var(--tb-muted) 65%, var(--tb-line));
+}
+.mc-main .tb-input[readonly] {
+  border-color: transparent;
+  border-radius: 0;
+  background: var(--tb-subtle);
+}
 
 /* 連動する欄 */
 .mc-fields {
   display: grid;
   gap: 16px;
+}
+.mc-fields > .mc-panel-head {
+  margin-bottom: 0;
 }
 .mc-codes {
   display: grid;
@@ -173,7 +194,6 @@ body {
   padding: 14px 18px;
   border-radius: var(--tb-radius);
   background: var(--tb-subtle);
-  box-shadow: inset 0 0 0 1px var(--tb-line);
   font-family: var(--mc-font, var(--tb-font));
   font-size: clamp(56px, 11vw, 88px);
   line-height: 1.35;

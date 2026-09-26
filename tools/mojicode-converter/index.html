@@ -21,13 +21,14 @@
           class="tb-button tb-icon-button tb-theme-toggle"
         ></button>
       </div>
-      <p class="tb-header-end mc-lead">
-        どの欄を書き換えても、ほかの欄がすぐ変わります。
-      </p>
     </header>
 
     <main class="mc-main">
-      <section class="mc-panel mc-fields" aria-label="文字と文字コード">
+      <section class="mc-panel mc-fields" aria-labelledby="mc-fields-title">
+        <div class="mc-panel-head">
+          <h2 id="mc-fields-title">文字と文字コード</h2>
+          <span class="mc-mode mc-mode-edit">入力・編集</span>
+        </div>
         <div class="mc-field mc-field-text">
           <label for="mc-text">文字</label>
           <textarea
@@ -124,6 +125,7 @@
           <section class="mc-panel" aria-labelledby="mc-notation-title">
             <div class="mc-panel-head">
               <h2 id="mc-notation-title">表記の形</h2>
+              <span class="mc-mode">表示のみ</span>
             </div>
             <div class="mc-notations" id="mc-notations"></div>
           </section>

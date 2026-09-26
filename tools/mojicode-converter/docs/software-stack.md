@@ -27,6 +27,14 @@
 | 表記の形                | 文字列処理、`encodeURIComponent` など                                                     |                                                                                                                                                   |
 | フォントの一覧          | Local Font Access API（`window.queryLocalFonts()`）                                       | 初回に利用者の許可が要る。使えない・拒否されたときはフォント名の手入力に切り替え、CSS の `font-family` で表示する                                 |
 
+## フォント一覧の権限・対応環境
+
+- `queryLocalFonts()` は一覧ボタンを押したときだけ呼ぶ。返されたメタデータのうち `family` だけを候補にし、`FontData.blob()` によるフォントの実データの取得はしない。候補は画面を閉じるまでのメモリー上にだけ保持し、保存・外部送信しない。
+- 配布 HTML の CSP は `connect-src 'none'` で通信を制限し、外部スクリプトも読み込まない。フォントの表示は既存の CSS `font-family` に任せる。
+- API の許可範囲には一覧とフォントの実データへのアクセスが含まれ、名前だけに限定した権限ではない。一般のサイトでは一覧が端末の識別や所属組織の推測に利用されるリスクがある。通常は初回にブラウザーが許可を求め、許可が保持される場合はブラウザーの権限設定から取り消せる（[Chrome の公式説明](https://developer.chrome.com/docs/capabilities/web-apis/local-fonts)）。
+- Windows・macOS のデスクトップ版 Chrome・Edge が対応する。API の対応と、このツールの `file://`・会社 PC での実機確認は分けて扱う。Edge は管理ポリシーでも一覧取得を禁止できる（[DefaultLocalFontsSetting](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies/DefaultLocalFontsSetting)）。
+- API が存在しない場合は一覧ボタンを隠す。拒否・制限・取得失敗の場合はメッセージを出し、フォント名の手入力と文字コード変換はそのまま利用できる。
+
 ## Shift_JIS の表の作り方
 
 - 2バイトの全ての並び（リードバイト 81〜9F・E0〜FC × トレイルバイト 40〜7E・80〜FC）を改行で区切って `TextDecoder('shift_jis')` で一度に読み、1文字になったものを表に入れる。起動時に作り、両方向とも同じ表を引く（`src/sjis.ts`）。
