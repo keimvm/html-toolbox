@@ -8,6 +8,7 @@ import { createToolbar } from './toolbar.js';
 import { createExporter } from './export.js';
 import { saveAssets, createAssetOpener } from './assets.js';
 import { watchFileDrop } from '../../../ui/file-drop.js';
+import { setupToolHeader } from '../../../ui/header.js';
 import { EntryError, entryName, parentPath, containsPath, entryAt, createEntry, snapshotEntry, countFiles, renameEntry, deleteEntry } from './file-operations.js';
 
 export function createApp(window, { sessionStore = createSessionStore(window), layoutStore = createLayoutStore(window), displayStore = createDisplayStore(window) } = {}) {
@@ -79,7 +80,9 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
     ui['save-status'].textContent = state.busy === 'managing' ? 'ファイルを更新中…' : state.busy === 'exporting' ? '出力を準備中…' : state.busy === 'adding' ? 'ファイルを追加中…' : state.busy === 'saving' ? '保存中…' : ['loading', 'reloading', 'restoring'].includes(state.busy) ? '読み込み中…' : changed ? '未保存' : current ? state.saved ? '保存済み' : '変更なし' : '';
     ui['save-status'].classList.toggle('dirty', changed);
     ui['source-mode'].setAttribute('aria-pressed', String(state.mode === 'source'));
-    ui['file-name'].textContent = current ? current.path.split('/').at(-1) : 'ローカルノート';
+    // ツール名は共通ヘッダーに出るため、ノートを開いている間だけファイル名を見出しにする。
+    ui['file-name'].textContent = current ? current.path.split('/').at(-1) : '';
+    ui['file-name'].hidden = !current;
     ui['file-path'].textContent = current ? `${state.root.name} / ${current.path}` : state.root ? state.root.name : 'Markdown を、いつものフォルダで。';
     ui['file-path'].title = ui['file-path'].textContent;
     ui['file-name'].title = ui['file-path'].textContent;
@@ -602,4 +605,8 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
   return { state, ready, flushSession: () => sessionWrites, flushLayout: layout.flush, flushDisplay: display.flush, openFolder, openNote, reload, save, addFiles, manageEntry, exportNote, dirty, toggleSource, get richEditor() { return richEditor; }, dispose };
 }
 
-if (typeof window !== 'undefined' && document.getElementById('open-folder')) createApp(window);
+if (typeof window !== 'undefined' && document.getElementById('open-folder')) {
+  // 保存した配色を最初に反映する。
+  setupToolHeader(document.querySelector('.tb-header'));
+  createApp(window);
+}

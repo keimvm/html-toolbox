@@ -39,7 +39,9 @@ const theme = await readFile('../../ui/theme.css', 'utf8');
 const css = [...libraryStyles, theme, await readFile('src/style.css', 'utf8')].join('\n');
 const escape = text => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 const documentCss = await readFile('src/document.css', 'utf8');
-const html = template.replace('/* DOCUMENT_CSS */', () => documentCss).replace('/* APP_CSS */', () => css).replace('/* APP_SCRIPT */', () => result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script')).replace('<!-- APP_LICENSES -->', () => escape(licenses.join('\n\n')));
+// ヘッダーのアイコン。共通ヘッダーの処理が favicon にも使う。
+const icon = `data:image/svg+xml,${encodeURIComponent((await readFile('src/icon.svg', 'utf8')).trim())}`;
+const html = template.replace('"APP_ICON"', () => `"${icon}"`).replace('/* DOCUMENT_CSS */', () => documentCss).replace('/* APP_CSS */', () => css).replace('/* APP_SCRIPT */', () => result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script')).replace('<!-- APP_LICENSES -->', () => escape(licenses.join('\n\n')));
 await mkdir('dist', { recursive: true });
 await writeFile('dist/index.html', html);
 console.log(`dist/index.html を生成しました (${Math.round(Buffer.byteLength(html) / 1024)} KiB・${licenses.length} ライブラリ)`);

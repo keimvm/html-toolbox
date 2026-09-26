@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { downloadBlob, RELEASE_DELAY } from './download.js';
 import { droppedFiles, hasFiles, watchFileDrop } from './file-drop.js';
+import { setupThemeToggle, THEME_KEY } from './theme-toggle.js';
 
 function fakeWindow() {
   const clicked = [];
@@ -173,10 +174,85 @@ test('watchFileDrop はページ内の要素のドラッグに関わらず、ウ
   assert.equal(zone.attributes.has('data-tb-file-drag'), false);
 });
 
-test('theme.css はダークモードと印刷時のライト固定を持つ', async () => {
+// 配色の切り替えに必要な部分だけを持つウィンドウ。storage が null なら保存できない環境。
+function fakeThemeWindow({ dark = false, storage = new Map() } = {}) {
+  const win = new EventTarget();
+  const system = Object.assign(new EventTarget(), { matches: dark });
+  const root = { dataset: {} };
+  const localStorage = {
+    getItem: (key) => (storage ? (storage.get(key) ?? null) : fail()),
+    setItem: (key, value) => (storage ? storage.set(key, value) : fail()),
+    removeItem: (key) => (storage ? storage.delete(key) : fail()),
+  };
+  function fail() {
+    throw new Error('SecurityError');
+  }
+  Object.assign(win, {
+    document: { documentElement: root },
+    matchMedia: () => system,
+    get localStorage() {
+      return localStorage;
+    },
+  });
+  const button = Object.assign(new EventTarget(), {
+    dataset: {},
+    title: '',
+    setAttribute(name, value) {
+      this[name] = value;
+    },
+  });
+  setupThemeToggle(button, { window: win });
+  return { win, system, root, button, storage };
+}
+
+test('setupThemeToggle は OS の設定に従い、切り替えた配色を保存する', () => {
+  const { system, root, button, storage } = fakeThemeWindow();
+  assert.equal(root.dataset.tbTheme, undefined);
+  assert.equal(button.dataset.tbTheme, 'light');
+  assert.equal(button['aria-label'], 'ダークモードにする');
+
+  button.dispatchEvent(new Event('click'));
+  assert.equal(root.dataset.tbTheme, 'dark');
+  assert.equal(storage.get(THEME_KEY), 'dark');
+  assert.equal(button['aria-label'], 'ライトモードにする');
+  assert.equal(button.title, 'ライトモードにする');
+
+  // OS と同じ配色に戻したら記録を消し、以後は OS に従う。
+  button.dispatchEvent(new Event('click'));
+  assert.equal(root.dataset.tbTheme, undefined);
+  assert.equal(storage.has(THEME_KEY), false);
+  system.matches = true;
+  system.dispatchEvent(new Event('change'));
+  assert.equal(button.dataset.tbTheme, 'dark');
+  assert.equal(root.dataset.tbTheme, undefined);
+});
+
+test('setupThemeToggle は保存済みの配色と、別の画面での切り替えを反映する', () => {
+  const { win, root, button, storage } = fakeThemeWindow({
+    dark: true,
+    storage: new Map([[THEME_KEY, 'light']]),
+  });
+  assert.equal(root.dataset.tbTheme, 'light');
+  assert.equal(button.dataset.tbTheme, 'light');
+  storage.delete(THEME_KEY);
+  win.dispatchEvent(Object.assign(new Event('storage'), { key: THEME_KEY }));
+  assert.equal(root.dataset.tbTheme, undefined);
+  assert.equal(button.dataset.tbTheme, 'dark');
+});
+
+test('setupThemeToggle は保存できない環境でも画面の配色を切り替える', () => {
+  const { root, button } = fakeThemeWindow({ storage: null });
+  button.dispatchEvent(new Event('click'));
+  assert.equal(root.dataset.tbTheme, 'dark');
+  button.dispatchEvent(new Event('click'));
+  assert.equal(root.dataset.tbTheme, undefined);
+});
+
+test('theme.css はダークモード・切り替え・印刷時のライト固定を持つ', async () => {
   const css = await readFile(new URL('theme.css', import.meta.url), 'utf8');
   assert.match(css, /color-scheme: light dark;/);
-  assert.match(css, /@media print \{\s*:root \{\s*color-scheme: light;/);
-  // 外部のフォントや画像を読み込まない。
-  assert.doesNotMatch(css, /url\(|@import/);
+  assert.match(css, /:root\[data-tb-theme='dark'\] \{\s*color-scheme: dark;/);
+  assert.match(css, /@media print \{\s*:root,\s*:root\[data-tb-theme\] \{\s*color-scheme: light;/);
+  // 外部のフォントや画像を読み込まない。アイコンは data URL で持つ。
+  assert.doesNotMatch(css, /url\((?!"data:image\/svg\+xml,)|@import/);
 });

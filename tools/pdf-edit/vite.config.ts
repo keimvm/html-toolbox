@@ -49,5 +49,10 @@ export default defineConfig({
     fs: { allow: ['.', '../../ui'] },
   },
   preview: { host: '127.0.0.1', port: 4173, strictPort: true },
-  build: { target: 'es2022', modulePreload: false },
+  build: {
+    target: 'es2022',
+    // light-dark() を OS の設定だけで切り替わる形に変換させず、ヘッダーの切り替えを効かせる。対象は Chrome・Edge 129 以降。
+    cssTarget: ['chrome129', 'edge129'],
+    modulePreload: false,
+  },
 });

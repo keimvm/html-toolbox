@@ -41,34 +41,6 @@ body {
   background: var(--tb-surface);
   position: relative;
 }
-#pdf-calm .pc-header {
-  padding: 20px 22px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  align-items: center;
-  border-bottom: 1px solid var(--tb-line);
-}
-#pdf-calm .pc-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  white-space: nowrap;
-}
-#pdf-calm .pc-brand-mark {
-  width: 32px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  color: var(--tb-on-accent);
-  background: var(--tb-accent);
-  border-radius: 8px;
-}
-#pdf-calm .pc-brand-name {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.4px;
-}
 #pdf-calm .pc-badge {
   font-size: 11px;
   color: var(--tb-muted);
@@ -104,12 +76,6 @@ body {
   border-radius: 50%;
   margin-right: 5px;
   vertical-align: 2px;
-}
-#pdf-calm .pc-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 #pdf-calm .pc-workbench {
   display: grid;
@@ -489,13 +455,6 @@ body {
   margin-top: 4px;
 }
 @container pdf-calm (max-width: 880px) {
-  #pdf-calm .pc-header {
-    gap: 14px;
-    padding: 16px;
-  }
-  #pdf-calm .pc-brand-name {
-    font-size: 14px;
-  }
   #pdf-calm .pc-file {
     padding-left: 14px;
   }
@@ -520,17 +479,11 @@ body {
   }
 }
 @container pdf-calm (max-width: 710px) {
-  #pdf-calm .pc-header {
-    gap: 12px;
-  }
   #pdf-calm .pc-file {
     order: 3;
     flex-basis: 100%;
     border-left: 0;
     padding-left: 0;
-  }
-  #pdf-calm .pc-actions {
-    margin-left: auto;
   }
   #pdf-calm .pc-workbench,
   #pdf-calm .pc-workbench.pc-inspecting {
@@ -562,16 +515,6 @@ body {
   }
 }
 @container pdf-calm (max-width: 480px) {
-  #pdf-calm .pc-header {
-    padding: 14px;
-  }
-  #pdf-calm .pc-brand {
-    gap: 7px;
-  }
-  #pdf-calm .pc-brand-mark {
-    width: 28px;
-    height: 32px;
-  }
   #pdf-calm .pc-actions {
     gap: 5px;
   }
@@ -834,12 +777,6 @@ body {
   }
   #pdf-calm .pc-empty {
     min-height: 65dvh;
-  }
-  #pdf-calm .pc-header {
-    gap: 8px;
-  }
-  #pdf-calm .pc-brand-name {
-    font-size: 13px;
   }
   #pdf-calm .pc-header [data-action='close-document'] {
     padding-inline: 5px;

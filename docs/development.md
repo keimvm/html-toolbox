@@ -10,7 +10,7 @@
 | ------------------------------- | -------------------------------------------------------------------------------- |
 | `tools.json`                    | zip に入れるツールの一覧。書いた順に入口ページへ並ぶ                             |
 | `tools/<フォルダ名>/`           | 各ツール。依存関係・ロックファイル・Node.js の版指定はツールごとに持つ           |
-| `ui/`                           | 全ツールと入口ページで共通の配色・部品・ダークモード、D&D・ダウンロードの処理。npm の依存なし |
+| `ui/`                           | 全ツールと入口ページで共通の配色・部品・ヘッダー・ダークモード、D&D・ダウンロードの処理。npm の依存なし |
 | `scripts/toolbox.mjs`           | 一覧の検査、ビルド済み HTML の収集、入口ページの生成、戻るリンク・版番号の追加、zip 作成 |
 | `scripts/ci-tools.mjs`          | Git の差分から CI の検証対象を選ぶ |
 | `.github/workflows/check.yml`   | main への push・PR でスクリプトと変更対象のツールを検証（Linux・macOS・Windows） |
@@ -71,14 +71,30 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 
 | ファイル | 内容 |
 | --- | --- |
-| `theme.css` | 配色・文字・角丸などのトークン（`--tb-*`）と、ボタン（`.tb-button` に `.tb-primary`・`.tb-secondary`・`.tb-danger`・`.tb-icon-button` を組み合わせる）、入力欄（`.tb-input`）、ダイアログ（`.tb-dialog`）、操作欄（`.tb-dialog-actions`、縦並びは `.tb-stack` を追加）、ポップオーバー（`.tb-popover`）、フォーカス枠、ファイルのドロップ中の表示 |
+| `theme.css` | 配色・文字・角丸などのトークン（`--tb-*`）と、ボタン（`.tb-button` に `.tb-primary`・`.tb-secondary`・`.tb-danger`・`.tb-icon-button` を組み合わせる）、入力欄（`.tb-input`）、ダイアログ（`.tb-dialog`）、操作欄（`.tb-dialog-actions`、縦並びは `.tb-stack` を追加）、ポップオーバー（`.tb-popover`）、フォーカス枠、ファイルのドロップ中の表示、共通ヘッダー（下記）、戻るリンク（`#toolbox-home`）と切り替えボタン（`.tb-theme-toggle`）の見た目 |
+| `header.js` | `setupToolHeader(header)`。共通ヘッダーのアイコン（`.tb-header-icon`）を favicon にも使い、`.tb-theme-toggle` に表示の切り替えを設定する。どちらかがなければ例外 |
+| `theme-toggle.js` | `setupThemeToggle(button)`。ボタンの押下でライト・ダークを切り替え、`localStorage` の `toolbox-theme` に残す。OS と同じ表示に戻すと記録を消す。ボタンのアイコンと読み上げ名を今の表示に合わせる。入口ページはこれを直接埋め込む |
 | `download.js` | `downloadBlob(blob, ファイル名, { signal })`。blob URL とリンクでダウンロードさせ、60秒後か `signal` の中断で URL を解放する |
 | `file-drop.js` | `watchFileDrop({ zone, onDrop, enabled })`。`zone` の外に落としたファイルでブラウザーが画面を離れないようにする。受け付ける間は `zone` に `data-tb-file-drag` を付け、`data-tb-drop-label` の文言を重ねて表示する。フォルダを含む場合は `onDrop` に `null` を渡す。`hasFiles`・`droppedFiles` も使える |
 | `session-key.js` | `sessionKey(href)`。クエリーとフラグメントを除いた HTML の配置 URL。両ツールの復元情報の保存先に使い、従来のキーを維持する。DB名・形式・保存処理は各ツールで管理する |
 
-- 色はすべて `light-dark()` で持ち、OS のダークモード設定に従います。画面での切り替えはありません。印刷は常にライトです。
+- 色はすべて `light-dark()` で持ち、OS のダークモード設定に従います。切り替えボタンで選んだ表示は `:root[data-tb-theme]` で `color-scheme` を上書きします。印刷は常にライトです。ツールの CSS で `prefers-color-scheme` を使うと切り替えが効かないため、色は `--tb-*` か `light-dark()` で書きます。
+- 共通ヘッダーは次の形で書き、`setupToolHeader()` をツールの起動処理の最初に呼びます（保存した表示を早く反映するため）。左上の一角は全ツールで同じ中身・順序にし、ツール固有の操作は右側に置きます。ファイル名など中央に置く要素は一角と右側の間に書きます。
+
+  ```html
+  <header class="tb-header">
+    <div class="tb-header-start">
+      <template id="toolbox-home"></template>
+      <span class="tb-header-brand"><img class="tb-header-icon" src="（src/icon.svg の data URL）" alt="">ツール名</span>
+      <button type="button" class="tb-button tb-icon-button tb-theme-toggle"></button>
+    </div>
+    <div class="tb-header-end">ツール固有のボタン・メニュー</div>
+  </header>
+  ```
+
+- アイコンは各ツールの `src/icon.svg`（32×32、角丸の緑地に白い線画）を正とし、ビルドで data URL として埋め込みます（PDF編集は Vite のアセット、ローカルノートは `scripts/build.mjs`）。favicon は `header.js` が同じ画像から設定するため、HTML に `link rel="icon"` を書きません。
 - 部品は `:where()` で詳細度を 0 にしているため、ツールの CSS で余白などを上書きできます。逆に、ツールの CSS でボタン全体に `color` や `font` を指定すると部品の指定も打ち消すため、`:where(:not(.tb-button))` のように部品を除外してください。
-- 入口ページは `scripts/toolbox.mjs` が `theme.css` を埋め込んで作ります。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
+- 入口ページは `scripts/toolbox.mjs` が `theme.css` と `theme-toggle.js` を埋め込んで作り、版番号の右に切り替えボタンを置きます。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
 - ローカルノートがエクスポートする HTML には本文用の `document.css` だけを入れるため、常にライトで出力されます。
 - メニューは `<button popovertarget="対象ID">` と `<div id="対象ID" popover="auto" class="tb-popover">` を組み合わせます。開閉・排他表示・外側クリック・Escape・展開状態の支援技術への通知は [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using)、配置は CSS のアンカー配置に任せます。`hidden` や `aria-expanded` に開閉状態を重複して保持しません。ローカルノートの Tab による閉鎖・操作後の閉鎖は固有処理として残します。
 - TypeScript からは同じ名前の `.d.ts` で型を参照します。Vite の開発サーバーでは、`server.fs.allow` に `../../ui` を加えます（PDF編集の `vite.config.ts`）。
@@ -100,7 +116,8 @@ Check は PR と main への push で動きます。作業ブランチへの pus
    - `package.json` の `packageManager` で pnpm の版（`pnpm@x.y.z`）を、`.node-version` で Node.js の版（`x.y.z`）を固定する。
    - `pnpm install --frozen-lockfile` で依存関係を取得できる。
    - `pnpm check` で検査とビルドを行い、`dist/` に外部を何も読み込まない HTML を1つだけ出力する。別のファイルやフォルダは残さない。
-   - ヘッダー左端、ツール名の手前に `<template id="toolbox-home"></template>` を1つ置く。ビルド後にもこの文字列を残し、画面が狭い場合はヘッダーを折り返せるようにする。
+   - 画面上部に[共通ヘッダー](#共通-ui)を置き、`ui/header.js` の `setupToolHeader()` を呼ぶ。左上の一角の先頭に `<template id="toolbox-home"></template>` を1つ置き、ビルド後にもこの文字列を残す。アイコンは `src/icon.svg` に置く。画面が狭い場合はヘッダーを折り返せるようにする。
+   - CSP を指定する場合は、`img-src` に `data:`（アイコン）を、`style-src` にインラインの style（版番号）を許可する。
    - `ui/theme.css` を読み込み、配色は `--tb-*`、ボタン・入力欄・ダイアログは共通部品のクラスを使う。ファイルのドラッグ＆ドロップとダウンロードは `ui/` の処理を使う（[共通 UI](#共通-ui)）。
 3. `tools.json` に追加し、直下の README に利用者向けの紹介を加える。
 
@@ -118,9 +135,9 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 
 追加後に `node scripts/toolbox.mjs check <フォルダ名>` を実行し、PR を作ります。ワークフローへのツール名の追記は不要です。`node scripts/toolbox.mjs list` で、一覧と必要な設定ファイルだけを素早く検査できます。単一 HTML に収まることは共通処理が検査しますが、外部通信や `file://` での動作は各ツールで検証してください。
 
-zip を作るときに、上記の空の `template` を「← トップへ戻る」のリンク（`#toolbox-home`、`href="../index.html"`）に置き換えます。通常のリンクなので、同じタブで戻り、ツールの既存の離脱確認が働きます。作業状態の削除や独自の確認処理は追加しません。挿入位置が不足・重複している場合は収集・梱包を失敗させます。開発画面や加工前の HTML では `template` は表示されません。
+zip を作るときに、上記の空の `template` を「← トップへ戻る」のリンク（`#toolbox-home`、`class="tb-button"`、`href="../index.html"`）に置き換えます。見た目は `ui/theme.css` が決めます。通常のリンクなので、同じタブで戻り、ツールの既存の離脱確認が働きます。作業状態の削除や独自の確認処理は追加しません。挿入位置が不足・重複している場合は収集・梱包を失敗させます。開発画面や加工前の HTML では `template` は表示されません。
 
-版番号は、各ツールの `</body>` の直前へ、右下に固定表示する小さな要素（`#toolbox-version`）として書き足します。戻るリンクと版番号のスタイルもインラインの `<style>` で追加するため、ツールの CSP ではインラインの style を許可してください。色はツールの配色（ライト・ダーク）に従います。加工は配布用のコピーにだけ行い、元のソース・`dist/`・`build/` は変えません。
+版番号は、各ツールの `</body>` の直前へ、右下に固定表示する小さな要素（`#toolbox-version`）として書き足します。版番号のスタイルはインラインの `<style>` で追加するため、ツールの CSP ではインラインの style を許可してください。色はツールの配色（ライト・ダーク）に従います。加工は配布用のコピーにだけ行い、元のソース・`dist/`・`build/` は変えません。
 
 ## 手元で zip を作る
 

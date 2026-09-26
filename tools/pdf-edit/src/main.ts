@@ -2,6 +2,7 @@ import '../../../ui/theme.css';
 import './style.css';
 import { downloadBlob } from '../../../ui/download.js';
 import { watchFileDrop } from '../../../ui/file-drop.js';
+import { setupToolHeader } from '../../../ui/header.js';
 import { Editor, type EditorPage } from './editor';
 import { renderIcons } from './icons';
 import { PdfClient } from './pdf/client';
@@ -24,6 +25,8 @@ function $<T extends HTMLElement = HTMLElement>(selector: string): T {
   if (!element) throw new Error(`画面の要素が見つかりません: ${selector}`);
   return element;
 }
+// 保存した配色を最初に反映する。
+setupToolHeader($('.pc-header'));
 const editor = new Editor();
 let client: PdfClient | undefined;
 const pdf = () => (client ??= new PdfClient());

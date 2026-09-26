@@ -28,9 +28,10 @@ ui/                  ← 全ツールと入口ページで共通の配色・部�
 
 ### 各ツールに求める形
 - 自分のフォルダの中で、依存関係の取得・検査・ビルドができる。依存関係とロックファイルはツールごとに持ち、ほかのツールと共有しない。
-- 見た目と共通処理は、直下の `ui/` のソースを相対パスで取り込む（`theme.css`、`download.js`、`file-drop.js`、`session-key.js`）。ツールのビルドが単一 HTML に埋め込む。
+- 見た目と共通処理は、直下の `ui/` のソースを相対パスで取り込む（`theme.css`、`header.js`、`download.js`、`file-drop.js`、`session-key.js`）。ツールのビルドが単一 HTML に埋め込む。
+- 画面上部に共通ヘッダー（`.tb-header`）を置き、左上の一角（`.tb-header-start`）に戻るリンクの位置・アイコンとツール名・表示の切り替えを書く。右側（`.tb-header-end`）は各ツールの操作。
 - ビルドの結果は、外部に何も読み込まない1ファイルの HTML になる。
-- ヘッダーのツール名の手前に `<template id="toolbox-home"></template>` を1つ置く。共通の配布加工処理でトップへのリンクに置き換える。
+- 共通ヘッダーの左上の一角の先頭に `<template id="toolbox-home"></template>` を1つ置く。共通の配布加工処理でトップへのリンクに置き換える。
 - 検査とビルドを、決まった方法で呼べる（pdf-edit では `pnpm check` が検査とビルドを兼ねる）。
 
 ### 開発時の検証
@@ -72,7 +73,9 @@ ui/                  ← 全ツールと入口ページで共通の配色・部�
 - pdf-edit の検証は上記の共通ワークフローで継続する。単体の `release.yml` は移動時に削除し、配布は toolbox に統一した。
 - note-html は既存の esbuild で `dist/index.html` を生成し、収集時に `note-html.html` とする。Node.js・pnpm はツール内で固定し、CI・リリースは共通ワークフローを使う。生成物や検証画像は Git 管理に含めない。
 - 共通 UI は npm パッケージや workspace にせず、直下の `ui/` のソースを各ツールが相対パスで取り込む。ツールごとのビルド基盤（Vite・esbuild）を変えずに使え、ツールの依存関係とロックファイルは独立したままにできるため。CI は `tools/` 以外の変更として全ツールを検証する。
-- 配色は CSS の `light-dark()` と `color-scheme: light dark` で OS の設定に従わせ、印刷時は `color-scheme: light` にする。JavaScript や保存した設定を使わないため、`file://` でも入口ページ（スクリプトなし）でも同じ動きになる。PDF編集の Vite は古いブラウザー向けに変換した形で出力するが、動きは同じ。
+- 配色は CSS の `light-dark()` と `color-scheme: light dark` で OS の設定に従わせ、印刷時は `color-scheme: light` にする。画面の切り替えは `ui/theme-toggle.js` が `:root` に `data-tb-theme` を付けて `color-scheme` だけを上書きするため、配色トークンを二重に持たない。選んだ表示は標準の `localStorage`（キー `toolbox-theme`）に残す。Chrome・Edge は `file://` のページで保存領域を共有するため、入口ページ・全ツール・別の版で同じ表示になる。保存できない環境ではその画面の中だけで切り替える。入口ページも同じ処理をインラインの script で埋め込む。
+- PDF編集の Vite（Lightning CSS）は、対象ブラウザーが古いと `light-dark()` を OS の設定だけに従う変数へ変換し、切り替えが効かない。対象の Chrome・Edge 129 は `light-dark()` に対応するため、`build.cssTarget` を Chrome・Edge 129 にして変換させない。
+- ツールのアイコンは各ツールの `src/icon.svg` 1つを正とし、ヘッダーの画像に data URL で埋め込む。`ui/header.js` がその画像を favicon にも使う。Vite は `link rel="icon"` を埋め込まない仕様のため、ビルドの独自処理を増やさずに単一 HTML へ収める。CSP の `img-src` は `data:` を許可する。
 - 共通部品の CSS は `:where()` で詳細度を 0 にし、ツールの CSS で調整できるようにする。入口ページは `scripts/toolbox.mjs` が `ui/theme.css` を埋め込んで生成する。
 - ノートのメニューには標準の Popover API と CSS アンカー配置を使う。独自の開閉状態・外側クリック・Escape 処理を持たず、操作後・Tab 移動時の閉鎖だけを補う。[Chrome 129 で導入された `position-area`](https://developer.chrome.com/blog/anchor-syntax-changes) を含め、対応は Chrome・Edge 129 以降とし、最新の安定版を推奨する。
 - HTML エクスポートの画像埋め込みは [FileReader.readAsDataURL](https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsDataURL) を使い、バイト列から Base64 を組み立てる処理を持たない。

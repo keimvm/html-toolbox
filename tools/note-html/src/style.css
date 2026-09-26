@@ -59,16 +59,24 @@ svg.icon {
 [hidden] {
   display: none !important;
 }
+/* 共通ヘッダーの下に、ナビゲーションと本文を並べる。 */
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
 .workspace {
   --sidebar-default-width: 292px;
   --splitter-width: 28px;
   display: grid;
   grid-template-columns: var(--sidebar-width, var(--sidebar-default-width)) var(--splitter-width) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
-  height: 100dvh;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   padding: 12px 26px;
   max-width: 1800px;
-  margin: auto;
+  margin: 0 auto;
 }
 .workspace.sidebar-collapsed {
   grid-template-columns: minmax(0, 1fr);
@@ -206,15 +214,9 @@ svg.icon {
   overflow: hidden;
 }
 .note-toolbar {
+  container: note-header / inline-size;
   position: relative;
   z-index: 3;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--line);
   flex: none;
 }
 .note-heading {
@@ -245,11 +247,8 @@ svg.icon {
   white-space: nowrap;
 }
 .note-actions {
-  display: flex;
-  justify-content: flex-end;
+  flex-wrap: nowrap;
   max-width: 100%;
-  margin-left: auto;
-  align-items: center;
   gap: 6px;
   flex: none;
 }
@@ -516,21 +515,21 @@ noscript {
     padding: 25px 34px 50px;
   }
 }
-@container note (max-width:600px) {
-  .note-toolbar { padding: 6px 8px; gap: 6px; }
+@container note-header (max-width:600px) {
   .note-heading { gap: 4px; }
   .note-actions { gap: 2px; }
   #save-status { max-width: 60px; font-size: 11px; }
-  .markdown, #editor { padding: 22px; }
 }
-@container note (max-width:400px) {
+@container note-header (max-width:400px) {
   .return-label { display: none; }
+}
+@container note (max-width:600px) {
+  .markdown, #editor { padding: 22px; }
 }
 @media (max-width:680px) {
   .workspace {
     grid-template-columns: 1fr;
     grid-template-rows: 180px minmax(0, 1fr);
-    height: 100dvh;
     gap: 12px;
     padding: 8px 12px;
   }
@@ -581,6 +580,7 @@ noscript {
 #print-document { display: none; }
 @media print {
   :root { background: white; }
+  body { display: block; height: auto; }
   body.note-printing > :not(#print-document) { display: none !important; }
   body.note-printing > #print-document { display: block; padding: 0; }
 }

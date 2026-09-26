@@ -1,6 +1,7 @@
 /*
  * toolbox 共通の配色・文字・部品。入口ページと各ツールで同じものを使う。
  * 色は light-dark() で持ち、OS の設定に合わせてライト・ダークを切り替える。印刷は常にライト。
+ * ヘッダーの切り替えボタン（theme-toggle.js）で選んだ配色は、:root の data-tb-theme で OS の設定より優先する。
  * 部品は :where() で詳細度を 0 にし、ツール側のどのセレクターでも上書きできるようにする。
  */
 :root {
@@ -33,8 +34,15 @@
   --tb-radius-large: 12px;
   --tb-control-height: 36px;
 }
+:root[data-tb-theme='light'] {
+  color-scheme: light;
+}
+:root[data-tb-theme='dark'] {
+  color-scheme: dark;
+}
 @media print {
-  :root {
+  :root,
+  :root[data-tb-theme] {
     color-scheme: light;
   }
 }
@@ -179,4 +187,75 @@
   background: color-mix(in srgb, var(--tb-tint) 93%, transparent);
   font-size: 22px;
   pointer-events: none;
+}
+
+/*
+ * ツール画面のヘッダー。左上の一角（.tb-header-start）は全ツール共通で、
+ * トップへ戻るリンク・アイコンとツール名・配色の切り替えを並べる。右側（.tb-header-end）は各ツールの操作。
+ */
+:where(.tb-header) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--tb-line);
+  color: var(--tb-ink);
+  background: var(--tb-surface);
+}
+@media (max-width: 480px) {
+  :where(.tb-header) {
+    padding: 8px 12px;
+  }
+}
+:where(.tb-header-start) {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+:where(.tb-header-brand) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 6px 2px;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+:where(.tb-header-icon) {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+:where(.tb-header-end) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+/*
+ * 配布時に <template id="toolbox-home"> を置き換えるリンク（scripts/toolbox.mjs）。
+ * ツール側のリンクの配色（a 要素への指定）に左右されず、全ツールで同じ見た目にする。
+ */
+#toolbox-home {
+  gap: 4px;
+  padding-inline: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+/* 切り替えた後の配色のアイコン。月はダークへ、太陽はライトへ切り替える。 */
+:where(.tb-theme-toggle)::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+:where(.tb-theme-toggle[data-tb-theme='dark'])::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
 }

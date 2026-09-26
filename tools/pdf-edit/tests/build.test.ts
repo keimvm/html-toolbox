@@ -36,3 +36,20 @@ test('PDFiumと日本語フォントのバイナリ、Workerのコードとラ�
     true,
   );
 });
+
+test('共通ヘッダーの左上に戻るリンクの位置・アイコンとツール名・配色の切り替えを置く', async () => {
+  const html = await readFile(`${dist}/PDF編集.html`, 'utf8');
+  const start = html.indexOf('<div class="tb-header-start">');
+  expect(start).toBeGreaterThan(-1);
+  const corner = html.slice(start, html.indexOf('</div>', start));
+  expect(
+    corner.match(/<template id="toolbox-home"><\/template>/gu),
+  ).toHaveLength(1);
+  expect(corner).toMatch(
+    /<img\s+class="tb-header-icon"\s+src="data:image\/svg\+xml,[^"]+"\s+alt=""\s*\/>PDF編集/u,
+  );
+  expect(corner).toContain('tb-theme-toggle');
+  // 切り替えが効くよう、light-dark() を OS の設定だけに従う形へ変換しない。
+  expect(html.includes('light-dark(')).toBe(true);
+  expect(html.includes('lightningcss-dark')).toBe(false);
+});

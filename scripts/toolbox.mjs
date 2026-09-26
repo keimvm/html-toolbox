@@ -12,8 +12,9 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-// 入口ページにも各ツールと同じ配色・部品を使う。
+// 入口ページにも各ツールと同じ配色・部品と、配色の切り替えを使う。
 const themePath = new URL('../ui/theme.css', import.meta.url);
+const themeTogglePath = new URL('../ui/theme-toggle.js', import.meta.url);
 
 const DIR_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*$/;
 
@@ -101,7 +102,7 @@ export function escapeHtml(text) {
 
 /**
  * 配布用のHTMLにトップへのリンクと右下の版番号を追加する。
- * 色はツールが読み込む ui/theme.css の値と配色の指定（ライト・ダーク）に従い、読み込んでいないツールでも見えるよう既定値を持つ。
+ * リンクの見た目はツールが読み込む ui/theme.css の共通ヘッダーに従う。版番号は配色の指定（ライト・ダーク）に従う。
  */
 export function decorateToolHtml(html, version) {
   const homeSlot = '<template id="toolbox-home"></template>';
@@ -111,19 +112,14 @@ export function decorateToolHtml(html, version) {
   }
   html = html.replace(
     homeSlot,
-    '<a id="toolbox-home" href="../index.html"><span aria-hidden="true">←</span> トップへ戻る</a>',
+    '<a id="toolbox-home" class="tb-button" href="../index.html"><span aria-hidden="true">←</span> トップへ戻る</a>',
   );
   const end = html.lastIndexOf('</body>');
   if (end === -1) {
     throw new Error('ツールのHTMLに </body> がありません。');
   }
   const badge =
-    '<style>#toolbox-home{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;' +
-    'box-sizing:border-box;min-height:36px;padding:7px 8px;border-radius:7px;' +
-    'color:inherit;font:inherit;line-height:1.5;text-decoration:none;white-space:nowrap}' +
-    '#toolbox-home:hover{background:var(--tb-tint,rgba(128,128,128,.12));text-decoration:underline}' +
-    '#toolbox-home:focus-visible{outline:2px solid currentColor;outline-offset:2px}' +
-    '#toolbox-version{all:initial;color-scheme:inherit;position:fixed;right:2px;bottom:2px;' +
+    '<style>#toolbox-version{all:initial;color-scheme:inherit;position:fixed;right:2px;bottom:2px;' +
     'z-index:2147483647;pointer-events:none;padding:0 5px;border-radius:3px;' +
     'background:light-dark(rgba(255,255,255,.85),rgba(23,29,26,.85));color:light-dark(#555,#b5beb8);' +
     'box-shadow:0 0 0 1px light-dark(rgba(0,0,0,.12),rgba(255,255,255,.16));' +
@@ -132,8 +128,8 @@ export function decorateToolHtml(html, version) {
   return html.slice(0, end) + badge + html.slice(end);
 }
 
-/** theme は ui/theme.css の内容。 */
-export function renderIndex(tools, version, theme) {
+/** theme は ui/theme.css、themeToggle は ui/theme-toggle.js の内容。 */
+export function renderIndex(tools, version, { theme, themeToggle }) {
   const v = escapeHtml(version);
   const items = tools
     .map(
@@ -149,7 +145,7 @@ export function renderIndex(tools, version, theme) {
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>toolbox ${v}</title>
     <style>
@@ -162,9 +158,10 @@ ${theme}
         font: 15px/1.7 var(--tb-font);
       }
       main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
-      header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
       h1 { margin: 0; font-size: 26px; letter-spacing: .02em; }
-      .version { color: var(--tb-muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+      .meta { display: flex; align-items: center; gap: 8px; }
+      .version { margin: 0; color: var(--tb-muted); font-size: 14px; font-variant-numeric: tabular-nums; }
       .version strong { color: var(--tb-ink); }
       .notice {
         margin: 20px 0 24px;
@@ -187,12 +184,19 @@ ${theme}
       .name { display: block; color: var(--tb-accent); font-weight: 700; font-size: 17px; }
       .description { display: block; color: var(--tb-muted); }
     </style>
+    <script type="module">
+${themeToggle}
+setupThemeToggle(document.getElementById('theme-toggle'));
+    </script>
   </head>
   <body>
     <main>
       <header>
         <h1>toolbox</h1>
-        <p class="version">版 <strong>${v}</strong></p>
+        <div class="meta">
+          <p class="version">版 <strong>${v}</strong></p>
+          <button type="button" id="theme-toggle" class="tb-button tb-icon-button tb-theme-toggle"></button>
+        </div>
       </header>
       <p class="notice">Chrome または Edge で開いてください。Safari では正しく動かない場合があります。</p>
       <ul>
@@ -245,8 +249,11 @@ export async function packageRelease(version, rootDir = root) {
     });
     await writeFile(join(target, 'tools', `${dir}.html`), decorateToolHtml(html, version));
   }
-  const theme = await readFile(themePath, 'utf8');
-  await writeFile(join(target, 'index.html'), renderIndex(tools, version, theme));
+  const [theme, themeToggle] = await Promise.all([
+    readFile(themePath, 'utf8'),
+    readFile(themeTogglePath, 'utf8'),
+  ]);
+  await writeFile(join(target, 'index.html'), renderIndex(tools, version, { theme, themeToggle }));
 
   // -X でOS固有の拡張属性を入れない。中の名前は英数字だけなので文字コードの問題は起きない。
   execFileSync('zip', ['-qrX', `${name}.zip`, name], { cwd: outDir, stdio: 'inherit' });

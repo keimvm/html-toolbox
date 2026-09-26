@@ -3,12 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      sizes="any"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23355b49'/%3E%3Cg transform='translate(4 4)' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 2H6a2 2 0 0 0-2 2v13m6-11h6l4 4v10a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z'/%3E%3Cpath d='M16 6v4h4'/%3E%3C/g%3E%3C/svg%3E"
-    />
     <title>PDF編集</title>
     <script type="module" src="/src/main.ts"></script>
   </head>
@@ -20,20 +14,19 @@
       data-tb-drop-label="PDFをドロップして開く"
     >
       <div class="pc-shell">
-        <header class="pc-header">
-          <template id="toolbox-home"></template>
-          <div class="pc-brand">
-            <span class="pc-brand-mark"
-              ><i data-lucide="files" aria-hidden="true"></i></span
-            ><span class="pc-brand-name">PDF編集</span
+        <header class="tb-header pc-header">
+          <div class="tb-header-start">
+            <template id="toolbox-home"></template>
+            <span class="tb-header-brand"
+              ><img
+                class="tb-header-icon"
+                src="/src/icon.svg"
+                alt=""
+              />PDF編集</span
             ><button
               type="button"
-              class="tb-button tb-icon-button"
-              data-action="about"
-              aria-label="このアプリについて"
-            >
-              ?
-            </button>
+              class="tb-button tb-icon-button tb-theme-toggle"
+            ></button>
           </div>
           <div class="pc-file" hidden>
             <span class="pc-filename"></span>
@@ -43,7 +36,7 @@
               <span id="pc-session-status" role="status"></span>
             </div>
           </div>
-          <div class="pc-actions">
+          <div class="tb-header-end pc-actions">
             <button
               type="button"
               class="tb-button"
@@ -67,6 +60,15 @@
               data-action="save"
             >
               <i data-lucide="download" aria-hidden="true"></i>PDFを保存
+            </button>
+            <button
+              type="button"
+              class="tb-button tb-icon-button"
+              data-action="about"
+              aria-label="このアプリについて"
+              title="このアプリについて"
+            >
+              ?
             </button>
           </div>
         </header>

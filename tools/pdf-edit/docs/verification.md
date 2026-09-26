@@ -1,5 +1,9 @@
 # 検証手順と記録
 
+## toolbox共通ヘッダーと表示の切り替え（2026年9月26日）
+
+ヘッダー左上を toolbox 共通の部品（「← トップへ戻る」・アイコンとツール名・表示の切り替え）に置き換えた。アイコンは `src/icon.svg` を正とし、ヘッダー画像と favicon に使う（favicon は `ui/header.js` が設定。Vite は `link rel="icon"` を埋め込まないため）。「このアプリについて」は右端へ移した。`build.cssTarget` を Chrome・Edge 129 にし、`light-dark()` を変換させない。34件の自動テストが成功し、配布物のローカルHTTP表示で切り替え・375px幅を確認した。`file://`、Windows・Edge は未確認。詳細は [toolboxの検証記録](../../../docs/verification.md) を参照。
+
 ## 標準機能と共通部品の活用（2026年9月26日）
 
 復元用の配置 URL を `ui/session-key.js`、保存ダイアログの操作欄を `ui/theme.css` に共通化した。標準機能・ライブラリ・共通部品を優先する開発方針も明記した。整形・Lint・型検査・ビルド・33件の自動テストが成功し、全ツール入りの配布zipを再作成した。PDF編集の実ブラウザー操作は今回は追加実施していない。 詳細は [toolboxの検証記録](../../../docs/verification.md) を参照。

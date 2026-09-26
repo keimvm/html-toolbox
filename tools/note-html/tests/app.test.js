@@ -134,5 +134,5 @@ test('非対応ブラウザには理由を表示して操作を無効にする',
 test('HTML テンプレートは実行時の外部依存と通信を禁止する', async () => {
   const html = await readFile(new URL('../src/index.html', import.meta.url), 'utf8');
   assert.doesNotMatch(html, /<(?:script|link)[^>]+(?:src|href)=["']https?:/i);
-  assert.match(html, /connect-src 'none'/); assert.match(html, /img-src blob:/);
+  assert.match(html, /connect-src 'none'/); assert.match(html, /img-src blob: data:;/);
 });

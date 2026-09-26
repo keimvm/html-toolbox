@@ -30,6 +30,7 @@ test('配布 HTML が単独で起動し、クリックからピッカーと保�
     // resources を有効にせず、通信も実ファイル API も使わない。
     beforeParse(window) {
         installPopover(window);
+      window.matchMedia = () => Object.assign(new window.EventTarget(), { matches: false });
       window.TextDecoder = TextDecoder; window.TextEncoder = TextEncoder; window.isSecureContext = true;
       window.FileSystemHandle = class {}; window.FileSystemHandle.prototype.requestPermission = function () {};
       window.FileSystemFileHandle = class {}; window.FileSystemFileHandle.prototype.createWritable = function () {};
@@ -47,9 +48,16 @@ test('配布 HTML が単独で起動し、クリックからピッカーと保�
   });
   const $ = id => dom.window.document.getElementById(id);
   assert.equal(dom.window.document.querySelectorAll('#toolbox-home').length, 1);
-  assert.equal(dom.window.document.querySelector('.note-toolbar').firstElementChild, $('toolbox-home'));
+  // 共通ヘッダーの左上の一角に、戻るリンクの位置・アイコンとツール名・配色の切り替えを置く。
+  const start = dom.window.document.querySelector('.tb-header > .tb-header-start');
+  assert.equal(start.firstElementChild, $('toolbox-home'));
   assert.equal($('toolbox-home').tagName, 'TEMPLATE');
-  assert.equal(dom.window.document.querySelectorAll('script[src], link[rel="stylesheet"], img[src]').length, 0);
+  assert.equal(start.querySelector('.tb-header-brand').textContent, 'ローカルノート');
+  assert.ok(start.querySelector('.tb-theme-toggle'));
+  const icon = start.querySelector('.tb-header-icon').getAttribute('src');
+  assert.match(icon, /^data:image\/svg\+xml,/);
+  assert.equal(dom.window.document.querySelector('link[rel="icon"]').href, icon);
+  assert.equal(dom.window.document.querySelectorAll('script[src], link[rel="stylesheet"], img[src]:not([src^="data:"])').length, 0);
   assert.match(dom.window.document.querySelector('meta[http-equiv="Content-Security-Policy"]').content, /connect-src 'none'/);
   const tick = () => new Promise(resolve => setTimeout(resolve, 0));
   await tick(); $('open-folder').click(); await tick();
@@ -95,6 +103,7 @@ test('配布 HTML の起動処理が記録から復元し、再許可のクリ�
       url: 'file:///bundle-test/index.html', runScripts: 'dangerously', virtualConsole,
       beforeParse(window) {
         installPopover(window);
+      window.matchMedia = () => Object.assign(new window.EventTarget(), { matches: false });
         window.TextDecoder = TextDecoder; window.TextEncoder = TextEncoder; window.isSecureContext = true;
         window.FileSystemHandle = class {}; window.FileSystemHandle.prototype.requestPermission = function () {};
         window.FileSystemFileHandle = class {}; window.FileSystemFileHandle.prototype.createWritable = function () {};
@@ -135,6 +144,7 @@ test('配布 HTML 単独でレイアウトの開閉を保存し、開き直し�
     return new JSDOM(html, { url: href, runScripts: 'dangerously', virtualConsole,
       beforeParse(window) {
         installPopover(window);
+      window.matchMedia = () => Object.assign(new window.EventTarget(), { matches: false });
         window.indexedDB = indexedDB; window.TextDecoder = TextDecoder; window.TextEncoder = TextEncoder;
         const original = window.HTMLElement.prototype.getBoundingClientRect;
         window.HTMLElement.prototype.getBoundingClientRect = function () { return this.classList.contains('workspace') ? { width: 1440 } : original.call(this); };
