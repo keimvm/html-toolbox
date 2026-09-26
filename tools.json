@@ -8,5 +8,10 @@
     "dir": "note-html",
     "name": "ローカルノート",
     "description": "PCのフォルダにあるMarkdownを閲覧・編集し、元のファイルに保存できます。"
+  },
+  {
+    "dir": "mojicode-converter",
+    "name": "文字コード変換",
+    "description": "文字とコードの値（Unicode・UTF-8・UTF-16・Shift_JIS）を、どちら向きにも変換して確かめられます。"
   }
 ]

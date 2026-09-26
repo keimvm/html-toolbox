@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.png binary
+# テスト用の対応表は入手したままのバイト列で保つ（bestfit932.txt は CRLF・Shift_JIS のコメントを含む）。
+tests/fixtures/*.TXT -text
+tests/fixtures/*.txt -text

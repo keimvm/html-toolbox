@@ -1,0 +1,275 @@
+/* 文字コード変換の画面配置。配色・部品は ui/theme.css の --tb-* とクラスを使う。 */
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--tb-ink);
+  background: var(--tb-bg);
+  font-family: var(--tb-font);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.mc-lead {
+  margin: 0;
+  color: var(--tb-muted);
+  font-size: 13px;
+}
+.mc-main {
+  display: grid;
+  /* 一覧の表が広くても、画面の幅を超えず表の中で横にスクロールさせる。 */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 22px 18px 40px;
+}
+.mc-panel {
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius-large);
+  background: var(--tb-surface);
+}
+.mc-panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.mc-panel h2 {
+  margin: 0;
+  font-family: var(--tb-font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+/* 見出しの下の短い真鍮色の線。 */
+.mc-panel h2::after {
+  content: '';
+  display: block;
+  width: 22px;
+  height: 1px;
+  margin-top: 6px;
+  background: var(--tb-gold);
+}
+.mc-count {
+  color: var(--tb-muted);
+  font-size: 12px;
+}
+
+/* 連動する欄 */
+.mc-fields {
+  display: grid;
+  gap: 16px;
+}
+.mc-codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+@media (max-width: 720px) {
+  .mc-main {
+    padding-inline: 10px;
+  }
+  .mc-panel {
+    padding: 14px;
+  }
+  .mc-codes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.mc-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.mc-field > label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.mc-field > label span {
+  color: var(--tb-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.mc-field-text textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 68px;
+  padding-block: 8px;
+  resize: vertical;
+  font-size: 22px;
+  line-height: 1.5;
+}
+.mc-code {
+  box-sizing: border-box;
+  width: 100%;
+  font-family: var(--tb-font-mono);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+.mc-status {
+  min-height: 1.5em;
+  margin: 0;
+  color: var(--tb-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.mc-status:empty {
+  min-height: 0;
+}
+.mc-status[data-state='error'] {
+  color: var(--tb-danger);
+}
+.mc-status[data-state='problem'] {
+  color: var(--tb-warning);
+}
+.mc-code[aria-invalid='true'] {
+  border-color: var(--tb-danger);
+}
+/* 読めない入力の間、ほかの欄と一覧は前の値のまま薄くする。フォントの選択はそのまま使える。 */
+.tb-input[data-stale],
+[data-stale] .mc-preview,
+[data-stale] .mc-notations,
+[data-stale] .mc-table-wrap {
+  opacity: 0.45;
+  transition: opacity var(--tb-transition);
+}
+
+/* 大きく表示・表記の形 */
+.mc-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+@media (max-width: 860px) {
+  .mc-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.mc-font {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.mc-font label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.mc-font input {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.mc-font + .mc-status {
+  margin-top: 6px;
+}
+.mc-preview {
+  min-height: 132px;
+  margin-top: 12px;
+  padding: 14px 18px;
+  border-radius: var(--tb-radius);
+  background: var(--tb-subtle);
+  box-shadow: inset 0 0 0 1px var(--tb-line);
+  font-family: var(--mc-font, var(--tb-font));
+  font-size: clamp(56px, 11vw, 88px);
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mc-notations {
+  display: grid;
+  gap: 10px;
+}
+.mc-notation {
+  display: grid;
+  gap: 3px;
+}
+.mc-notation span {
+  color: var(--tb-muted);
+  font-size: 12px;
+}
+
+/* 1文字ずつの一覧 */
+.mc-table-wrap {
+  overflow-x: auto;
+}
+.mc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.mc-table th {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--tb-line);
+  color: var(--tb-muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+.mc-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--tb-line);
+  vertical-align: middle;
+}
+.mc-table td.mc-code {
+  font-family: var(--tb-font-mono);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.mc-char {
+  min-width: 56px;
+  text-align: center;
+}
+.mc-glyph {
+  font-family: var(--mc-font, var(--tb-font));
+  font-size: 30px;
+  line-height: 1.2;
+}
+.mc-invisible {
+  color: var(--tb-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.mc-missing {
+  color: var(--tb-warning);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.mc-others {
+  display: block;
+  color: var(--tb-muted);
+  font-family: var(--tb-font);
+  font-size: 11px;
+}
+.mc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.mc-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--tb-tint);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.mc-chip-warn {
+  color: var(--tb-warning);
+  background: var(--tb-warning-tint);
+  box-shadow: inset 0 0 0 1px var(--tb-warning-line);
+}
+.mc-empty {
+  margin: 14px 0 4px;
+  color: var(--tb-muted);
+  font-size: 13px;
+}
+.mc-note {
+  margin: 0;
+  color: var(--tb-muted);
+  font-size: 12px;
+  text-align: center;
+}
