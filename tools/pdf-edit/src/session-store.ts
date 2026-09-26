@@ -13,12 +13,6 @@ export interface SessionState {
   zoom: PreviewZoom;
   sourceIds: string[];
 }
-export function sessionKey(href: string) {
-  const url = new URL(href);
-  url.search = '';
-  url.hash = '';
-  return url.href;
-}
 function isSession(value: unknown): value is SessionState {
   return (
     !!value &&

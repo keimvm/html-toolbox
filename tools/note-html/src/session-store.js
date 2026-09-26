@@ -1,12 +1,7 @@
+import { sessionKey } from '../../../ui/session-key.js';
+
 const DATABASE = 'local-notes-session';
 const STORE = 'sessions';
-
-// file:// では別の HTML と保存領域を共有し得るため、配置場所ごとに記録する。
-export function sessionKey(href) {
-  const url = new URL(href);
-  url.search = ''; url.hash = '';
-  return url.href;
-}
 
 export function createSessionStore(window, { timeoutMs = 3000 } = {}) {
   return createStore(window, sessionKey(window.location.href), timeoutMs);

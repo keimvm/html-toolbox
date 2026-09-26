@@ -133,6 +133,38 @@
   background: var(--tb-backdrop);
 }
 
+/* ダイアログ内の操作。選択肢を縦に並べる場合は stack を付ける。 */
+:where(.tb-dialog-actions) {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+:where(.tb-dialog-actions.tb-stack) {
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 開閉・外側クリック・Escape は popover="auto" に任せる。 */
+:where(.tb-popover) {
+  position: fixed;
+  inset: auto;
+  position-area: bottom span-left;
+  position-try-fallbacks: flip-inline, flip-block;
+  margin: 6px 0;
+  max-width: calc(100vw - 24px);
+  max-height: min(440px, 45dvh);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 10px;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius);
+  color: var(--tb-ink);
+  background: var(--tb-surface);
+  box-shadow: 0 8px 25px var(--tb-shadow);
+}
+
 /* file-drop.js がファイルを受け付ける間だけ data-tb-file-drag を付ける。文言は data-tb-drop-label に書く。 */
 :where([data-tb-file-drag][data-tb-drop-label])::after {
   content: attr(data-tb-drop-label);

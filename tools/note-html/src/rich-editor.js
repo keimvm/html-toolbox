@@ -208,7 +208,7 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
   const labelField = element('label', '表示する文字'); const labelInput = element('input'); labelInput.className = 'tb-input'; labelInput.type = 'text'; labelField.append(labelInput);
   const urlField = element('label', 'URL またはノートの相対パス'); const urlInput = element('input'); urlInput.className = 'tb-input'; urlInput.type = 'text'; urlInput.spellcheck = false; urlField.append(urlInput);
   const error = element('p'); error.setAttribute('role', 'alert');
-  const actions = element('div'); actions.className = 'link-actions';
+  const actions = element('div'); actions.className = 'tb-dialog-actions';
   const cancel = element('button', 'キャンセル'), remove = element('button', 'リンクを解除'), apply = element('button', '適用');
   cancel.className = 'tb-button tb-secondary'; remove.className = 'tb-button tb-secondary'; apply.className = 'tb-button tb-primary';
   actions.append(cancel, remove, apply); dialog.append(title, labelField, urlField, error, actions); document.body.append(dialog);

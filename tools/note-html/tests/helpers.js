@@ -1,6 +1,7 @@
 import { afterEach } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
+import { installPopover } from './popover.js';
 import { createApp } from '../src/app.js';
 
 const cleanup = [];
@@ -103,6 +104,7 @@ export async function setup(root, { supported = true, sessionStore = new MemoryS
   const html = await readFile(new URL('../src/index.html', import.meta.url), 'utf8');
   const dom = new JSDOM(html, { url: 'file:///index.html' });
   const { window } = dom;
+  const popovers = installPopover(window);
   window.document.getElementById('document-styles').textContent = await readFile(new URL('../src/document.css', import.meta.url), 'utf8');
   window.isSecureContext = true;
   window.FileSystemFileHandle = MemoryFile;
@@ -125,5 +127,5 @@ export async function setup(root, { supported = true, sessionStore = new MemoryS
   const choose = value => window.document.querySelector(`[data-choice="${value}"]`).click();
   if (waitReady) await app.ready;
   if (supported && autoOpen) await app.openFolder();
-  return { dom, window, app, $, edit, choose, sessionStore, layoutStore, displayStore };
+  return { dom, window, app, $, edit, choose, sessionStore, layoutStore, displayStore, popovers };
 }

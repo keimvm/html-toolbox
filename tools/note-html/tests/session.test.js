@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { sessionKey } from '../../../ui/session-key.js';
 import { IDBFactory } from 'fake-indexeddb';
-import { createSessionStore, readSession, sessionKey } from '../src/session-store.js';
+import { createSessionStore, readSession } from '../src/session-store.js';
 import { setup, MemoryDirectory, MemoryFile, MemorySessionStore, bytes, failure, tick } from './helpers.js';
 
 const record = (root, selectedPath = null, expandedPaths = ['']) => ({ version: 1, root, selectedPath, expandedPaths });

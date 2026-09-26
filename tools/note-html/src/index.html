@@ -33,13 +33,13 @@
           <div class="note-location"><h1 id="file-name">ローカルノート</h1></div>
         </div>
         <div class="note-actions">
-          <button id="format-toggle" class="tb-button toolbar-button" aria-expanded="false" aria-controls="format-panel" disabled>書式<svg class="icon menu-chevron" aria-hidden="true"><use href="#icon-chevron"/></svg></button>
-          <div id="format-panel" class="toolbar-panel" role="group" aria-label="書式と挿入" hidden>
+          <button id="format-toggle" class="tb-button toolbar-button" popovertarget="format-panel" disabled>書式<svg class="icon menu-chevron" aria-hidden="true"><use href="#icon-chevron"/></svg></button>
+          <div id="format-panel" class="tb-popover toolbar-panel" role="group" aria-label="書式と挿入" popover="auto">
             <div id="format-toolbar" class="format-toolbar" role="group" aria-label="本文の書式" hidden></div>
           </div>
           <button id="return-to-note" class="tb-button toolbar-button" aria-label="本文に戻る" title="本文に戻る" hidden><span>本文<span class="return-label">に戻る</span></span></button>
-          <button id="options-toggle" class="tb-button toolbar-button" aria-label="その他の操作" title="その他の操作" aria-expanded="false" aria-controls="options-panel"><span aria-hidden="true">⋯</span></button>
-          <div id="options-panel" class="toolbar-panel options-panel" role="group" aria-label="その他の操作" hidden>
+          <button id="options-toggle" class="tb-button toolbar-button" aria-label="その他の操作" title="その他の操作" popovertarget="options-panel"><span aria-hidden="true">⋯</span></button>
+          <div id="options-panel" class="tb-popover toolbar-panel options-panel" role="group" aria-label="その他の操作" popover="auto">
             <button id="settings-open" class="tb-button source-button">設定</button>
             <button id="source-mode" class="tb-button source-button" aria-pressed="false" disabled>Markdownソース</button>
             <button id="export" class="tb-button source-button" disabled>エクスポート</button>
@@ -66,7 +66,7 @@
   <dialog id="confirm-dialog" class="tb-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
     <h2 id="confirm-title"></h2><p id="confirm-text"></p>
     <label id="entry-name-label" hidden>名前<input id="entry-name" class="tb-input" type="text" autocomplete="off" spellcheck="false" aria-describedby="entry-error"></label>
-    <p id="entry-error" role="alert" hidden></p><div id="confirm-actions" class="dialog-actions"></div>
+    <p id="entry-error" role="alert" hidden></p><div id="confirm-actions" class="tb-dialog-actions tb-stack"></div>
   </dialog>
   <dialog id="settings-dialog" class="tb-dialog" aria-labelledby="settings-title">
     <h2 id="settings-title">設定</h2>
@@ -75,7 +75,7 @@
     <datalist id="ui-fonts"><option value="Hiragino Sans"><option value="Yu Gothic"><option value="Meiryo"><option value="Noto Sans JP"><option value="Helvetica Neue"></datalist>
     <p id="ui-font-hint">端末にあるフォント名を指定します。空欄で標準に戻ります。</p>
     <label class="font-size-label">本文フォントサイズ<select id="font-size" class="tb-input"><option value="14">14 px</option><option value="16" selected>16 px</option><option value="18">18 px</option><option value="20">20 px</option><option value="24">24 px</option></select></label>
-    <div class="dialog-actions"><button id="settings-close" class="tb-button tb-primary">閉じる</button></div>
+    <div class="tb-dialog-actions tb-stack"><button id="settings-close" class="tb-button tb-primary">閉じる</button></div>
   </dialog>
   <dialog id="entry-menu" class="tb-dialog" aria-labelledby="entry-menu-title">
     <h2 id="entry-menu-title"></h2>
@@ -83,7 +83,7 @@
       <button class="tb-button" data-entry-action="create-file">ファイルを追加</button><button class="tb-button" data-entry-action="create-directory">フォルダを追加</button>
       <button class="tb-button" data-entry-action="rename">名前を変更</button><button data-entry-action="delete" class="tb-button tb-danger">削除</button>
     </div>
-    <div class="dialog-actions"><button class="tb-button tb-secondary" id="entry-menu-close">閉じる</button></div>
+    <div class="tb-dialog-actions tb-stack"><button class="tb-button tb-secondary" id="entry-menu-close">閉じる</button></div>
   </dialog>
   <template id="third-party-licenses"><pre><!-- APP_LICENSES --></pre></template>
   <noscript>JavaScript が無効です。Chrome または Edge の設定で JavaScript を有効にして開き直してください。</noscript>

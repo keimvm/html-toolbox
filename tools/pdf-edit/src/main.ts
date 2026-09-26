@@ -15,7 +15,8 @@ import {
   stepZoom,
   type PreviewZoom,
 } from './preview';
-import { SessionStore, sessionKey } from './session-store';
+import { SessionStore } from './session-store';
+import { sessionKey } from '../../../ui/session-key.js';
 import licenses from './licenses.txt?raw';
 
 function $<T extends HTMLElement = HTMLElement>(selector: string): T {

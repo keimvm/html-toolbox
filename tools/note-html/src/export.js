@@ -17,11 +17,13 @@ function waitFor(promise, signal, milliseconds = 30000) {
   });
 }
 
-async function dataUrl(window, blob) {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  const chunks = [];
-  for (let offset = 0; offset < bytes.length; offset += 16384) chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + 16384)));
-  return `data:${blob.type};base64,${window.btoa(chunks.join(''))}`;
+function dataUrl(window, blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new window.FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
 
 export function createExporter(window, { onError }) {

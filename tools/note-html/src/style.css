@@ -357,25 +357,13 @@ svg.icon {
   font-size: 12px;
   font-weight: 400;
 }
-.toolbar-button[aria-expanded=true] { background: var(--tb-tint); }
+.note-actions:has(#format-panel:popover-open) #format-toggle,
+.note-actions:has(#options-panel:popover-open) #options-toggle { background: var(--tb-tint); }
 .toolbar-button .menu-chevron { width: 11px; height: 11px; transform: rotate(90deg); }
 #options-toggle { width: 32px; font-size: 24px; line-height: 1; }
-.toolbar-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 12px;
-  width: 344px;
-  max-width: calc(100% - 24px);
-  max-height: min(440px, 45dvh);
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--paper);
-  box-shadow: 0 8px 25px var(--tb-shadow);
-}
-.options-panel { display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 240px; }
+.toolbar-panel { width: 344px; }
+.options-panel { width: 240px; }
+.options-panel:popover-open { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
 .options-panel .source-button { text-align: left; justify-content: flex-start; min-height: 36px; color: var(--ink); }
 .options-panel .font-size-label { justify-content: space-between; padding: 4px 7px 10px; }
 .menu-path { margin: 6px 0 0; padding: 10px 7px 2px; border-top: 1px solid var(--line); font-size: 11px; line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
@@ -443,8 +431,8 @@ svg.icon {
 .link-dialog label { display: block; font-size: 12px; margin-top: 15px; }
 .link-dialog input { display: block; width: 100%; margin-top: 4px; font-size: 14px; }
 .link-dialog [role=alert] { color: var(--red); }
-.link-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
-.link-actions button { font-size: 12px; padding: 6px 8px; }
+.link-dialog .tb-dialog-actions { margin-top: 22px; }
+.link-dialog .tb-dialog-actions button { font-size: 12px; padding: 6px 8px; }
 #editor {
   flex: 1;
   resize: none;
@@ -477,13 +465,7 @@ dialog p,
 dialog ol {
   font-size: 14px;
 }
-dialog .dialog-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 24px;
-}
-dialog .dialog-actions button {
+dialog .tb-dialog-actions.tb-stack button {
   min-height: 42px;
 }
 dialog form {

@@ -9,6 +9,11 @@ async function open(source = '# 本文', name = 'note.md') {
   const context = await setup(new MemoryDirectory('root', [file, png]));
   await context.app.openNote(name);
   const downloads = [];
+  // ファイル境界は Node の Blob、FileReader は jsdom の実装を使う。
+  const { FileReader, Blob: DOMBlob } = context.window;
+  context.window.FileReader = class extends FileReader {
+    async readAsDataURL(blob) { super.readAsDataURL(new DOMBlob([await blob.arrayBuffer()], { type: blob.type })); }
+  };
   context.window.Blob = Blob;
   context.window.URL.createObjectURL = blob => { const url = URL.createObjectURL(blob); if (blob.type.startsWith('text/html')) downloads.push({ url, blob }); return url; };
   context.window.HTMLAnchorElement.prototype.click = function () {
@@ -138,10 +143,14 @@ test('空のノートと特殊文字を含む名前も安全なHTMLとして出�
 
 test('HTMLの生成失敗後も再出力でき、終了時にはダウンロード用URLを解放する', async () => {
   const context = await open('![画像](image.png)'); const { app, window, downloads, $ } = context;
-  const btoa = window.btoa; window.btoa = () => { throw new Error('Encoding failed'); };
+  const FileReader = window.FileReader;
+  window.FileReader = class extends FileReader { readAsDataURL() {
+    Object.defineProperty(this, 'error', { value: new window.DOMException('Reading failed', 'NotReadableError') });
+    this.dispatchEvent(new window.Event('error'));
+  } };
   assert.equal(await app.exportNote('html'), false); assert.equal(downloads.length, 0);
   assert.equal(app.state.busy, ''); assert.equal($('export').disabled, false);
-  window.btoa = btoa; assert.equal(await app.exportNote('html'), true);
+  window.FileReader = FileReader; assert.equal(await app.exportNote('html'), true);
   const url = downloads.at(-1).url; assert.equal((await fetch(url)).status, 200);
   app.dispose(); await assert.rejects(fetch(url));
 });

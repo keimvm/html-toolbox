@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
+import { installPopover } from './popover.js';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { IDBFactory } from 'fake-indexeddb';
 import { createLayoutStore } from '../src/session-store.js';
@@ -28,6 +29,7 @@ test('配布 HTML が単独で起動し、クリックからピッカーと保�
     url: 'https://unit-test.invalid/', runScripts: 'dangerously', virtualConsole,
     // resources を有効にせず、通信も実ファイル API も使わない。
     beforeParse(window) {
+        installPopover(window);
       window.TextDecoder = TextDecoder; window.TextEncoder = TextEncoder; window.isSecureContext = true;
       window.FileSystemHandle = class {}; window.FileSystemHandle.prototype.requestPermission = function () {};
       window.FileSystemFileHandle = class {}; window.FileSystemFileHandle.prototype.createWritable = function () {};
@@ -92,6 +94,7 @@ test('配布 HTML の起動処理が記録から復元し、再許可のクリ�
     const dom = new JSDOM(html, {
       url: 'file:///bundle-test/index.html', runScripts: 'dangerously', virtualConsole,
       beforeParse(window) {
+        installPopover(window);
         window.TextDecoder = TextDecoder; window.TextEncoder = TextEncoder; window.isSecureContext = true;
         window.FileSystemHandle = class {}; window.FileSystemHandle.prototype.requestPermission = function () {};
         window.FileSystemFileHandle = class {}; window.FileSystemFileHandle.prototype.createWritable = function () {};
@@ -131,6 +134,7 @@ test('配布 HTML 単独でレイアウトの開閉を保存し、開き直し�
     const virtualConsole = new VirtualConsole(); virtualConsole.on('jsdomError', error => errors.push(error));
     return new JSDOM(html, { url: href, runScripts: 'dangerously', virtualConsole,
       beforeParse(window) {
+        installPopover(window);
         window.indexedDB = indexedDB; window.TextDecoder = TextDecoder; window.TextEncoder = TextEncoder;
         const original = window.HTMLElement.prototype.getBoundingClientRect;
         window.HTMLElement.prototype.getBoundingClientRect = function () { return this.classList.contains('workspace') ? { width: 1440 } : original.call(this); };

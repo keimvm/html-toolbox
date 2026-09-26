@@ -39,6 +39,18 @@ node scripts/toolbox.mjs check note-html
 
 ツール名を省略すると、`tools.json` の全ツールを検証します。スクリプトは Node.js 24.21.0 以降で動かし、各ツールの Node.js の対応範囲も満たしてください。ローカルでは Node.js を自動で切り替えません。CI はツールごとの `.node-version` を使用します。pnpm は各ツールの `packageManager` の版を使います。
 
+### 実装方針
+
+なるべく OS 標準の仕組みを使い、ライブラリと共通部品を積極的に活用します。追加・改修・レビューのすべてで、次を確認してください。
+
+1. **標準機能を確認する。** 配布 HTML から使えるブラウザーのファイル選択・保存・印刷・フォーム・`dialog`・`popover`・CSS、開発用の Node.js 標準 API や OS のコマンドを優先します。独自のファイル選択画面、印刷処理、メニューの開閉などを作り直しません。Windows・Mac、Chrome・Edge、オフライン・`file://` の条件を満たす範囲で選びます。
+2. **既存部品とライブラリを使う。** まず `ui/` と対象ツールの依存関係・公開 API・公式の拡張点を調べます。PDF処理は EmbedPDF/PDFium、Markdown の解析・出力は markdown-it、文書編集・選択・取り消し・表操作は ProseMirror を利用します。共通部品があれば必ずそれを取り込みます。
+3. **不足する場合はライブラリを検討する。** 同じ役割を自作する前に、要件に合うライブラリを検討します。既存機能では不足する点、保守状況、ライセンス、配布サイズ、単一 HTML への埋め込み、外部通信の有無を確認し、採用理由を技術文書に残します。版・ロックファイル・ライセンス表記は各ツール内で管理します。
+4. **自前実装は固有要件に絞る。** 標準機能やライブラリで満たせない部分だけを実装し、不足点と担当範囲を関連する仕様・技術文書に記録します。現在必要なものだけを作り、一般化のための独自基盤や不要な互換層を増やしません。
+5. **同じ部品は共通化して使う。** 複数ツールで役割・振る舞いが同じ処理は `ui/` にまとめ、既存の利用箇所も置き換えます。共通 CSS は配色・部品、ツール側の CSS は画面配置や固有の調整を担当します。データ形式や保存方針が異なる処理まで統合しません。`ui/` と `scripts/` の npm 依存なしという制約を守ります。
+
+レビューでは、独自処理の必要性、共通部品の重複・利用漏れ、ライブラリの公開 API で置き換えられる処理を確認します。標準 API の対応ブラウザーを変える場合は利用条件も更新し、自動テストと実ブラウザーでの操作確認を分けて記録します。
+
 ### CI の検証対象
 
 | 変更・操作 | 検証するツール |
@@ -59,16 +71,18 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 
 | ファイル | 内容 |
 | --- | --- |
-| `theme.css` | 配色・文字・角丸などのトークン（`--tb-*`）と、ボタン（`.tb-button` に `.tb-primary`・`.tb-secondary`・`.tb-danger`・`.tb-icon-button` を組み合わせる）、入力欄（`.tb-input`）、ダイアログ（`.tb-dialog`）、フォーカス枠、ファイルのドロップ中の表示 |
+| `theme.css` | 配色・文字・角丸などのトークン（`--tb-*`）と、ボタン（`.tb-button` に `.tb-primary`・`.tb-secondary`・`.tb-danger`・`.tb-icon-button` を組み合わせる）、入力欄（`.tb-input`）、ダイアログ（`.tb-dialog`）、操作欄（`.tb-dialog-actions`、縦並びは `.tb-stack` を追加）、ポップオーバー（`.tb-popover`）、フォーカス枠、ファイルのドロップ中の表示 |
 | `download.js` | `downloadBlob(blob, ファイル名, { signal })`。blob URL とリンクでダウンロードさせ、60秒後か `signal` の中断で URL を解放する |
 | `file-drop.js` | `watchFileDrop({ zone, onDrop, enabled })`。`zone` の外に落としたファイルでブラウザーが画面を離れないようにする。受け付ける間は `zone` に `data-tb-file-drag` を付け、`data-tb-drop-label` の文言を重ねて表示する。フォルダを含む場合は `onDrop` に `null` を渡す。`hasFiles`・`droppedFiles` も使える |
+| `session-key.js` | `sessionKey(href)`。クエリーとフラグメントを除いた HTML の配置 URL。両ツールの復元情報の保存先に使い、従来のキーを維持する。DB名・形式・保存処理は各ツールで管理する |
 
 - 色はすべて `light-dark()` で持ち、OS のダークモード設定に従います。画面での切り替えはありません。印刷は常にライトです。
 - 部品は `:where()` で詳細度を 0 にしているため、ツールの CSS で余白などを上書きできます。逆に、ツールの CSS でボタン全体に `color` や `font` を指定すると部品の指定も打ち消すため、`:where(:not(.tb-button))` のように部品を除外してください。
 - 入口ページは `scripts/toolbox.mjs` が `theme.css` を埋め込んで作ります。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
 - ローカルノートがエクスポートする HTML には本文用の `document.css` だけを入れるため、常にライトで出力されます。
+- メニューは `<button popovertarget="対象ID">` と `<div id="対象ID" popover="auto" class="tb-popover">` を組み合わせます。開閉・排他表示・外側クリック・Escape・展開状態の支援技術への通知は [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using)、配置は CSS のアンカー配置に任せます。`hidden` や `aria-expanded` に開閉状態を重複して保持しません。ローカルノートの Tab による閉鎖・操作後の閉鎖は固有処理として残します。
 - TypeScript からは同じ名前の `.d.ts` で型を参照します。Vite の開発サーバーでは、`server.fs.allow` に `../../ui` を加えます（PDF編集の `vite.config.ts`）。
-- `ui/` を変えたら、`node --test 'ui/*.test.mjs'` と全ツールの `node scripts/toolbox.mjs check` を実行します。CI も `ui/` の変更で全ツールを検証します。
+- `ui/` を変えたら、`node --test 'scripts/*.test.mjs' 'ui/*.test.mjs'` と全ツールの `node scripts/toolbox.mjs check` を実行します。CI も `ui/` の変更で全ツールを検証します。
 
 ## 版を出す
 

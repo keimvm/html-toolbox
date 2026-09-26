@@ -474,13 +474,6 @@ body {
 #pdf-calm input[type='radio'] {
   accent-color: var(--tb-accent);
 }
-#pdf-calm .pc-dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 24px;
-  flex-wrap: wrap;
-}
 #pdf-calm .pc-merge-preview {
   display: flex;
   gap: 13px;

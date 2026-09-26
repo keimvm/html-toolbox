@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 const require = createRequire(import.meta.url);
 // 古い配布物や余分な資産を残さず、HTML 1ファイルだけを出力する。
 await rm('dist', { recursive: true, force: true });
-const result = await build({ entryPoints: ['src/app.js'], bundle: true, write: false, metafile: true, format: 'iife', target: 'chrome120', minify: true, legalComments: 'inline' });
+const result = await build({ entryPoints: ['src/app.js'], bundle: true, write: false, metafile: true, format: 'iife', target: 'chrome129', minify: true, legalComments: 'inline' });
 // 実際に配布する依存関係からライセンスを列挙する。追加された間接依存も漏らさない。
 const packages = new Map();
 for (const input of Object.keys(result.metafile.inputs).filter(path => path.includes('node_modules/'))) {

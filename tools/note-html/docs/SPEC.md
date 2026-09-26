@@ -331,6 +331,9 @@ toolbox の「← トップへ戻る」、タブを閉じる、ページを再�
 
 ## 9. toolbox との接続
 
+- OS・ブラウザーの標準機能とライブラリを優先する [共通の実装方針](../../../docs/development.md#実装方針) に従う。上部メニューは Popover API と CSS アンカー配置で開閉・配置し、対象は Chrome・Edge 129 以降とする。HTML 出力の画像は FileReader で data URL に変換する。
+- 復元用の配置 URL は `ui/session-key.js`、ダイアログの操作欄は `ui/theme.css` の `.tb-dialog-actions` を使う。保存キーの文字列・DB名・記録形式は従来どおり。
+
 - 依存関係・ロックファイル・Node.js と pnpm の版指定は `tools/note-html/` 内で独立して持つ。既存の esbuild による単一 HTML 生成を継続する。
 - 配色・ボタン・入力欄・ダイアログは toolbox 共通の `ui/theme.css` を使い、OS のダークモード設定に従う。本文の書体は変えず、印刷と HTML エクスポートは常にライトにする。添付のダウンロード、HTML の書き出し、本文外へのファイルドロップの抑止は `ui/` の共通処理を使う。
 - `pnpm check` でビルド・自動テストを行い、`dist/` には `index.html` だけを出力する。生成物と検証時の画像・PDF は Git 管理に含めない。

@@ -3,10 +3,10 @@ import { IDBFactory, IDBObjectStore } from 'fake-indexeddb';
 import { Editor } from '../src/editor';
 import {
   SessionStore,
-  sessionKey,
   type SessionState,
   type SessionSource,
 } from '../src/session-store';
+import { sessionKey } from '../../../ui/session-key.js';
 import { createSamplePdf } from '../src/sample';
 
 let factory: IDBFactory;
