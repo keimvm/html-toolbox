@@ -46,7 +46,11 @@ test('共通ヘッダーの左上に戻るリンクの位置・アイコンと�
     corner.match(/<template id="toolbox-home"><\/template>/gu),
   ).toHaveLength(1);
   expect(corner).toMatch(
-    /<img\s+class="tb-header-icon"\s+src="data:image\/svg\+xml,[^"]+"\s+alt=""\s*\/>PDF編集/u,
+    /<img\s+class="tb-header-icon"\s+src="data:image\/png;base64,[^"]+"\s+alt=""\s*\/>PDF編集/u,
+  );
+  const icon = await readFile(new URL('../src/icon.png', import.meta.url));
+  expect(corner).toContain(
+    `src="data:image/png;base64,${icon.toString('base64')}"`,
   );
   expect(corner).toContain('tb-theme-toggle');
   // 切り替えが効くよう、light-dark() を OS の設定だけに従う形へ変換しない。

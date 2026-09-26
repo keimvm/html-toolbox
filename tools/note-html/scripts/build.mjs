@@ -40,7 +40,7 @@ const css = [...libraryStyles, theme, await readFile('src/style.css', 'utf8')].j
 const escape = text => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 const documentCss = await readFile('src/document.css', 'utf8');
 // ヘッダーのアイコン。共通ヘッダーの処理が favicon にも使う。
-const icon = `data:image/svg+xml,${encodeURIComponent((await readFile('src/icon.svg', 'utf8')).trim())}`;
+const icon = `data:image/png;base64,${(await readFile('src/icon.png')).toString('base64')}`;
 const html = template.replace('"APP_ICON"', () => `"${icon}"`).replace('/* DOCUMENT_CSS */', () => documentCss).replace('/* APP_CSS */', () => css).replace('/* APP_SCRIPT */', () => result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script')).replace('<!-- APP_LICENSES -->', () => escape(licenses.join('\n\n')));
 await mkdir('dist', { recursive: true });
 await writeFile('dist/index.html', html);

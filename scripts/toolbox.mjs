@@ -49,7 +49,7 @@ export async function readTools(rootDir = root) {
   const tools = validateTools(JSON.parse(await readFile(join(rootDir, 'tools.json'), 'utf8')));
   for (const { dir } of tools) {
     const toolDir = join(rootDir, 'tools', dir);
-    for (const file of ['package.json', 'pnpm-lock.yaml', '.node-version', 'src/icon.svg']) {
+    for (const file of ['package.json', 'pnpm-lock.yaml', '.node-version', 'src/icon.png']) {
       const info = await stat(join(toolDir, file)).catch(() => null);
       if (!info?.isFile()) {
         throw new Error(`tools/${dir}/${file} がありません。`);
@@ -128,9 +128,9 @@ export function decorateToolHtml(html, version) {
   return html.slice(0, end) + badge + html.slice(end);
 }
 
-/** ツールの src/icon.svg を入口ページに埋め込む data URL にする。 */
-export function iconDataUrl(svg) {
-  return `data:image/svg+xml,${encodeURIComponent(svg.trim())}`;
+/** ツールの src/icon.png を入口ページに埋め込む data URL にする。 */
+export function iconDataUrl(png) {
+  return `data:image/png;base64,${png.toString('base64')}`;
 }
 
 /**
@@ -196,27 +196,9 @@ ${theme}
         font-variant-numeric: tabular-nums;
       }
       .version strong { color: var(--tb-ink); font-weight: 600; }
-      .notice {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 36px 0 40px;
-        padding: 12px 0;
-        border-block: 1px solid var(--tb-line);
-        color: var(--tb-muted);
-        font-size: 13px;
-      }
-      .notice::before {
-        content: '';
-        width: 6px;
-        height: 6px;
-        flex: none;
-        border-radius: 50%;
-        background: var(--tb-gold);
-      }
       ul {
         list-style: none;
-        margin: 0;
+        margin: 40px 0 0;
         padding: 0;
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
@@ -289,7 +271,6 @@ setupThemeToggle(document.getElementById('theme-toggle'));
           <button type="button" id="theme-toggle" class="tb-button tb-icon-button tb-theme-toggle"></button>
         </div>
       </header>
-      <p class="notice">Chrome または Edge で開いてください。Safari では正しく動かない場合があります。</p>
       <ul>
 ${items}
       </ul>
@@ -341,7 +322,7 @@ export async function packageRelease(version, rootDir = root) {
       throw new Error(`build/${dir}.html がありません。先に collect を実行してください。`);
     });
     await writeFile(join(target, 'tools', `${dir}.html`), decorateToolHtml(html, version));
-    const icon = await readFile(join(rootDir, 'tools', dir, 'src', 'icon.svg'), 'utf8');
+    const icon = await readFile(join(rootDir, 'tools', dir, 'src', 'icon.png'));
     cards.push({ ...tool, icon: iconDataUrl(icon) });
   }
   const [theme, themeToggle] = await Promise.all([

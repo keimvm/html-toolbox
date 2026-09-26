@@ -1,5 +1,9 @@
 # 検証手順と記録
 
+## 生成アイコンへの変更（2026年9月26日）
+
+内蔵 image_gen で生成した書類のアイコンを `src/icon.png`（128×128）に保存し、既存の Vite で単一 HTML に埋め込んだ。`ui/header.js` がヘッダーと同じ画像を favicon に設定する。整形・Lint・型検査・ビルド・34件のテストが成功。Codex 内ブラウザーのローカル HTTP 表示で画像読込と favicon の一致を確認し、警告・エラーは0件。`file://`・完全オフライン・Windows・Edge は今回未確認。詳細は[toolboxの検証記録](../../../docs/verification.md)を参照。
+
 ## toolbox共通ヘッダーと表示の切り替え（2026年9月26日）
 
 ヘッダー左上を toolbox 共通の部品（「← トップへ戻る」・アイコンとツール名・表示の切り替え）に置き換えた。アイコンは `src/icon.svg` を正とし、ヘッダー画像と favicon に使う（favicon は `ui/header.js` が設定。Vite は `link rel="icon"` を埋め込まないため）。「このアプリについて」は右端へ移した。`build.cssTarget` を Chrome・Edge 129 にし、`light-dark()` を変換させない。34件の自動テストが成功し、配布物のローカルHTTP表示で切り替え・375px幅を確認した。`file://`、Windows・Edge は未確認。詳細は [toolboxの検証記録](../../../docs/verification.md) を参照。

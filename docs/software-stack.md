@@ -40,7 +40,7 @@ ui/                  ← 全ツールと入口ページで共通の配色・部�
 - 通常は Git の差分から、変更した登録済みツールだけを Linux・macOS・Windows で検証する。直下と各ツールの README・AGENTS.md・docs だけの変更ではツールのビルドを省略する。ツール一覧・共通スクリプト・ワークフローなどの変更と手動実行は全ツールを検証する。
 - 差分は push では直前のコミットとの比較、PR ではベースとの分岐点からの比較を使う。改名・削除も対象とし、比較失敗を「変更なし」にはしない。
 - 通常 CI とリリースは `.github/workflows/tool.yml` を共用する。依存取得 → `pnpm check` → 単一 HTML の確認・収集まで同じ手順を実行し、リリース時だけ収集した HTML を artifact に保存する。[GitHub の再利用可能なワークフロー](https://docs.github.com/ja/actions/how-tos/reuse-automations/reuse-workflows)を使用する。
-- 一覧の読み込み時に packageManager・scripts.check・ロックファイル・Node.js の版指定・アイコン（`src/icon.svg`）を検査する。ツールの追加時にワークフローを編集する必要はない。
+- 一覧の読み込み時に packageManager・scripts.check・ロックファイル・Node.js の版指定・アイコン（`src/icon.png`）を検査する。ツールの追加時にワークフローを編集する必要はない。
 - 直下スクリプトは Node.js の標準機能だけを使う。変更対象の選択や手元の一括実行のために、ルートの npm 依存や workspace は導入しない。
 - 手元では `node scripts/toolbox.mjs check [ツール名]` で依存取得から収集まで実行できる。`release <版>` は全ツールを作り直し、zip まで生成する。ローカルの Node.js は自動切り替えしない。
 
@@ -48,7 +48,7 @@ ui/                  ← 全ツールと入口ページで共通の配色・部�
 1. GitHub の画面でリリースが公開されると動く。版番号はそのリリースのタグから取る。
 2. `tools.json` のツールごとに、そのツールの Node.js・pnpm の版で `pnpm install --frozen-lockfile` → 検査 → ビルドを行う。1つでも失敗したら、そこで止めて zip は添付しない。
 3. ビルドされた HTML を `tools/<フォルダ名>.html` として集め、指定位置をトップへの相対リンクに置き換え、画面の隅に版番号を書き足す。
-4. `tools.json` から入口ページ `index.html` を作る。一覧・版番号・注意書きを HTML の中に直接書き込む。
+4. `tools.json` から入口ページ `index.html` を作る。一覧・版番号を HTML の中に直接書き込む。
 5. `toolbox-<版>/` にまとめて `toolbox-<版>.zip` を作り、リリースに添付する。
 
 リリース時は差分にかかわらず全ツールを検証する。過去の CI のビルド成果物を流用せず、リリースのタグからビルドする。これによりタグのソースと配布物の対応を保つ。通常 CI で対象を絞ることと、依存キャッシュ・共通ワークフローの利用で開発時の待ち時間と保守の手間を抑える。
@@ -75,7 +75,7 @@ ui/                  ← 全ツールと入口ページで共通の配色・部�
 - 共通 UI は npm パッケージや workspace にせず、直下の `ui/` のソースを各ツールが相対パスで取り込む。ツールごとのビルド基盤（Vite・esbuild）を変えずに使え、ツールの依存関係とロックファイルは独立したままにできるため。CI は `tools/` 以外の変更として全ツールを検証する。
 - 配色は CSS の `light-dark()` と `color-scheme: light dark` で OS の設定に従わせ、印刷時は `color-scheme: light` にする。画面の切り替えは `ui/theme-toggle.js` が `:root` に `data-tb-theme` を付けて `color-scheme` だけを上書きするため、配色トークンを二重に持たない。選んだ表示は標準の `localStorage`（キー `toolbox-theme`）に残す。Chrome・Edge は `file://` のページで保存領域を共有するため、入口ページ・全ツール・別の版で同じ表示になる。保存できない環境ではその画面の中だけで切り替える。入口ページも同じ処理をインラインの script で埋め込む。
 - PDF編集の Vite（Lightning CSS）は、対象ブラウザーが古いと `light-dark()` を OS の設定だけに従う変数へ変換し、切り替えが効かない。対象の Chrome・Edge 129 は `light-dark()` に対応するため、`build.cssTarget` を Chrome・Edge 129 にして変換させない。
-- ツールのアイコンは各ツールの `src/icon.svg` 1つを正とし、ヘッダーの画像に data URL で埋め込む。`ui/header.js` がその画像を favicon にも使う。Vite は `link rel="icon"` を埋め込まない仕様のため、ビルドの独自処理を増やさずに単一 HTML へ収める。CSP の `img-src` は `data:` を許可する。
+- ツールのアイコンは各ツールの `src/icon.png` 1つを正とし、ヘッダーと入口のカードに data URL で埋め込む。ユーザー指定の imagegen で生成し、macOS 標準の `sips` で128×128へ縮小する。PDF編集は既存の Vite のアセット埋め込み、ノートと入口は Node.js 標準の `Buffer.toString('base64')` を利用する。`ui/header.js` がヘッダーと同じ画像を favicon にも使うため、独自の設定処理や新しい依存は追加しない。CSP の `img-src` は `data:` を許可する。
 - 共通部品の CSS は `:where()` で詳細度を 0 にし、ツールの CSS で調整できるようにする。入口ページは `scripts/toolbox.mjs` が `ui/theme.css` を埋め込んで生成する。
 - ノートのメニューには標準の Popover API と CSS アンカー配置を使う。独自の開閉状態・外側クリック・Escape 処理を持たず、操作後・Tab 移動時の閉鎖だけを補う。[Chrome 129 で導入された `position-area`](https://developer.chrome.com/blog/anchor-syntax-changes) を含め、対応は Chrome・Edge 129 以降とし、最新の安定版を推奨する。
 - HTML エクスポートの画像埋め込みは [FileReader.readAsDataURL](https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsDataURL) を使い、バイト列から Base64 を組み立てる処理を持たない。

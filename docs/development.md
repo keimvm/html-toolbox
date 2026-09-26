@@ -86,16 +86,16 @@ Check は PR と main への push で動きます。作業ブランチへの pus
   <header class="tb-header">
     <div class="tb-header-start">
       <template id="toolbox-home"></template>
-      <span class="tb-header-brand"><img class="tb-header-icon" src="（src/icon.svg の data URL）" alt="">ツール名</span>
+      <span class="tb-header-brand"><img class="tb-header-icon" src="（src/icon.png の data URL）" alt="">ツール名</span>
       <button type="button" class="tb-button tb-icon-button tb-theme-toggle"></button>
     </div>
     <div class="tb-header-end">ツール固有のボタン・メニュー</div>
   </header>
   ```
 
-- アイコンは各ツールの `src/icon.svg`（32×32、角丸のエバーグリーンのグラデーション地に真鍮色の細い縁、アイボリーの線画）を正とし、ビルドで data URL として埋め込みます（PDF編集は Vite のアセット、ローカルノートは `scripts/build.mjs`）。favicon は `header.js` が同じ画像から設定するため、HTML に `link rel="icon"` を書きません。
+- アイコンは各ツールの `src/icon.png`（128×128、角丸のエバーグリーン地にアイボリーの図柄と真鍮色の差し色）を正とし、ビルドで data URL として埋め込みます（PDF編集は Vite のアセット、ローカルノートは Node.js 標準の `Buffer.toString('base64')`）。favicon は `header.js` が同じ画像から設定するため、HTML に `link rel="icon"` を書きません。生成に使ったプロンプトと画像の処理は [favicon-prompts.md](favicon-prompts.md) に記録しています。
 - 部品は `:where()` で詳細度を 0 にしているため、ツールの CSS で余白などを上書きできます。逆に、ツールの CSS でボタン全体に `color` や `font` を指定すると部品の指定も打ち消すため、`:where(:not(.tb-button))` のように部品を除外してください。
-- 入口ページは `scripts/toolbox.mjs` が `theme.css` と `theme-toggle.js` を埋め込んで作り、版番号の右に切り替えボタンを置きます。ツールは `tools.json` の順にカードで並べ、カードには各ツールの `src/icon.svg`（data URL）・表示名・説明を載せます。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
+- 入口ページは `scripts/toolbox.mjs` が `theme.css` と `theme-toggle.js` を埋め込んで作り、版番号の右に切り替えボタンを置きます。ツールは `tools.json` の順にカードで並べ、カードには各ツールの `src/icon.png`（data URL）・表示名・説明を載せます。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
 - ローカルノートがエクスポートする HTML には本文用の `document.css` だけを入れるため、常にライトで出力されます。
 - メニューは `<button popovertarget="対象ID">` と `<div id="対象ID" popover="auto" class="tb-popover">` を組み合わせます。開閉・排他表示・外側クリック・Escape・展開状態の支援技術への通知は [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using)、配置は CSS のアンカー配置に任せます。`hidden` や `aria-expanded` に開閉状態を重複して保持しません。ローカルノートの Tab による閉鎖・操作後の閉鎖は固有処理として残します。
 - TypeScript からは同じ名前の `.d.ts` で型を参照します。Vite の開発サーバーでは、`server.fs.allow` に `../../ui` を加えます（PDF編集の `vite.config.ts`）。
@@ -117,7 +117,7 @@ Check は PR と main への push で動きます。作業ブランチへの pus
    - `package.json` の `packageManager` で pnpm の版（`pnpm@x.y.z`）を、`.node-version` で Node.js の版（`x.y.z`）を固定する。
    - `pnpm install --frozen-lockfile` で依存関係を取得できる。
    - `pnpm check` で検査とビルドを行い、`dist/` に外部を何も読み込まない HTML を1つだけ出力する。別のファイルやフォルダは残さない。
-   - 画面上部に[共通ヘッダー](#共通-ui)を置き、`ui/header.js` の `setupToolHeader()` を呼ぶ。左上の一角の先頭に `<template id="toolbox-home"></template>` を1つ置き、ビルド後にもこの文字列を残す。アイコンは `src/icon.svg` に置く（入口ページのカードにも使う）。画面が狭い場合はヘッダーを折り返せるようにする。
+   - 画面上部に[共通ヘッダー](#共通-ui)を置き、`ui/header.js` の `setupToolHeader()` を呼ぶ。左上の一角の先頭に `<template id="toolbox-home"></template>` を1つ置き、ビルド後にもこの文字列を残す。アイコンは `src/icon.png` に置く（入口ページのカードにも使う）。画面が狭い場合はヘッダーを折り返せるようにする。
    - CSP を指定する場合は、`img-src` に `data:`（アイコン）を、`style-src` にインラインの style（版番号）を許可する。
    - `ui/theme.css` を読み込み、配色は `--tb-*`、ボタン・入力欄・ダイアログは共通部品のクラスを使う。ファイルのドラッグ＆ドロップとダウンロードは `ui/` の処理を使う（[共通 UI](#共通-ui)）。
 3. `tools.json` に追加し、直下の README に利用者向けの紹介を加える。
@@ -134,7 +134,7 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 
 `tools.json` に書いていないフォルダ（作りかけ・個人用）は zip にも CI にも入りません。
 
-追加後に `node scripts/toolbox.mjs check <フォルダ名>` を実行し、PR を作ります。ワークフローへのツール名の追記は不要です。`node scripts/toolbox.mjs list` で、一覧と必要な設定ファイル（`src/icon.svg` を含む）だけを素早く検査できます。単一 HTML に収まることは共通処理が検査しますが、外部通信や `file://` での動作は各ツールで検証してください。
+追加後に `node scripts/toolbox.mjs check <フォルダ名>` を実行し、PR を作ります。ワークフローへのツール名の追記は不要です。`node scripts/toolbox.mjs list` で、一覧と必要な設定ファイル（`src/icon.png` を含む）だけを素早く検査できます。単一 HTML に収まることは共通処理が検査しますが、外部通信や `file://` での動作は各ツールで検証してください。
 
 zip を作るときに、上記の空の `template` をトップへ戻るリンク（`#toolbox-home`、`class="tb-button tb-icon-button"`、`href="../index.html"`）に置き換えます。文言は表示せず、`ui/theme.css` がホームのアイコンを描きます。読み上げ名とツールチップは `aria-label`・`title` の「トップへ戻る」です。通常のリンクなので、同じタブで戻り、ツールの既存の離脱確認が働きます。作業状態の削除や独自の確認処理は追加しません。挿入位置が不足・重複している場合は収集・梱包を失敗させます。開発画面や加工前の HTML では `template` は表示されません。
 

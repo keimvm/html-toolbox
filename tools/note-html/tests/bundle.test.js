@@ -55,7 +55,8 @@ test('配布 HTML が単独で起動し、クリックからピッカーと保�
   assert.equal(start.querySelector('.tb-header-brand').textContent, 'ローカルノート');
   assert.ok(start.querySelector('.tb-theme-toggle'));
   const icon = start.querySelector('.tb-header-icon').getAttribute('src');
-  assert.match(icon, /^data:image\/svg\+xml,/);
+  const sourceIcon = await readFile(new URL('../src/icon.png', import.meta.url));
+  assert.equal(icon, `data:image/png;base64,${sourceIcon.toString('base64')}`);
   assert.equal(dom.window.document.querySelector('link[rel="icon"]').href, icon);
   assert.equal(dom.window.document.querySelectorAll('script[src], link[rel="stylesheet"], img[src]:not([src^="data:"])').length, 0);
   assert.match(dom.window.document.querySelector('meta[http-equiv="Content-Security-Policy"]').content, /connect-src 'none'/);

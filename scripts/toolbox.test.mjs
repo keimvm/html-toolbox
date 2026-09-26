@@ -60,6 +60,11 @@ const toolHtml = (text) => `<html><body><header>${homeSlot}<h1>${text}</h1></hea
 const homeLink =
   '<a id="toolbox-home" class="tb-button tb-icon-button" href="../index.html" aria-label="トップへ戻る" title="トップへ戻る"></a>';
 
+const fixtureIcon = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=',
+  'base64',
+);
+
 test('トップへのリンクは指定位置に入り、版番号は最後の </body> の直前に入る', () => {
   const html = toolHtml('PDF編集').replace('</header>', '</header><script>"</body>"</script><p>x</p>');
   const result = decorateToolHtml(html, '2026.09.26');
@@ -87,12 +92,12 @@ test('配布加工はトップへのリンクの挿入位置の不足・重複�
   );
 });
 
-test('入口ページにカードの一覧・版番号・注意書きと共通の配色・切り替えが入り、外部を読み込まない', async () => {
+test('入口ページにカードの一覧・版番号と共通の配色・切り替えが入り、外部を読み込まない', async () => {
   const theme = await readFile(new URL('../ui/theme.css', import.meta.url), 'utf8');
   const themeToggle = await readFile(new URL('../ui/theme-toggle.js', import.meta.url), 'utf8');
-  const icon = iconDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox='0 0 32 32'></svg>\n`);
-  assert.equal(icon.startsWith('data:image/svg+xml,%3Csvg'), true);
-  assert.equal(icon.endsWith('%3C%2Fsvg%3E'), true);
+  const icon = iconDataUrl(fixtureIcon);
+  assert.equal(icon.startsWith('data:image/png;base64,'), true);
+  assert.deepEqual(Buffer.from(icon.split(',')[1], 'base64'), fixtureIcon);
   const html = renderIndex(
     [
       { dir: 'a-tool', name: '<ツールA>', description: '説明 & 注意', icon },
@@ -105,7 +110,6 @@ test('入口ページにカードの一覧・版番号・注意書きと共通�
   assert.ok(html.includes(themeToggle));
   assert.ok(html.includes('class="tb-button tb-icon-button tb-theme-toggle"'));
   assert.ok(html.includes('<strong>2026.09.26.2</strong>'));
-  assert.ok(html.includes('Chrome または Edge で開いてください'));
   assert.ok(html.includes('<a class="card" href="tools/a-tool.html">'));
   assert.ok(html.includes(`<img class="icon" src="${icon.replaceAll("'", '&#39;')}" alt="">`));
   assert.ok(html.includes('&lt;ツールA&gt;'));
@@ -133,7 +137,7 @@ async function fixture(t) {
     await writeFile(join(cwd, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n');
     await writeFile(join(cwd, '.node-version'), '24.21.0\n');
     await mkdir(join(cwd, 'src'));
-    await writeFile(join(cwd, 'src', 'icon.svg'), `<svg><title>${dir}</title></svg>\n`);
+    await writeFile(join(cwd, 'src', 'icon.png'), fixtureIcon);
     await writeFile(join(cwd, 'dist', '配布.html'), toolHtml(dir));
   }
   return root;
@@ -152,8 +156,8 @@ test('ツールの設定漏れは依存取得の前に検出する', async (t) =
   await writeFile(join(cwd, '.node-version'), 'lts/*');
   await assert.rejects(readTools(root), /Node.js/);
   await writeFile(join(cwd, '.node-version'), '24.21.0');
-  await rm(join(cwd, 'src', 'icon.svg'));
-  await assert.rejects(readTools(root), /icon.svg/);
+  await rm(join(cwd, 'src', 'icon.png'));
+  await assert.rejects(readTools(root), /icon.png/);
   await rm(join(cwd, 'pnpm-lock.yaml'));
   await assert.rejects(readTools(root), /pnpm-lock.yaml/);
 });
@@ -240,9 +244,10 @@ test('全ツールの zip に戻るリンクと版番号を追加し、登録順
   assert.ok(entries.every((name) => /^[A-Za-z0-9./-]+$/.test(name)));
   const index = await readFile(join(target, 'index.html'), 'utf8');
   assert.ok(index.indexOf('alpha.html') < index.indexOf('beta.html'));
-  // カードのアイコンは各ツールの src/icon.svg を埋め込む。
+  // カードのアイコンは各ツールの src/icon.png を埋め込む。
   for (const dir of ['alpha', 'beta']) {
-    assert.ok(index.includes(`src="${iconDataUrl(`<svg><title>${dir}</title></svg>`)}"`));
+    const png = await readFile(join(root, 'tools', dir, 'src', 'icon.png'));
+    assert.ok(index.includes(`src="${iconDataUrl(png)}"`));
   }
   for (const dir of ['alpha', 'beta']) {
     const html = await readFile(join(target, 'tools', `${dir}.html`), 'utf8');
