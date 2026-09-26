@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>ノート画面のデザイン案</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./design-system/document.css">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+  <style>
+    .mb-page { max-width: 1480px; }
+    .mb-toc ol { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+    .mb-wrap { grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; }
+    .mb-wrap h2 { margin-top: 16px; }
+    .concept-tabs { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+    .concept-tabs button { font: inherit; line-height: 1.5; padding: 12px 20px; border: var(--mb-border-w) solid var(--mb-border); border-radius: var(--mb-radius); background: var(--mb-surface); color: var(--mb-ink); cursor: pointer; }
+    .concept-tabs button[aria-selected="true"] { background: var(--mb-ink); color: var(--mb-surface); }
+    .concept-tabs button:focus-visible, a:focus-visible { outline: 3px solid var(--mb-link); outline-offset: 4px; }
+    .concept-panel[hidden] { display: none; }
+    .concept-panel .mb-figure-frame { padding: 0; overflow: hidden; }
+    .concept-panel img { display: block; width: 100%; height: auto; }
+    .concept-panel figcaption { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 24px; }
+    .concept-panel figcaption a { white-space: nowrap; }
+    @media (max-width: 1000px) { .mb-wrap { display: block; } }
+    @media (max-width: 560px) { .concept-tabs { gap: 8px; } .concept-tabs button { flex: 1; padding: 10px 8px; font-size: 14px; } }
+    @media print { .concept-tabs { display: none; } .concept-panel[hidden] { display: block; } }
+  </style>
+</head>
+<body>
+  <main class="mb-page">
+    <header class="mb-header">
+      <div>
+        <h1>ノート画面のデザイン案</h1>
+        <p class="mb-meta-line">DESIGN STUDY / 2026-09-09</p>
+      </div>
+    </header>
+    <p class="mb-lede">白い面、黒い罫線、見出し左の黒線。HTMLスキルのデザインを、Markdownノートの画面に取り入れた3案です。</p>
+    <nav class="mb-toc" aria-label="目次">
+      <ol>
+        <li><a href="#terms">見るポイント</a></li>
+        <li><a href="#direction">デザインの方針</a></li>
+        <li><a href="#compare">3案を比較</a></li>
+        <li><a href="#differences">使い方から選ぶ</a></li>
+        <li><a href="#notes">補足</a></li>
+      </ol>
+    </nav>
+    <div class="mb-wrap">
+      <div class="mb-main">
+        <h2 id="direction">デザインの方針</h2>
+        <p>背景はオフホワイト、部品は白地に黒い罫線と角丸。本文の見出しには左側の黒線を使い、どこから読み始めるかを明確にしています。</p>
+        <p>本文と操作は黒を基本に、青はリンク、赤は「未保存」の状態に使います。3案とも同じノートと操作を表示し、枠のまとめ方と余白の違いを比較できます。</p>
+      </div>
+      <aside class="mb-glossary" aria-labelledby="terms">
+        <h2 id="terms">見るポイント</h2>
+        <table>
+          <tbody>
+            <tr><th scope="row" class="mb-rowlabel">枠線</th><td>フォルダと本文のまとまりを区切る線</td></tr>
+            <tr><th scope="row" class="mb-rowlabel">余白</th><td>読みやすさと一覧性を調整する空間</td></tr>
+            <tr><th scope="row" class="mb-rowlabel">選択状態</th><td>開いているノートを示す表示</td></tr>
+          </tbody>
+        </table>
+      </aside>
+    </div>
+
+    <h2 id="compare">3案を比較</h2>
+    <p>案を切り替えると、同じ位置と大きさで画面を比較できます。</p>
+    <div class="concept-tabs" role="tablist" aria-label="デザイン案">
+      <button type="button" role="tab" id="tab-outline" aria-controls="panel-outline" aria-selected="true" tabindex="0">01 二つの枠</button>
+      <button type="button" role="tab" id="tab-unified" aria-controls="panel-unified" aria-selected="false" tabindex="-1">02 一つの枠</button>
+      <button type="button" role="tab" id="tab-editorial" aria-controls="panel-editorial" aria-selected="false" tabindex="-1">03 原稿を主役に</button>
+    </div>
+    <section class="concept-panel" role="tabpanel" id="panel-outline" aria-labelledby="tab-outline" tabindex="0">
+      <figure class="mb-figure">
+        <div class="mb-figure-frame"><img src="./designs/html-style/01-outline.png" width="1586" height="992" alt="二つの白い枠にフォルダツリーと本文を分けたノート画面。見出し左の黒線と黒い罫線を使った案。"></div>
+        <figcaption><span>01 二つの枠 — フォルダと本文を分け、操作範囲を明確に。</span><a href="./designs/html-style/01-outline.png" target="_blank" rel="noopener noreferrer">画像を原寸で開く</a></figcaption>
+      </figure>
+    </section>
+    <section class="concept-panel" role="tabpanel" id="panel-unified" aria-labelledby="tab-unified" tabindex="0" hidden>
+      <figure class="mb-figure">
+        <div class="mb-figure-frame"><img src="./designs/html-style/02-unified.png" width="1586" height="992" alt="一つの白い外枠の中にツリーと本文を配置したノート画面。共通の操作バーでまとまりを持たせた案。"></div>
+        <figcaption><span>02 一つの枠 — 共通の枠と操作バーで、一体感を高める。</span><a href="./designs/html-style/02-unified.png" target="_blank" rel="noopener noreferrer">画像を原寸で開く</a></figcaption>
+      </figure>
+    </section>
+    <section class="concept-panel" role="tabpanel" id="panel-editorial" aria-labelledby="tab-editorial" tabindex="0" hidden>
+      <figure class="mb-figure">
+        <div class="mb-figure-frame"><img src="./designs/html-style/03-editorial.png" width="1586" height="992" alt="ツリーをオフホワイトの背景になじませ、本文だけを黒い枠で囲んだノート画面。原稿の読みやすさを重視した案。"></div>
+        <figcaption><span>03 原稿を主役に — ツリーを背景になじませ、本文を際立たせる。</span><a href="./designs/html-style/03-editorial.png" target="_blank" rel="noopener noreferrer">画像を原寸で開く</a></figcaption>
+      </figure>
+    </section>
+    <noscript><p>画像は <a href="./designs/html-style/01-outline.png">01 二つの枠</a>、<a href="./designs/html-style/02-unified.png">02 一つの枠</a>、<a href="./designs/html-style/03-editorial.png">03 原稿を主役に</a> から開けます。</p></noscript>
+
+    <h2 id="differences">使い方から選ぶ</h2>
+    <table>
+      <thead><tr><th scope="col" class="mb-rowlabel">案</th><th scope="col">枠の置き方</th><th scope="col">向く使い方</th></tr></thead>
+      <tbody>
+        <tr><th scope="row" class="mb-rowlabel">01 二つの枠</th><td>ツリーと本文にそれぞれ枠</td><td>ファイルを選びながら読み進める</td></tr>
+        <tr><th scope="row" class="mb-rowlabel">02 一つの枠</th><td>画面全体を一つの枠に統合</td><td>閲覧と編集を頻繁に切り替える</td></tr>
+        <tr><th scope="row" class="mb-rowlabel">03 原稿を主役に</th><td>本文だけを枠で強調</td><td>一つのノートをじっくり読む</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="notes">補足</h2>
+    <p>3案は内蔵imagegenで生成した画面イメージです。画面内のボタンは画像の一部で、アプリの動作はまだ実装していません。フォントや罫線の厳密な値は、実装時にCSSで合わせます。</p>
+    <p>参照元はHTMLスキルの <code>design-system/component-samples.html</code> と <code>document.css</code> です。<a href="./designs/html-style/prompts.md">生成プロンプト</a>と<a href="./SPEC.md">仕様書</a>も保存しています。</p>
+    <footer class="mb-footer">note-html / UI concepts / generated with built-in image_gen</footer>
+  </main>
+  <script>
+    const tabs = [...document.querySelectorAll('[role="tab"]')];
+    function activateTab(target) {
+      for (const tab of tabs) {
+        const selected = tab === target;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+        document.getElementById(tab.getAttribute('aria-controls')).hidden = !selected;
+      }
+    }
+    for (const tab of tabs) {
+      tab.addEventListener('click', () => activateTab(tab));
+      tab.addEventListener('keydown', event => {
+        const index = tabs.indexOf(tab);
+        let next;
+        if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
+        if (event.key === 'ArrowLeft') next = tabs[(index + tabs.length - 1) % tabs.length];
+        if (event.key === 'Home') next = tabs[0];
+        if (event.key === 'End') next = tabs[tabs.length - 1];
+        if (!next) return;
+        event.preventDefault();
+        activateTab(next);
+        next.focus();
+      });
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.hljs) window.hljs.highlightAll();
+    });
+  </script>
+</body>
+</html>

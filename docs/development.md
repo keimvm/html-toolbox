@@ -33,6 +33,7 @@ toolbox-<版>/
 
 ```bash
 node scripts/toolbox.mjs check pdf-edit
+node scripts/toolbox.mjs check note-html
 ```
 
 ツール名を省略すると、`tools.json` の全ツールを検証します。スクリプトは Node.js 24.21.0 以降で動かし、各ツールの Node.js の対応範囲も満たしてください。ローカルでは Node.js を自動で切り替えません。CI はツールごとの `.node-version` を使用します。pnpm は各ツールの `packageManager` の版を使います。
@@ -68,7 +69,7 @@ Check は PR と main への push で動きます。作業ブランチへの pus
    - `pnpm install --frozen-lockfile` で依存関係を取得できる。
    - `pnpm check` で検査とビルドを行い、`dist/` に外部を何も読み込まない HTML を1つだけ出力する。別のファイルやフォルダは残さない。
    - ヘッダー左端、ツール名の手前に `<template id="toolbox-home"></template>` を1つ置く。ビルド後にもこの文字列を残し、画面が狭い場合はヘッダーを折り返せるようにする。
-3. `tools.json` に追加する。
+3. `tools.json` に追加し、直下の README に利用者向けの紹介を加える。
 
 ```json
 [
@@ -105,6 +106,29 @@ node scripts/toolbox.mjs release 2026.09.26
 ```bash
 node --test 'scripts/*.test.mjs'
 ```
+
+## ローカルノートの開発
+
+`tools/note-html/` は既存の esbuild と Node.js のテストランナーを使います。Node.js は `.node-version` の24.21.0、対応範囲は `package.json` の24.21.0以降の24系または26.9.0以降の26系です。pnpm は11.15.0に固定し、PDF編集とは独立して管理します。ライブラリとロックファイルは移行前のものを維持しています。
+
+日常の変更では `tools/note-html/` で実行します。
+
+```sh
+pnpm install --frozen-lockfile
+pnpm check
+```
+
+| コマンド | 内容 |
+| --- | --- |
+| `pnpm build` | `dist/` を作り直し、JS・CSS・ライセンスを内包した `dist/index.html` を生成 |
+| `pnpm test` | ビルド済み HTML とソースを Node.js・jsdom で検証。先に `pnpm build` が必要 |
+| `pnpm check` | ビルド、全テスト、`git diff --check` を実行 |
+
+編集対象は `src/` です。`src/index.html` はテンプレートなので直接開かず、生成した `dist/index.html` を Chrome または Edge で開きます。生成物は直接編集しません。`dist/` と検証記録の `output/` は Git 管理対象外です。
+
+toolbox の戻るリンク・版番号を含む確認には、リポジトリ直下で `node scripts/toolbox.mjs release <版>` を実行し、`out/toolbox-<版>/index.html` を開きます。共通処理が `dist/index.html` を `tools/note-html.html` として収集・梱包します。
+
+自動テストはファイル API を模擬しており、実ノートを読み書きしません。実機では検証専用のフォルダを使い、通常の編集・保存、未保存時のトップへの移動とキャンセル、保存後の往復、狭い画面の折り返しを確認します。`file://`、オフライン、OS・ブラウザー別の受入は区別して [ツールの検証記録](../tools/note-html/docs/VERIFICATION.md) に残します。Playwright スキル・CLI は明示的な使用依頼がある場合に限って使います。
 
 ## 未確認のこと
 

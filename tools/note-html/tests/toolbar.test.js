@@ -1,0 +1,56 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { TextSelection } from 'prosemirror-state';
+import { setup, MemoryDirectory, MemoryFile } from './helpers.js';
+
+test('書式メニューの開閉・書式変更で選択と未保存本文と履歴を保持する', async () => {
+  const file = new MemoryFile('note.md', '選択した本文\n');
+  const { app, $, window } = await setup(new MemoryDirectory('root', [file]));
+  await app.openNote(file.name);
+  const editor = app.richEditor;
+  const view = editor.view;
+  view.dispatch(view.state.tr.insertText('追記', 7));
+  view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, 1, 4)));
+  const draft = app.state.draft;
+  $('format-toggle').focus(); $('format-toggle').click();
+  assert.equal($('format-panel').hidden, false);
+  assert.equal($('format-toggle').getAttribute('aria-expanded'), 'true');
+  $('format-toolbar').querySelector('select').focus();
+  window.document.activeElement.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  assert.equal($('format-panel').hidden, true);
+  assert.equal(window.document.activeElement, $('format-toggle'));
+  assert.equal(app.richEditor, editor);
+  assert.equal(app.state.draft, draft);
+  assert.equal(view.state.selection.from, 1); assert.equal(view.state.selection.to, 4);
+  $('format-toggle').click();
+  $('format-toolbar').querySelector('[data-command=strong]').click();
+  assert.match(app.state.draft, /\*\*選択し\*\*/);
+  assert.equal($('format-panel').hidden, true);
+  editor.run('undo'); assert.equal(app.state.draft, draft);
+  editor.run('redo'); assert.match(app.state.draft, /\*\*選択し\*\*/);
+  assert.equal(file.writes, 0);
+  $('options-toggle').click(); $('source-mode').click();
+  assert.equal(app.state.mode, 'source');
+  assert.equal($('options-panel').hidden, true);
+  assert.equal($('return-to-note').hidden, false);
+  const changed = app.state.draft;
+  $('return-to-note').click();
+  assert.equal(app.state.mode, 'rich'); assert.equal(app.state.draft, changed);
+  assert.ok(app.dirty());
+});
+
+test('上部メニューは同時に開かず、外側の操作で閉じ、隠れた操作へフォーカスを残さない', async () => {
+  const file = new MemoryFile('note.md', '本文\n');
+  const { app, $, window } = await setup(new MemoryDirectory('root', [file]));
+  await app.openNote(file.name);
+  $('format-toggle').click(); $('options-toggle').click();
+  assert.equal($('format-panel').hidden, true); assert.equal($('options-panel').hidden, false);
+  $('rich-editor').dispatchEvent(new window.Event('pointerdown', { bubbles: true }));
+  assert.equal($('options-panel').hidden, true);
+  $('options-toggle').click(); $('settings-open').focus();
+  assert.equal($('options-panel').hidden, false);
+  $('sidebar-toggle').focus();
+  assert.equal($('options-panel').hidden, true);
+  assert.equal(window.document.activeElement, $('sidebar-toggle'));
+  assert.equal(app.state.draft, '本文\n'); assert.equal(file.writes, 0);
+});

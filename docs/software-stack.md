@@ -18,6 +18,7 @@
 tools.json            ← zip に入れるツールの一覧（フォルダ名・表示名・説明、並び順）
 tools/
   pdf-edit/           ← 各ツール。今の pdf-edit と同じ形（package.json、ロックファイル、テスト、Node.js の版指定）
+  note-html/          ← esbuild・Node.js のテストランナーを継続。依存関係は独立
 .github/workflows/    ← リリース時の自動処理
 （入口ページの生成と zip 作成のスクリプト）
 ```
@@ -65,3 +66,4 @@ tools/
 - ビルド出力は `dist/` の HTML 1ファイルから取得する。他のファイル・フォルダがある場合、トップへのリンクの挿入位置が不足・重複している場合、版番号を付けられない場合は収集を失敗させる。
 - タグが実在する日付の形式でないときは、ツールをビルドする前に停止する。
 - pdf-edit の検証は上記の共通ワークフローで継続する。単体の `release.yml` は移動時に削除し、配布は toolbox に統一した。
+- note-html は既存の esbuild で `dist/index.html` を生成し、収集時に `note-html.html` とする。Node.js・pnpm はツール内で固定し、CI・リリースは共通ワークフローを使う。生成物や検証画像は Git 管理に含めない。

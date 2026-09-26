@@ -1,0 +1,231 @@
+:root {
+  --bg:#faf9f6;
+  --paper:#fff;
+  --ink:#171715;
+  --muted:#696964;
+  --line:#deded8;
+  --red:#bd352b;
+  --blue:#157cbd;
+  --completed-ink:#767670;
+  --default-font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Hiragino Kaku Gothic ProN",
+    "Yu Gothic",
+    Meiryo,
+    sans-serif;
+  font-family: var(--default-font-family);
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+a {
+  color: var(--blue);
+  text-underline-offset: 3px;
+}
+.markdown {
+  flex: 1;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  scrollbar-gutter: stable;
+  padding: 25px clamp(32px, 6.5vw, 100px) 60px;
+  line-height: 1.95;
+  font-size: var(--note-font-size, 16px);
+}
+.markdown > :first-child {
+  margin-top: 0;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  line-height: 1.5;
+  color: var(--item-color, var(--ink));
+}
+.markdown h1 {
+  font-size: 2.125em;
+  border-left: 9px solid var(--ink);
+  padding-left: 20px;
+  margin: 0 0 28px;
+}
+.markdown h2 {
+  font-size: 1.5625em;
+  border-left: 8px solid var(--ink);
+  padding-left: 16px;
+  margin: 42px 0 20px;
+}
+.markdown h3 {
+  font-size: 1.25em;
+  margin: 32px 0 12px;
+}
+.markdown h4 {
+  font-size: 1.0625em;
+}
+.markdown p {
+  margin: 14px 0;
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 1.7em;
+  margin: 16px 0;
+}
+.markdown li {
+  padding-left: 3px;
+  margin: 4px 0;
+}
+.markdown li > ul,
+.markdown li > ol {
+  margin: 4px 0;
+}
+.markdown .tight-paragraph {
+  margin: 0;
+}
+.markdown .task-item {
+  list-style: none;
+  padding-left: 0;
+}
+.markdown .task-item input {
+  appearance: none;
+  font: inherit;
+  width: 1.125em;
+  height: 1.125em;
+  vertical-align: -3px;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  margin: 0 .5em 0 -1.65em;
+  background: white;
+  opacity: 1;
+  color: var(--ink);
+}
+.markdown .task-item input:checked {
+  background: var(--ink);
+}
+.markdown .task-item input:checked:after {
+  content: "\2713";
+  display: block;
+  color: white;
+  font-size: .8125em;
+  line-height: 1.15;
+  text-align: center;
+}
+.markdown blockquote {
+  border-left: 3px solid #afafa5;
+  background: #f8f8f5;
+  padding: 1px 20px;
+  margin: 20px 0;
+  color: var(--item-color, #585851);
+}
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 30px 0;
+}
+.markdown code,
+#editor {
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    "Hiragino Kaku Gothic ProN",
+    monospace;
+}
+.markdown :not(pre) > code {
+  background: #f0f0eb;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: .87em;
+}
+.markdown pre {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #f8f8f5;
+  overflow: auto;
+  padding: 18px;
+  line-height: 1.7;
+  font-size: .8125em;
+  white-space: pre;
+}
+.markdown table {
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-size: .875em;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid #babbb2;
+  padding: 9px 14px;
+  min-width: 75px;
+}
+.markdown th {
+  background: #f3f3ee;
+  text-align: left;
+}
+.markdown img {
+  max-width: 100%;
+  height: auto;
+}
+.image-placeholder,
+.unavailable-reference {
+  color: var(--muted);
+  font-size: .9em;
+}
+.image-placeholder {
+  display: inline-block;
+  border: 1px dashed #bebeb5;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.markdown li {
+  --item-color: var(--ink);
+  --item-link-color: var(--blue);
+  color: var(--item-color);
+}
+.markdown li[data-checked=true] {
+  --item-color: var(--completed-ink);
+  --item-link-color: var(--completed-ink);
+}
+.markdown li a, .markdown li .editor-link { color: var(--item-link-color); }
+.export-document {
+  display: block;
+  max-width: 980px;
+  margin: auto;
+  padding: 40px clamp(20px, 5vw, 60px);
+  overflow: visible;
+  min-height: 0;
+  color: var(--ink);
+}
+.export-document pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.export-document .raw-block { white-space: pre-wrap; }
+.export-document table { display: table; table-layout: fixed; width: 100%; }
+.export-document td, .export-document th { min-width: 0; overflow-wrap: anywhere; }
+.export-document th > p, .export-document td > p { margin: 0; }
+@media print {
+  @page {
+    /* 自動ヘッダー用の余白をなくし、各ページの本文余白はpaddingで確保する。 */
+    margin: 0;
+    padding: 16mm;
+  }
+  :root { background: white; }
+  .export-document { max-width: none; padding: 0; margin: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .export-document h1, .export-document h2, .export-document h3,
+  .export-document h4, .export-document h5, .export-document h6 { break-after: avoid; }
+  .export-document tr, .export-document img { break-inside: avoid; }
+  .export-document thead { display: table-header-group; }
+  .export-document img { max-height: 240mm; object-fit: contain; }
+  .export-document p { orphans: 3; widows: 3; }
+  .export-document .task-item input:checked { background: white; }
+  .export-document .task-item input:checked:after { color: var(--ink); }
+}

@@ -39,9 +39,10 @@
 - 作る人がGitHubで日付形式の版のリリースを作ると、版番号付きのzipが手作業なしで出来上がる。ツールの検査かビルドが1つでも失敗したら、zipは出来ない。
 - そのzipを同僚が会社のWindows PC（Edge）とMac（Chrome）で、ネットにつながない状態で解凍し、入口ページからツールを開いて使える。入口ページと各ツールに版番号が出る。
 - 最初の版には、pdf-editが入っている。
+- 配布対象にローカルノート（note-html）を追加し、PDF編集と同じ入口・版番号・zipで配る。
 - 詳細は[software-requirements.md](software-requirements.md)を参照。
 
 ## 未決事項
 - 会社PCのブラウザやセキュリティ設定で、ローカルのHTMLを開くときに制限がないか（未確認）
-- pdf-edit以外に、最初の版へ入れるツール（未確認）。手で書いた（ビルドのない）HTMLのツールがあるか（未確認）
+- 手で書いた（ビルドのない）HTMLのツールがあるか（未確認）。現在の配布対象はPDF編集とローカルノート。
 - リポジトリ構成、1ファイルで配る形、入れるツールの選び方、オフライン対応、版番号の付け方と表示場所、zipの自動作成は決定済み。[software-requirements.md](software-requirements.md)と[software-stack.md](software-stack.md)を参照。

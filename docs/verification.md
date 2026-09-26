@@ -1,5 +1,20 @@
 # toolbox の開発・リリース検証
 
+## ローカルノートの追加（2026年9月26日）
+
+`tools/note-html/` を `tools.json` に登録し、PDF編集と同じ入口・CI・配布処理へ組み込みました。既存の esbuild を使って `dist/index.html` を生成し、配布時に `tools/note-html.html` とします。Node.js の版指定、生成物の除外、ヘッダーの戻るリンク用 template を追加しました。共通スクリプト・ワークフローの変更はありません。
+
+macOS・Node.js 26.10.0 で次を確認しました。
+
+- `node scripts/toolbox.mjs check note-html`：pnpm 11.15.0による依存取得、ビルド、133件のテスト、収集が成功。
+- `node --test 'scripts/*.test.mjs'`：15件成功。
+- `node scripts/toolbox.mjs release 2026.09.26`：PDF編集の33件とローカルノートの133件が成功。2ツール入りのzipを生成。
+- `unzip -t` が成功し、zip内は入口の `index.html` と `tools/pdf-edit.html`・`tools/note-html.html` のみ。ファイル名・フォルダ名は英数字・ハイフン・ピリオドだけ。
+- `dist/` と `build/` の一致、配布HTMLが最新ビルドに戻るリンク・版番号を付けた結果と一致することを確認。
+- Chrome・Computer UseでローカルHTTPの入口→ノート→入口を同じタブで往復。通常幅と390px幅の表示、版番号、ヘッダーの折り返しを確認し、コンソールの警告・エラーは0件。Playwrightスキル・CLIは使用していない。
+
+PDF編集の既存の `crypto` 外部化のビルド警告は継続。`file://` 起動は確認用ブラウザーのURLポリシーで拒否され、完全オフライン・実フォルダでのノート保存・Windows/Edge・GitHub上のCI/Releaseは未確認です。詳細は[ローカルノートの検証記録](../tools/note-html/docs/VERIFICATION.md)を参照してください。リリースの公開・アップロードは行っていません。
+
 ## 各ツールからトップへ戻る導線（2026年9月26日）
 
 検証環境：macOS、Node.js 26.10.0、PDF編集の pnpm 12.4.2、Chrome。ブラウザー操作には Computer Use を使用し、Playwrightスキル・CLIは使用していない。
