@@ -22,6 +22,13 @@ test('HTML・危険 URL・外部画像を実行も自動取得もしない', asy
   assert.match(container.textContent, /<script>/); assert.match(container.textContent, /参照できません/);
   for (const a of container.querySelectorAll('a[href]')) { assert.ok(a.href.startsWith('https://')); assert.equal(a.rel, 'noopener noreferrer'); assert.equal(a.target, '_blank'); }
 });
+test('本文が空のToDoもプレビューとエクスポートでチェックボックスを表示する', async () => {
+  for (const mode of ['interactive', 'export']) {
+    const { container, output } = render('- [ ]\n- [x]', { mode });
+    await output.ready;
+    assert.deepEqual([...container.querySelectorAll('input[type=checkbox]')].map(input => input.checked), [false, true]);
+  }
+});
 test('相対ノートリンクはリンク元から解決してアプリ内で開く', () => {
   let received;
   const { container, window } = render('[別のノート](../日本語%20メモ.MD)', { onNote: (...args) => { received = args; } });

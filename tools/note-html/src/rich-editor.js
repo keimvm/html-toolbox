@@ -351,7 +351,18 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
       dispatch(closeHistory(tr.delete(end - 1, end)));
     }));
   };
-  const exitLastCode = (state, dispatch) => codeEnd(state) && state.selection.$from.after() === state.doc.content.size && exitCode(state, dispatch);
+  const exitCodeDown = (state, dispatch) => {
+    if (!codeEnd(state)) return false;
+    const { $from } = state.selection;
+    const next = $from.node(-1).maybeChild($from.indexAfter(-1));
+    return (!next || next.type === schema.nodes.code_block) && exitCode(state, dispatch);
+  };
+  const selectCode = (state, dispatch) => {
+    const { $from, $to } = state.selection;
+    if ($from.parent.type !== schema.nodes.code_block || !$from.sameParent($to)) return false;
+    if (dispatch) dispatch(state.tr.setSelection(TextSelection.create(state.doc, $from.start(), $from.end())));
+    return true;
+  };
   const exitInlineCode = (state, dispatch) => {
     const { empty, $from } = state.selection;
     const code = schema.marks.code;
@@ -359,6 +370,13 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
     if (dispatch) dispatch(state.tr.removeStoredMark(code));
     return true;
   };
+  const taskInput = new InputRule(/^\[([ xX])\]\s$/, (state, match, start, end) => {
+    const $start = state.doc.resolve(start);
+    if ($start.parent.type !== schema.nodes.paragraph || $start.depth < 2 || $start.index(-1) !== 0) return null;
+    const item = $start.node(-1);
+    if (item.type !== schema.nodes.list_item || item.attrs.checked !== null) return null;
+    return state.tr.delete(start, end).setNodeMarkup($start.before(-1), null, { checked: match[1] !== ' ' });
+  }, { inCodeMark: false });
   const ruleInput = new InputRule(/^---$/, (state, _match, start, end) => {
     const $start = state.doc.resolve(start);
     if ($start.parent.type !== schema.nodes.paragraph || end !== $start.end()) return null;
@@ -391,11 +409,12 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
       inputRules({ rules: [wrappingInputRule(/^\s*>\s$/, schema.nodes.blockquote), wrappingInputRule(/^\s*([-+*])\s$/, schema.nodes.bullet_list, { tight: true }),
         wrappingInputRule(/^(\d+)\.\s$/, schema.nodes.ordered_list, match => ({ order: Number(match[1]), tight: true })),
         textblockTypeInputRule(/^(#{1,6})\s$/, schema.nodes.heading, match => ({ level: match[1].length })),
-        textblockTypeInputRule(/^```$/, schema.nodes.code_block), ruleInput, inlineCodeInput, pairedCodeInput] }),
+        textblockTypeInputRule(/^```$/, schema.nodes.code_block), taskInput, ruleInput, inlineCodeInput, pairedCodeInput] }),
       history(), keymap({ 'Mod-z': undo, 'Shift-Mod-z': redo, 'Mod-y': redo, 'Mod-b': commands.strong, 'Mod-i': commands.em, 'Mod-`': commands.code,
+        'Mod-a': selectCode, 'Ctrl-a': selectCode,
         'Mod-k': () => { openLinkDialog(); return true; }, Backspace: undoInputRule,
         Enter: chainCommands(tableNext, exitCodeOnEmptyLine, (state, dispatch) => splitListItem(schema.nodes.list_item, { checked: ancestor(state, 'list_item')?.node.attrs.checked == null ? null : false })(state, dispatch)),
-        ArrowDown: exitLastCode,
+        ArrowDown: exitCodeDown,
         ArrowRight: exitInlineCode,
         Tab: chainCommands(tableNext, sinkListItem(schema.nodes.list_item)), 'Shift-Tab': chainCommands((state, dispatch) => inTable(state) && goToNextCell(-1)(state, dispatch), liftListItem(schema.nodes.list_item)),
         'Shift-Enter': chainCommands(exitCode, hardBreak), 'Mod-Enter': exitCode,

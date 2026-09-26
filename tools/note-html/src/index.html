@@ -21,6 +21,10 @@
       <template id="toolbox-home"></template>
       <span class="tb-header-brand"><img class="tb-header-icon" src="APP_ICON" alt="">ローカルノート</span><button type="button" class="tb-button tb-icon-button tb-theme-toggle"></button>
     </div>
+    <div class="folder-actions">
+      <button class="tb-button tb-secondary" id="open-folder"><svg class="icon" aria-hidden="true"><use href="#icon-folder"/></svg>フォルダを開く</button>
+      <button class="tb-button tb-secondary" id="reload" disabled title="ツリーと本文を再読み込み"><svg class="icon" aria-hidden="true"><use href="#icon-refresh"/></svg><span>再読み込み</span></button>
+    </div>
     <div class="note-heading">
       <button class="tb-button" id="sidebar-toggle" aria-label="ファイルナビゲーションを閉じる" aria-expanded="true" aria-controls="sidebar" title="ファイルナビゲーションを閉じる"><svg class="icon" aria-hidden="true"><use href="#icon-sidebar"/></svg></button>
       <div class="note-location"><h1 id="file-name" hidden></h1></div>
@@ -44,10 +48,6 @@
   </header>
   <div class="workspace">
     <aside class="sidebar" id="sidebar" aria-label="ノートフォルダ">
-      <div class="folder-actions">
-        <button class="tb-button tb-secondary" id="open-folder"><svg class="icon"><use href="#icon-folder"/></svg>フォルダを開く</button>
-        <button class="tb-button tb-secondary" id="reload" disabled title="ツリーと本文を再読み込み"><svg class="icon"><use href="#icon-refresh"/></svg><span>再読み込み</span></button>
-      </div>
       <nav id="tree" aria-label="フォルダと Markdown ファイル"><p class="tree-empty">フォルダを開くと、ここに<br>ノートが並びます。</p></nav>
     </aside>
     <div id="sidebar-resizer" role="separator" aria-label="ファイルナビゲーションの幅" aria-orientation="vertical" aria-controls="sidebar" tabindex="0"></div>

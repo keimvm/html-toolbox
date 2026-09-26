@@ -41,7 +41,7 @@ const tokenizer = { parse(source, env) {
     if (token.type === 'list_item_open' && tokens[i + 1]?.type === 'paragraph_open') {
       const inline = tokens[i + 2];
       const first = inline?.children?.[0];
-      const task = first?.type === 'text' && /^\[([ xX])\]\s/.test(inline.content) && first.content.match(/^\[([ xX])\]\s/);
+      const task = first?.type === 'text' && /^\[([ xX])\](?:\s|$)/.test(inline.content) && first.content.match(/^\[([ xX])\](?:\s|$)/);
       if (task) { token.meta = { checked: task[1] !== ' ' }; first.content = first.content.slice(task[0].length); }
     }
     if (token.type === 'th_close' || token.type === 'td_close') result.push({ type: 'paragraph_close' });

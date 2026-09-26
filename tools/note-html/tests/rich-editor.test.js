@@ -4,6 +4,9 @@ import { TextSelection } from 'prosemirror-state';
 import { parseMarkdown } from '../src/markdown-document.js';
 import { setup, MemoryDirectory, MemoryFile, tick, bytes } from './helpers.js';
 
+// keymap と同じくモジュール読み込み時の OS で判定する（setup は navigator を jsdom に替える）。
+const selectAllKeys = /Mac|iP(hone|[oa]d)/.test(navigator.platform) ? { metaKey: true } : { ctrlKey: true };
+
 async function open(source) {
   const file = new MemoryFile('note.md', source);
   const context = await setup(new MemoryDirectory('root', [file]));
@@ -65,6 +68,66 @@ test('末尾のコードから下矢印・Shift+Enterでも本文を作れる', 
   editor.setMarkdown('```\ncode\n```\n'); selection(view, 3); press(view, window, 'Enter', { shiftKey: true });
   assert.equal(view.state.selection.$from.parent.type.name, 'paragraph');
   assert.equal(view.state.doc.firstChild.textContent, 'code');
+});
+
+test('コード内のCtrl+Aはそのブロックだけを選び、繰り返し・置換・取り消しにも対応する', async () => {
+  const source = '前の本文\n\n```js\nfirst\nsecond\n```\n\n```\nother\n```\n\n後の本文';
+  const { app, editor, view, window } = await open(source);
+  const from = findText(view, 'first'), to = findText(view, 'second') + 6;
+  selection(view, from + 2);
+  for (let i = 0; i < 2; i++) {
+    press(view, window, 'a', { ctrlKey: true });
+    assert.equal(view.state.selection.from, from); assert.equal(view.state.selection.to, to);
+  }
+  assert.equal(app.dirty(), false);
+  typeText(view, 'replacement');
+  assert.equal(view.state.doc.child(1).textContent, 'replacement');
+  assert.equal(view.state.doc.child(2).textContent, 'other');
+  assert.equal(view.state.doc.firstChild.textContent, '前の本文');
+  assert.equal(view.state.doc.lastChild.textContent, '後の本文');
+  editor.run('undo'); assert.equal(app.state.draft, source);
+  selection(view, from + 1); press(view, window, 'a', selectAllKeys);
+  assert.equal(view.state.selection.from, from); assert.equal(view.state.selection.to, to);
+  selection(view, from, findText(view, 'other'));
+  press(view, window, 'a', selectAllKeys);
+  assert.equal(view.state.selection.from, 0); assert.equal(view.state.selection.to, view.state.doc.content.size);
+  selection(view, 1); press(view, window, 'a', selectAllKeys);
+  assert.equal(view.state.selection.from, 0); assert.equal(view.state.selection.to, view.state.doc.content.size);
+});
+
+test('空のコード内のCtrl+Aでも周囲の本文を選ばない', async () => {
+  const { view, window } = await open('```\n```\n\n本文');
+  selection(view, 1); press(view, window, 'a', { ctrlKey: true });
+  assert.equal(view.state.selection.from, 1); assert.equal(view.state.selection.to, 1);
+});
+
+test('連続するコードの間へ下矢印で本文を挿入し、履歴・保存・再読み込みを保つ', async () => {
+  const source = '```js\nfirst\n```\n\n```python\nsecond\n```';
+  const { app, editor, view, window, $ } = await open(source);
+  selection(view, findText(view, 'first') + 5); press(view, window, 'ArrowDown');
+  assert.equal(view.state.doc.childCount, 3);
+  assert.equal(view.state.doc.child(1).type.name, 'paragraph');
+  assert.equal(view.state.selection.$from.parent, view.state.doc.child(1));
+  editor.run('undo'); assert.equal(app.state.draft, source);
+  editor.run('redo'); typeText(view, '間の本文');
+  assert.equal(view.state.doc.firstChild.attrs.params, 'js');
+  assert.equal(view.state.doc.lastChild.attrs.params, 'python');
+  assert.ok(await app.save()); await app.reload();
+  assert.deepEqual([...$('rich-editor').querySelectorAll('pre')].map(node => node.textContent), ['first', 'second']);
+  assert.equal($('rich-editor').querySelector('p').textContent, '間の本文');
+});
+
+test('下矢印では途中・選択中・既存本文の前に段落を増やさず、引用内の連続コードでも挿入できる', async () => {
+  const { editor, view, window } = await open('```\nfirst\n```\n\n```\nsecond\n```');
+  const before = view.state.doc;
+  selection(view, 3); press(view, window, 'ArrowDown'); assert.equal(view.state.doc, before);
+  selection(view, 1, 6); press(view, window, 'ArrowDown'); assert.equal(view.state.doc, before);
+  editor.setMarkdown('```\nfirst\n```\n\n本文');
+  selection(view, 6); press(view, window, 'ArrowDown'); assert.equal(view.state.doc.childCount, 2);
+  editor.setMarkdown('> ```\n> first\n> ```\n>\n> ```\n> second\n> ```');
+  selection(view, findText(view, 'first') + 5); press(view, window, 'ArrowDown');
+  assert.equal(view.state.doc.firstChild.child(1).type.name, 'paragraph');
+  assert.equal(view.state.selection.$from.parent.type.name, 'paragraph');
 });
 
 test('3個のバッククォートで即座にコードへ変換し、Backspaceで記号に戻せる', async () => {
@@ -168,6 +231,49 @@ test('チェック操作とタスク追加がMarkdownに反映され、取り消
   selection(view, findText(view, '本文') + 2);
   view.dom.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   assert.equal($('rich-editor').querySelectorAll('input:not([hidden])').length, 3);
+});
+
+test('ToDo記法の入力でチェックボックスを表示し、クリック・次項目・保存・再読み込みに対応する', async () => {
+  const { app, view, window, $ } = await open('');
+  typeText(view, '- [ ] ');
+  const checkbox = view.dom.querySelector('input:not([hidden])');
+  assert.ok(checkbox); assert.equal(checkbox.checked, false);
+  typeText(view, '作業'); checkbox.click();
+  assert.match(app.state.draft, /- \[x\] 作業/);
+  press(view, window, 'Enter'); typeText(view, '次の作業');
+  assert.deepEqual([...view.dom.querySelectorAll('input:not([hidden])')].map(input => input.checked), [true, false]);
+  assert.ok(await app.save()); await app.reload();
+  assert.deepEqual([...$('rich-editor').querySelectorAll('input:not([hidden])')].map(input => input.checked), [true, false]);
+  assert.match($('rich-editor').textContent, /次の作業/);
+});
+
+test('ToDoへの変換はBackspace・Undo・Redoで戻せ、空の項目も保存後に残る', async () => {
+  const { app, view, window, editor, $ } = await open('');
+  typeText(view, '- [ ] '); press(view, window, 'Backspace');
+  assert.equal(view.dom.querySelector('input:not([hidden])'), null);
+  assert.equal(view.state.doc.textContent, '[ ] ');
+  press(view, window, 'Backspace'); typeText(view, ' ');
+  editor.run('undo'); assert.equal(view.dom.querySelector('input:not([hidden])'), null);
+  editor.run('redo'); assert.ok(view.dom.querySelector('input:not([hidden])'));
+  assert.ok(await app.save()); await app.reload();
+  assert.ok($('rich-editor').querySelector('input:not([hidden])'));
+  assert.equal($('rich-editor').querySelector('input').checked, false);
+});
+
+test('完了済み・番号付き・入れ子のToDoを入力でき、本文・コード・表・エスケープは変換しない', async () => {
+  const { view, editor } = await open('');
+  for (const marker of ['- [x] ', '* [X] ', '1. [x] ']) {
+    editor.setMarkdown(''); typeText(view, marker);
+    assert.equal(view.dom.querySelector('input:not([hidden])').checked, true);
+  }
+  editor.setMarkdown('- 親\n  - 子'); selection(view, findText(view, '子')); typeText(view, '[ ] ');
+  assert.equal(view.dom.querySelectorAll('input:not([hidden])').length, 1);
+  for (const source of ['本文', '```\n本文\n```', '| 列 |\n| --- |\n| 本文 |', '- 項目\n\n  本文']) {
+    editor.setMarkdown(source); selection(view, findText(view, '本文')); typeText(view, '[ ] ');
+    assert.equal(view.dom.querySelector('input:not([hidden])'), null, source);
+  }
+  editor.setMarkdown(''); typeText(view, '- \\[ ] ');
+  assert.equal(view.dom.querySelector('input:not([hidden])'), null);
 });
 
 test('表のセル・行列を編集して保存し、先頭行削除後もヘッダーを保つ', async () => {

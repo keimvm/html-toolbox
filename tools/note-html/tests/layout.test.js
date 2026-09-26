@@ -82,14 +82,14 @@ test('ドラッグの中断と破棄で開始幅と通常の操作状態に戻�
 });
 
 test('境界のキーボード操作と開閉のアクセシビリティ・フォーカスを保つ', async () => {
-  const context = await setup(null, { autoOpen: false });
+  const context = await setup(new MemoryDirectory('root', [new MemoryFile('note.md', '本文')]));
   const { $, window } = context;
   key(context, 'ArrowRight'); assert.equal(width($), 302);
   key(context, 'ArrowRight', { shiftKey: true }); assert.equal(width($), 352);
   key(context, 'ArrowLeft', { shiftKey: true }); assert.equal(width($), 302);
   key(context, 'ArrowLeft', { ctrlKey: true }); assert.equal(width($), 302);
   assert.equal($('sidebar-resizer').getAttribute('aria-valuetext'), '302ピクセル');
-  $('open-folder').focus(); $('sidebar-toggle').click();
+  $('tree').querySelector('button').focus(); $('sidebar-toggle').click();
   assert.equal(window.document.activeElement, $('sidebar-toggle'));
   assert.equal($('sidebar').hidden, true); assert.equal($('sidebar-resizer').hidden, true);
   assert.equal($('sidebar-toggle').getAttribute('aria-expanded'), 'false');

@@ -141,7 +141,7 @@ export function renderMarkdown({ document, container, source, root, path, onNote
     const paragraph = li.firstElementChild;
     const first = paragraph?.tagName === 'P' ? paragraph.firstChild : li.firstChild;
     if (first?.nodeType !== 3) continue;
-    const task = first.textContent.match(/^\[([ xX])\]\s/);
+    const task = first.textContent.match(/^\[([ xX])\](?:\s|$)/);
     if (!task) continue;
     const checkbox = element('input');
     checkbox.type = 'checkbox'; checkbox.disabled = true; checkbox.checked = task[1] !== ' ';

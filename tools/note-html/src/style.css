@@ -121,11 +121,11 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  padding: 4px 0 22px;
+  gap: 6px;
 }
 .folder-actions button {
-  padding: 8px 10px;
+  min-height: 34px;
+  padding: 5px 10px;
 }
 .folder-actions .icon {
   width: 19px;
@@ -499,9 +499,6 @@ noscript {
     --splitter-width: 32px;
     padding: 12px 30px;
   }
-  .folder-actions button {
-    padding: 9px 12px;
-  }
   .tree-row {
     font-size: 15px;
     min-height: 43px;
@@ -512,17 +509,6 @@ noscript {
     --sidebar-default-width: 250px;
     --splitter-width: 18px;
     padding: 10px 18px;
-  }
-  .folder-actions {
-    gap: 8px;
-  }
-  .folder-actions button {
-    font-size: 11px;
-    padding: 8px;
-  }
-  .folder-actions .icon {
-    width: 17px;
-    height: 17px;
   }
   .markdown {
     padding: 25px 34px 50px;
@@ -545,12 +531,6 @@ noscript {
     grid-template-rows: 180px minmax(0, 1fr);
     gap: 12px;
     padding: 8px 12px;
-  }
-  .folder-actions {
-    padding-bottom: 10px;
-  }
-  .folder-actions button {
-    font-size: 12px;
   }
   .tree-row {
     min-height: 34px;
