@@ -34,7 +34,9 @@ const template = await readFile('src/index.html', 'utf8');
 const libraryStyles = await Promise.all([
   ['prosemirror-view', 'prosemirror.css'], ['prosemirror-gapcursor', 'gapcursor.css'], ['prosemirror-tables', 'tables.css'],
 ].map(([name, file]) => readFile(join(dirname(require.resolve(name)), '../style', file), 'utf8')));
-const css = libraryStyles.join('\n') + '\n' + await readFile('src/style.css', 'utf8');
+// toolbox 共通の配色・部品（ui/theme.css）の後に、このツールの画面の CSS を重ねる。
+const theme = await readFile('../../ui/theme.css', 'utf8');
+const css = [...libraryStyles, theme, await readFile('src/style.css', 'utf8')].join('\n');
 const escape = text => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 const documentCss = await readFile('src/document.css', 'utf8');
 const html = template.replace('/* DOCUMENT_CSS */', () => documentCss).replace('/* APP_CSS */', () => css).replace('/* APP_SCRIPT */', () => result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script')).replace('<!-- APP_LICENSES -->', () => escape(licenses.join('\n\n')));

@@ -1,4 +1,5 @@
 import { getHandle, isImage } from './core.js';
+import { downloadBlob } from '../../../ui/download.js';
 
 const encoder = new TextEncoder();
 function shorten(value, maxBytes) {
@@ -62,14 +63,6 @@ export async function saveAssets(root, notePath, files, { createId = () => crypt
   return { added, failed };
 }
 
-export const hasDroppedFiles = transfer => Array.from(transfer?.types || []).includes('Files');
-
-export function droppedFiles(transfer) {
-  const items = Array.from(transfer?.items || []).filter(item => item.kind === 'file');
-  if (items.some(item => item.webkitGetAsEntry?.()?.isDirectory)) return null;
-  return Array.from(transfer?.files || []);
-}
-
 // MIME をファイル名の許可リストから決め、HTML・SVG等を文書として実行しない。
 export function previewMime(path) {
   const extension = path.split('.').at(-1).toLowerCase();
@@ -91,13 +84,11 @@ export function createAssetOpener(window, onNotice) {
     const resource = { url: window.URL.createObjectURL(file.slice(0, file.size, mime)), timer: null };
     resources.add(resource); return resource;
   }
+  const downloads = new window.AbortController();
   function download(file) {
     if (disposed) return;
-    const resource = urlFor(file, 'application/octet-stream');
-    const link = window.document.createElement('a');
-    link.href = resource.url; link.download = file.name; link.rel = 'noopener noreferrer';
-    window.document.body.append(link); link.click(); link.remove();
-    resource.timer = window.setTimeout(() => release(resource), 60_000);
+    // ブラウザーで開ける形式でも、表示せずに保存させる。
+    downloadBlob(file.slice(0, file.size, 'application/octet-stream'), file.name, { window, signal: downloads.signal });
   }
   return {
     async open(root, path) {
@@ -130,6 +121,6 @@ export function createAssetOpener(window, onNotice) {
         if (!disposed) onNotice('添付ファイルを取得できません。ファイルの状態とアクセス権を確認してください。');
       } finally { if (popup) pending.delete(popup); }
     },
-    dispose() { disposed = true; for (const popup of pending) popup.close(); pending.clear(); for (const resource of resources) release(resource); },
+    dispose() { disposed = true; downloads.abort(); for (const popup of pending) popup.close(); pending.clear(); for (const resource of resources) release(resource); },
   };
 }

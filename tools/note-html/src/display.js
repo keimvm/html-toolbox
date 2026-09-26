@@ -25,7 +25,7 @@ export function createDisplay(window, { store, onError }) {
   function render() {
     select.value = String(settings.fontSize); font.value = settings.uiFont;
     document.documentElement.style.setProperty('--note-font-size', `${settings.fontSize}px`);
-    if (settings.uiFont) document.documentElement.style.setProperty('--ui-font-family', `"${settings.uiFont}", var(--default-font-family)`);
+    if (settings.uiFont) document.documentElement.style.setProperty('--ui-font-family', `"${settings.uiFont}", var(--tb-font)`);
     else document.documentElement.style.removeProperty('--ui-font-family');
   }
   function report() {

@@ -12,6 +12,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
+// 入口ページにも各ツールと同じ配色・部品を使う。
+const themePath = new URL('../ui/theme.css', import.meta.url);
 
 const DIR_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*$/;
 
@@ -97,7 +99,10 @@ export function escapeHtml(text) {
   );
 }
 
-/** 配布用のHTMLにトップへのリンクと右下の版番号を追加する。 */
+/**
+ * 配布用のHTMLにトップへのリンクと右下の版番号を追加する。
+ * 色はツールが読み込む ui/theme.css の値と配色の指定（ライト・ダーク）に従い、読み込んでいないツールでも見えるよう既定値を持つ。
+ */
 export function decorateToolHtml(html, version) {
   const homeSlot = '<template id="toolbox-home"></template>';
   const home = html.indexOf(homeSlot);
@@ -116,16 +121,19 @@ export function decorateToolHtml(html, version) {
     '<style>#toolbox-home{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;' +
     'box-sizing:border-box;min-height:36px;padding:7px 8px;border-radius:7px;' +
     'color:inherit;font:inherit;line-height:1.5;text-decoration:none;white-space:nowrap}' +
-    '#toolbox-home:hover{background:rgba(53,91,73,.08);text-decoration:underline}' +
+    '#toolbox-home:hover{background:var(--tb-tint,rgba(128,128,128,.12));text-decoration:underline}' +
     '#toolbox-home:focus-visible{outline:2px solid currentColor;outline-offset:2px}' +
-    '#toolbox-version{all:initial;position:fixed;right:2px;bottom:2px;z-index:2147483647;' +
-    'pointer-events:none;padding:0 5px;border-radius:3px;background:rgba(255,255,255,.85);' +
-    'color:#555;box-shadow:0 0 0 1px rgba(0,0,0,.12);font:10px/1.5 system-ui,sans-serif}</style>' +
+    '#toolbox-version{all:initial;color-scheme:inherit;position:fixed;right:2px;bottom:2px;' +
+    'z-index:2147483647;pointer-events:none;padding:0 5px;border-radius:3px;' +
+    'background:light-dark(rgba(255,255,255,.85),rgba(23,29,26,.85));color:light-dark(#555,#b5beb8);' +
+    'box-shadow:0 0 0 1px light-dark(rgba(0,0,0,.12),rgba(255,255,255,.16));' +
+    'font:10px/1.5 system-ui,sans-serif}</style>' +
     `<div id="toolbox-version" aria-hidden="true">toolbox ${escapeHtml(version)}</div>`;
   return html.slice(0, end) + badge + html.slice(end);
 }
 
-export function renderIndex(tools, version) {
+/** theme は ui/theme.css の内容。 */
+export function renderIndex(tools, version, theme) {
   const v = escapeHtml(version);
   const items = tools
     .map(
@@ -145,62 +153,39 @@ export function renderIndex(tools, version) {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>toolbox ${v}</title>
     <style>
-      :root {
-        color-scheme: light dark;
-        --bg: #f6f7f5;
-        --card: #ffffff;
-        --text: #1f2a24;
-        --muted: #5b665f;
-        --border: #d9dfda;
-        --accent: #355b49;
-        --notice-bg: #fff6dc;
-        --notice-border: #e7cf85;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #161a18;
-          --card: #1f2522;
-          --text: #e7ece9;
-          --muted: #a5b0aa;
-          --border: #34403a;
-          --accent: #8cc3a7;
-          --notice-bg: #33301f;
-          --notice-border: #6b5d2b;
-        }
-      }
+${theme}
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        background: var(--bg);
-        color: var(--text);
-        font: 15px/1.7 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+        background: var(--tb-bg);
+        color: var(--tb-ink);
+        font: 15px/1.7 var(--tb-font);
       }
       main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
       header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
       h1 { margin: 0; font-size: 26px; letter-spacing: .02em; }
-      .version { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
-      .version strong { color: var(--text); }
+      .version { color: var(--tb-muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+      .version strong { color: var(--tb-ink); }
       .notice {
         margin: 20px 0 24px;
         padding: 10px 14px;
-        border: 1px solid var(--notice-border);
-        border-radius: 8px;
-        background: var(--notice-bg);
+        border: 1px solid var(--tb-warning-line);
+        border-radius: var(--tb-radius);
+        background: var(--tb-warning-tint);
       }
       ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
       li a {
         display: block;
         padding: 16px 18px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: var(--card);
+        border: 1px solid var(--tb-line);
+        border-radius: var(--tb-radius-large);
+        background: var(--tb-surface);
         color: inherit;
         text-decoration: none;
       }
-      li a:hover { border-color: var(--accent); }
-      li a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-      .name { display: block; color: var(--accent); font-weight: 700; font-size: 17px; }
-      .description { display: block; color: var(--muted); }
+      li a:hover { border-color: var(--tb-accent); }
+      .name { display: block; color: var(--tb-accent); font-weight: 700; font-size: 17px; }
+      .description { display: block; color: var(--tb-muted); }
     </style>
   </head>
   <body>
@@ -260,7 +245,8 @@ export async function packageRelease(version, rootDir = root) {
     });
     await writeFile(join(target, 'tools', `${dir}.html`), decorateToolHtml(html, version));
   }
-  await writeFile(join(target, 'index.html'), renderIndex(tools, version));
+  const theme = await readFile(themePath, 'utf8');
+  await writeFile(join(target, 'index.html'), renderIndex(tools, version, theme));
 
   // -X でOS固有の拡張属性を入れない。中の名前は英数字だけなので文字コードの問題は起きない。
   execFileSync('zip', ['-qrX', `${name}.zip`, name], { cwd: outDir, stdio: 'inherit' });

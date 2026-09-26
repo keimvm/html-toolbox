@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src blob:; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <meta name="color-scheme" content="light">
   <title>ローカルノート</title>
   <style id="document-styles">/* DOCUMENT_CSS */</style>
   <style>/* APP_CSS */</style>
@@ -20,8 +19,8 @@
   <div class="workspace">
     <aside class="sidebar" id="sidebar" aria-label="ノートフォルダ">
       <div class="folder-actions">
-        <button id="open-folder"><svg class="icon"><use href="#icon-folder"/></svg>フォルダを開く</button>
-        <button id="reload" disabled title="ツリーと本文を再読み込み"><svg class="icon"><use href="#icon-refresh"/></svg><span>再読み込み</span></button>
+        <button class="tb-button tb-secondary" id="open-folder"><svg class="icon"><use href="#icon-folder"/></svg>フォルダを開く</button>
+        <button class="tb-button tb-secondary" id="reload" disabled title="ツリーと本文を再読み込み"><svg class="icon"><use href="#icon-refresh"/></svg><span>再読み込み</span></button>
       </div>
       <nav id="tree" aria-label="フォルダと Markdown ファイル"><p class="tree-empty">フォルダを開くと、ここに<br>ノートが並びます。</p></nav>
     </aside>
@@ -30,33 +29,33 @@
       <header class="note-toolbar">
         <template id="toolbox-home"></template>
         <div class="note-heading">
-          <button id="sidebar-toggle" aria-label="ファイルナビゲーションを閉じる" aria-expanded="true" aria-controls="sidebar" title="ファイルナビゲーションを閉じる"><svg class="icon" aria-hidden="true"><use href="#icon-sidebar"/></svg></button>
+          <button class="tb-button" id="sidebar-toggle" aria-label="ファイルナビゲーションを閉じる" aria-expanded="true" aria-controls="sidebar" title="ファイルナビゲーションを閉じる"><svg class="icon" aria-hidden="true"><use href="#icon-sidebar"/></svg></button>
           <div class="note-location"><h1 id="file-name">ローカルノート</h1></div>
         </div>
         <div class="note-actions">
-          <button id="format-toggle" class="toolbar-button" aria-expanded="false" aria-controls="format-panel" disabled>書式<svg class="icon menu-chevron" aria-hidden="true"><use href="#icon-chevron"/></svg></button>
+          <button id="format-toggle" class="tb-button toolbar-button" aria-expanded="false" aria-controls="format-panel" disabled>書式<svg class="icon menu-chevron" aria-hidden="true"><use href="#icon-chevron"/></svg></button>
           <div id="format-panel" class="toolbar-panel" role="group" aria-label="書式と挿入" hidden>
             <div id="format-toolbar" class="format-toolbar" role="group" aria-label="本文の書式" hidden></div>
           </div>
-          <button id="return-to-note" class="toolbar-button" aria-label="本文に戻る" title="本文に戻る" hidden><span>本文<span class="return-label">に戻る</span></span></button>
-          <button id="options-toggle" class="toolbar-button" aria-label="その他の操作" title="その他の操作" aria-expanded="false" aria-controls="options-panel"><span aria-hidden="true">⋯</span></button>
+          <button id="return-to-note" class="tb-button toolbar-button" aria-label="本文に戻る" title="本文に戻る" hidden><span>本文<span class="return-label">に戻る</span></span></button>
+          <button id="options-toggle" class="tb-button toolbar-button" aria-label="その他の操作" title="その他の操作" aria-expanded="false" aria-controls="options-panel"><span aria-hidden="true">⋯</span></button>
           <div id="options-panel" class="toolbar-panel options-panel" role="group" aria-label="その他の操作" hidden>
-            <button id="settings-open" class="source-button">設定</button>
-            <button id="source-mode" class="source-button" aria-pressed="false" disabled>Markdownソース</button>
-            <button id="export" class="source-button" disabled>エクスポート</button>
+            <button id="settings-open" class="tb-button source-button">設定</button>
+            <button id="source-mode" class="tb-button source-button" aria-pressed="false" disabled>Markdownソース</button>
+            <button id="export" class="tb-button source-button" disabled>エクスポート</button>
             <p id="file-path" class="menu-path">Markdown を、いつものフォルダで。</p>
           </div>
           <span id="save-status" role="status" aria-live="polite"></span>
-          <button id="save" class="primary" disabled title="保存（⌘S / Ctrl+S）">保存</button>
+          <button id="save" class="tb-button tb-primary" disabled title="保存（⌘S / Ctrl+S）">保存</button>
         </div>
       </header>
-      <div id="notice" class="notice" role="alert" hidden><p id="notice-text"></p><button id="notice-action" hidden></button><button id="notice-close" class="text-button" aria-label="通知を閉じる">閉じる</button></div>
+      <div id="notice" class="notice" role="alert" hidden><p id="notice-text"></p><button class="tb-button tb-secondary" id="notice-action" hidden></button><button id="notice-close" class="tb-button text-button" aria-label="通知を閉じる">閉じる</button></div>
       <p id="format-warning" class="format-warning" hidden></p>
       <div id="welcome" class="welcome">
         <div class="welcome-mark"><svg class="icon"><use href="#icon-note"/></svg></div>
         <h2 id="welcome-title">いつものフォルダが、<br>ノートになる。</h2>
         <p id="welcome-text">Markdown を読み、書き、そのまま保存。<br>ノートの置き場所は変わりません。</p>
-        <button id="welcome-open" class="primary"><svg class="icon"><use href="#icon-folder"/></svg><span>フォルダを開く</span></button>
+        <button id="welcome-open" class="tb-button tb-primary"><svg class="icon"><use href="#icon-folder"/></svg><span>フォルダを開く</span></button>
         <p class="welcome-hint">ファイルはこの端末で読み書きします。</p>
       </div>
       <div id="rich-editor" hidden></div>
@@ -64,27 +63,27 @@
       <textarea id="editor" aria-label="Markdownソース" spellcheck="false" autocomplete="off" autocapitalize="off" hidden></textarea>
     </main>
   </div>
-  <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+  <dialog id="confirm-dialog" class="tb-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
     <h2 id="confirm-title"></h2><p id="confirm-text"></p>
-    <label id="entry-name-label" hidden>名前<input id="entry-name" type="text" autocomplete="off" spellcheck="false" aria-describedby="entry-error"></label>
+    <label id="entry-name-label" hidden>名前<input id="entry-name" class="tb-input" type="text" autocomplete="off" spellcheck="false" aria-describedby="entry-error"></label>
     <p id="entry-error" role="alert" hidden></p><div id="confirm-actions" class="dialog-actions"></div>
   </dialog>
-  <dialog id="settings-dialog" aria-labelledby="settings-title">
+  <dialog id="settings-dialog" class="tb-dialog" aria-labelledby="settings-title">
     <h2 id="settings-title">設定</h2>
     <label for="ui-font">UIフォント</label>
-    <input id="ui-font" list="ui-fonts" placeholder="標準" maxlength="100" aria-describedby="ui-font-hint" autocomplete="off">
+    <input id="ui-font" class="tb-input" list="ui-fonts" placeholder="標準" maxlength="100" aria-describedby="ui-font-hint" autocomplete="off">
     <datalist id="ui-fonts"><option value="Hiragino Sans"><option value="Yu Gothic"><option value="Meiryo"><option value="Noto Sans JP"><option value="Helvetica Neue"></datalist>
     <p id="ui-font-hint">端末にあるフォント名を指定します。空欄で標準に戻ります。</p>
-    <label class="font-size-label">本文フォントサイズ<select id="font-size"><option value="14">14 px</option><option value="16" selected>16 px</option><option value="18">18 px</option><option value="20">20 px</option><option value="24">24 px</option></select></label>
-    <div class="dialog-actions"><button id="settings-close" class="primary">閉じる</button></div>
+    <label class="font-size-label">本文フォントサイズ<select id="font-size" class="tb-input"><option value="14">14 px</option><option value="16" selected>16 px</option><option value="18">18 px</option><option value="20">20 px</option><option value="24">24 px</option></select></label>
+    <div class="dialog-actions"><button id="settings-close" class="tb-button tb-primary">閉じる</button></div>
   </dialog>
-  <dialog id="entry-menu" aria-labelledby="entry-menu-title">
+  <dialog id="entry-menu" class="tb-dialog" aria-labelledby="entry-menu-title">
     <h2 id="entry-menu-title"></h2>
     <div class="entry-menu-actions">
-      <button data-entry-action="create-file">ファイルを追加</button><button data-entry-action="create-directory">フォルダを追加</button>
-      <button data-entry-action="rename">名前を変更</button><button data-entry-action="delete" class="danger">削除</button>
+      <button class="tb-button" data-entry-action="create-file">ファイルを追加</button><button class="tb-button" data-entry-action="create-directory">フォルダを追加</button>
+      <button class="tb-button" data-entry-action="rename">名前を変更</button><button data-entry-action="delete" class="tb-button tb-danger">削除</button>
     </div>
-    <div class="dialog-actions"><button id="entry-menu-close">閉じる</button></div>
+    <div class="dialog-actions"><button class="tb-button tb-secondary" id="entry-menu-close">閉じる</button></div>
   </dialog>
   <template id="third-party-licenses"><pre><!-- APP_LICENSES --></pre></template>
   <noscript>JavaScript が無効です。Chrome または Edge の設定で JavaScript を有効にして開き直してください。</noscript>

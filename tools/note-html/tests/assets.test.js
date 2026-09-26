@@ -207,7 +207,7 @@ test('添付リンクを編集でき、読み取り専用レンダラーでも�
   const { app, view, $, window } = await open('参照');
   view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, 1, 3)));
   $('format-toolbar').querySelector('[data-command=link]').click();
-  const dialog = window.document.querySelector('.link-dialog'); dialog.querySelectorAll('input')[1].value = '.assets/添付.pdf'; dialog.querySelector('.primary').click();
+  const dialog = window.document.querySelector('.link-dialog'); dialog.querySelectorAll('input')[1].value = '.assets/添付.pdf'; dialog.querySelector('.tb-primary').click();
   assert.match(app.state.draft, /\.assets/);
   let opened;
   const container = window.document.createElement('article');

@@ -1,37 +1,16 @@
-/* 参照モックの配色・余白・2ペイン構成。外部フォントは使用しない。 */
+/* PDF編集の画面構成。配色・文字・ボタン等の部品は toolbox 共通の ui/theme.css を使う。 */
 :root {
-  font-family: system-ui, sans-serif;
-  color-scheme: light;
-  background: #eef0ed;
+  background: var(--tb-bg);
 }
 body {
   margin: 0;
 }
-button {
-  cursor: pointer;
-}
-:focus-visible {
-  outline: 3px solid #7da68e;
-  outline-offset: 3px;
-}
 
 #pdf-calm {
-  --pc-bg: light-dark(#eef0ed, #171d1a);
-  --pc-surface: light-dark(#ffffff, #232b26);
-  --pc-rail: light-dark(#f9faf8, #202722);
-  --pc-ink: light-dark(#26382e, #e5ece7);
-  --pc-muted: light-dark(#6a776e, #a8b5ac);
-  --pc-line: light-dark(#e1e6df, #39433c);
-  --pc-accent: light-dark(#355b49, #b3d3bf);
-  --pc-on-accent: light-dark(#ffffff, #172b1e);
-  --pc-tint: light-dark(#eaf1e9, #344b3c);
-  --pc-danger: light-dark(#aa443f, #efa59e);
   --pc-space: 18px;
   container: pdf-calm / inline-size;
-  color: var(--pc-ink);
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', Meiryo,
-    sans-serif;
+  color: var(--tb-ink);
+  font-family: var(--tb-font);
   font-size: 13px;
   line-height: 1.5;
   background: transparent;
@@ -45,21 +24,21 @@ button {
 #pdf-calm [hidden] {
   display: none !important;
 }
-#pdf-calm button,
-#pdf-calm input,
-#pdf-calm select,
-#pdf-calm textarea {
+/* 共通部品（.tb-button・.tb-input）は ui/theme.css に任せ、それ以外の要素だけを整える。 */
+#pdf-calm
+  :where(button, input, select, textarea):where(:not(.tb-button, .tb-input)) {
   font: inherit;
 }
-#pdf-calm button {
+#pdf-calm button:where(:not(.tb-button)) {
   color: inherit;
+  cursor: pointer;
 }
-#pdf-calm button:disabled {
+#pdf-calm button:where(:not(.tb-button)):disabled {
   opacity: 0.38;
   cursor: default;
 }
 #pdf-calm .pc-shell {
-  background: var(--pc-surface);
+  background: var(--tb-surface);
   position: relative;
 }
 #pdf-calm .pc-header {
@@ -68,7 +47,7 @@ button {
   flex-wrap: wrap;
   gap: 20px;
   align-items: center;
-  border-bottom: 1px solid var(--pc-line);
+  border-bottom: 1px solid var(--tb-line);
 }
 #pdf-calm .pc-brand {
   display: flex;
@@ -81,8 +60,8 @@ button {
   height: 36px;
   display: grid;
   place-items: center;
-  color: var(--pc-on-accent);
-  background: var(--pc-accent);
+  color: var(--tb-on-accent);
+  background: var(--tb-accent);
   border-radius: 8px;
 }
 #pdf-calm .pc-brand-name {
@@ -92,8 +71,8 @@ button {
 }
 #pdf-calm .pc-badge {
   font-size: 11px;
-  color: var(--pc-muted);
-  border: 1px solid var(--pc-line);
+  color: var(--tb-muted);
+  border: 1px solid var(--tb-line);
   padding: 2px 5px;
   border-radius: 4px;
 }
@@ -101,7 +80,7 @@ button {
   min-width: 140px;
   flex: 1;
   padding-left: 20px;
-  border-left: 1px solid var(--pc-line);
+  border-left: 1px solid var(--tb-line);
 }
 #pdf-calm .pc-filename {
   display: block;
@@ -114,14 +93,14 @@ button {
   gap: 8px;
   margin-top: 3px;
   font-size: 11px;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
 }
 #pdf-calm .pc-unsaved::before {
   content: '';
   display: inline-block;
   width: 5px;
   height: 5px;
-  background: #b47e30;
+  background: var(--tb-warning);
   border-radius: 50%;
   margin-right: 5px;
   vertical-align: 2px;
@@ -132,41 +111,6 @@ button {
   gap: 8px;
   flex-wrap: wrap;
 }
-#pdf-calm .pc-button {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 7px 11px;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: transparent;
-  text-decoration: none;
-  white-space: nowrap;
-}
-#pdf-calm .pc-button:hover:not(:disabled) {
-  background: var(--pc-tint);
-}
-#pdf-calm .pc-secondary {
-  border-color: var(--pc-line);
-  background: var(--pc-surface);
-}
-#pdf-calm .pc-primary {
-  color: var(--pc-on-accent);
-  background: var(--pc-accent);
-  padding: 9px 15px;
-  font-weight: 500;
-}
-#pdf-calm .pc-primary:hover:not(:disabled) {
-  background: var(--pc-accent);
-  filter: brightness(0.94);
-}
-#pdf-calm .pc-icon-button {
-  width: 34px;
-  padding: 7px;
-  flex-shrink: 0;
-}
 #pdf-calm .pc-workbench {
   display: grid;
   grid-template-columns: 164px minmax(0, 1fr);
@@ -175,8 +119,8 @@ button {
   grid-template-columns: 164px minmax(0, 1fr) 254px;
 }
 #pdf-calm .pc-rail {
-  background: var(--pc-rail);
-  border-right: 1px solid var(--pc-line);
+  background: var(--tb-subtle);
+  border-right: 1px solid var(--tb-line);
   padding: var(--pc-space) 12px;
 }
 #pdf-calm .pc-rail-head {
@@ -187,11 +131,11 @@ button {
   font-weight: 500;
 }
 #pdf-calm .pc-count {
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   font-weight: 400;
 }
 #pdf-calm .pc-rail-hint {
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   font-size: 11px;
   margin: 0 6px 16px;
 }
@@ -211,14 +155,14 @@ button {
   background: transparent;
 }
 #pdf-calm .pc-page:hover {
-  background: var(--pc-bg);
+  background: var(--tb-bg);
 }
 #pdf-calm .pc-page[aria-pressed='true'] {
-  background: var(--pc-tint);
-  border-color: var(--pc-accent);
+  background: var(--tb-tint);
+  border-color: var(--tb-accent);
 }
 #pdf-calm .pc-page.pc-drop {
-  border: 2px dashed var(--pc-accent);
+  border: 2px dashed var(--tb-accent);
 }
 #pdf-calm .pc-mini {
   width: 62px;
@@ -254,29 +198,29 @@ button {
 }
 #pdf-calm .pc-page-title {
   font-size: 11px;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
 }
 #pdf-calm .pc-move {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   margin-top: 18px;
   font-size: 11px;
 }
-#pdf-calm .pc-move .pc-icon-button {
+#pdf-calm .pc-move .tb-icon-button {
   min-height: 30px;
 }
 #pdf-calm .pc-viewer {
   min-width: 0;
-  background: var(--pc-bg);
+  background: var(--tb-bg);
 }
 #pdf-calm .pc-toolbar {
   padding: 10px 18px;
   min-height: 58px;
-  background: var(--pc-surface);
-  border-bottom: 1px solid var(--pc-line);
+  background: var(--tb-surface);
+  border-bottom: 1px solid var(--tb-line);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -292,16 +236,16 @@ button {
 #pdf-calm .pc-separator {
   width: 1px;
   height: 20px;
-  background: var(--pc-line);
+  background: var(--tb-line);
   margin: 0 7px;
 }
 #pdf-calm .pc-delete:hover:not(:disabled) {
-  color: var(--pc-danger);
-  background: light-dark(#fff0ee, #492c28);
+  color: var(--tb-danger);
+  background: var(--tb-danger-tint);
 }
 #pdf-calm .pc-inspect-button[aria-expanded='true'] {
-  background: var(--pc-tint);
-  color: var(--pc-accent);
+  background: var(--tb-tint);
+  color: var(--tb-accent);
 }
 #pdf-calm .pc-stage {
   padding: 22px 32px 18px;
@@ -310,7 +254,7 @@ button {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   font-size: 11px;
 }
 #pdf-calm .pc-preview {
@@ -324,16 +268,16 @@ button {
   justify-content: center;
   flex-shrink: 0;
   padding: 8px 16px;
-  background: var(--pc-surface);
-  border-top: 1px solid var(--pc-line);
+  background: var(--tb-surface);
+  border-top: 1px solid var(--tb-line);
   gap: 15px;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 #pdf-calm .pc-inspector {
-  background: var(--pc-surface);
-  border-left: 1px solid var(--pc-line);
+  background: var(--tb-surface);
+  border-left: 1px solid var(--tb-line);
   min-width: 0;
   padding: 20px 18px;
 }
@@ -352,7 +296,7 @@ button {
 #pdf-calm .pc-tabs {
   display: flex;
   gap: 3px;
-  border-bottom: 1px solid var(--pc-line);
+  border-bottom: 1px solid var(--tb-line);
   margin-bottom: 20px;
 }
 #pdf-calm .pc-tab {
@@ -362,23 +306,23 @@ button {
   border-radius: 0;
   min-height: 38px;
   padding: 7px 5px;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   background: transparent;
 }
 #pdf-calm .pc-tab[aria-pressed='true'] {
-  color: var(--pc-accent);
-  border-bottom-color: var(--pc-accent);
+  color: var(--tb-accent);
+  border-bottom-color: var(--tb-accent);
 }
 #pdf-calm .pc-inspector-caption {
   font-size: 11px;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   margin: 0 0 14px;
 }
 #pdf-calm .pc-image-preview {
   position: relative;
   border-radius: 5px;
   overflow: hidden;
-  background: #e6e9df;
+  background: var(--tb-line);
 }
 #pdf-calm .pc-image-preview .pc-room {
   margin: 0;
@@ -398,7 +342,7 @@ button {
   padding: 7px 0;
 }
 #pdf-calm .pc-details dt {
-  color: var(--pc-muted);
+  color: var(--tb-muted);
 }
 #pdf-calm .pc-details dd {
   margin: 0;
@@ -412,9 +356,9 @@ button {
   width: 100%;
   resize: vertical;
   min-height: 235px;
-  background: var(--pc-rail);
-  color: var(--pc-ink);
-  border: 1px solid var(--pc-line);
+  background: var(--tb-subtle);
+  color: var(--tb-ink);
+  border: 1px solid var(--tb-line);
   border-radius: 5px;
   padding: 12px;
   line-height: 1.9;
@@ -427,7 +371,7 @@ button {
 }
 #pdf-calm .pc-element {
   border: 0;
-  border-bottom: 1px solid var(--pc-line);
+  border-bottom: 1px solid var(--tb-line);
   background: transparent;
   padding: 13px 2px;
   display: flex;
@@ -440,7 +384,7 @@ button {
 }
 #pdf-calm .pc-element small {
   display: block;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   font-size: 11px;
   margin-top: 3px;
 }
@@ -450,8 +394,8 @@ button {
 }
 #pdf-calm .pc-notice {
   margin: 0;
-  background: var(--pc-surface);
-  border-top: 1px solid var(--pc-line);
+  background: var(--tb-surface);
+  border-top: 1px solid var(--tb-line);
   padding: 10px 20px;
   display: flex;
   justify-content: space-between;
@@ -460,7 +404,7 @@ button {
   font-size: 12px;
 }
 #pdf-calm .pc-notice-text {
-  color: var(--pc-muted);
+  color: var(--tb-muted);
 }
 #pdf-calm .pc-empty {
   display: flex;
@@ -469,7 +413,7 @@ button {
   align-items: center;
   justify-content: center;
   min-height: 490px;
-  background: var(--pc-bg);
+  background: var(--tb-bg);
   padding: 40px 20px;
   text-align: center;
 }
@@ -479,22 +423,10 @@ button {
   margin: 4px 0;
 }
 #pdf-calm .pc-empty p {
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   margin: 0 0 12px;
 }
-#pdf-calm .pc-dialog {
-  border: 1px solid var(--pc-line);
-  color: var(--pc-ink);
-  background: var(--pc-surface);
-  padding: 24px;
-  border-radius: 12px;
-  width: min(440px, calc(100% - 28px));
-  box-shadow: 0 18px 60px #15251e33;
-}
-#pdf-calm .pc-dialog::backdrop {
-  background: #15251e48;
-}
-#pdf-calm .pc-dialog h2 {
+#pdf-calm .tb-dialog h2 {
   font-size: 18px;
   font-weight: 500;
   margin: 0;
@@ -508,7 +440,7 @@ button {
 }
 #pdf-calm .pc-dialog-description {
   font-size: 12px;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   margin: 0 0 22px;
 }
 #pdf-calm .pc-field {
@@ -517,13 +449,9 @@ button {
   margin: 18px 0;
   font-size: 12px;
 }
-#pdf-calm .pc-input {
-  border: 1px solid var(--pc-line);
+#pdf-calm .tb-input {
   padding: 10px 12px;
-  border-radius: 6px;
   width: 100%;
-  color: var(--pc-ink);
-  background: var(--pc-surface);
 }
 #pdf-calm .pc-formats {
   display: grid;
@@ -535,16 +463,16 @@ button {
   display: flex;
   gap: 7px;
   align-items: center;
-  border: 1px solid var(--pc-line);
+  border: 1px solid var(--tb-line);
   border-radius: 6px;
   font-size: 12px;
 }
 #pdf-calm .pc-format:has(input:checked) {
-  border-color: var(--pc-accent);
-  background: var(--pc-tint);
+  border-color: var(--tb-accent);
+  background: var(--tb-tint);
 }
 #pdf-calm input[type='radio'] {
-  accent-color: var(--pc-accent);
+  accent-color: var(--tb-accent);
 }
 #pdf-calm .pc-dialog-actions {
   display: flex;
@@ -557,25 +485,15 @@ button {
   display: flex;
   gap: 13px;
   align-items: center;
-  background: var(--pc-rail);
+  background: var(--tb-subtle);
   padding: 16px;
-  border: 1px solid var(--pc-line);
+  border: 1px solid var(--tb-line);
   border-radius: 8px;
 }
 #pdf-calm .pc-merge-preview small {
   display: block;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   margin-top: 4px;
-}
-#pdf-calm[data-tone='ink'] {
-  --pc-accent: light-dark(#343b45, #bdc9dc);
-  --pc-on-accent: light-dark(#fff, #1d293b);
-  --pc-tint: light-dark(#edf0f4, #344153);
-}
-#pdf-calm[data-tone='sand'] {
-  --pc-accent: light-dark(#715a44, #d9c0a4);
-  --pc-on-accent: light-dark(#fff, #332919);
-  --pc-tint: light-dark(#f2ede6, #49402f);
 }
 @container pdf-calm (max-width: 880px) {
   #pdf-calm .pc-header {
@@ -604,7 +522,7 @@ button {
   #pdf-calm .pc-inspecting .pc-toolbar {
     padding-inline: 9px;
   }
-  #pdf-calm .pc-inspecting .pc-toolbar .pc-button {
+  #pdf-calm .pc-inspecting .pc-toolbar .tb-button {
     padding-inline: 7px;
   }
 }
@@ -636,7 +554,7 @@ button {
   #pdf-calm .pc-inspector {
     grid-column: 2;
     border-left: 0;
-    border-top: 1px solid var(--pc-line);
+    border-top: 1px solid var(--tb-line);
   }
   #pdf-calm .pc-stage {
     min-height: 0;
@@ -667,7 +585,7 @@ button {
   #pdf-calm .pc-add-label {
     display: none;
   }
-  #pdf-calm .pc-header .pc-primary {
+  #pdf-calm .pc-header .tb-primary {
     padding-inline: 10px;
   }
   #pdf-calm .pc-workbench,
@@ -677,7 +595,7 @@ button {
   #pdf-calm .pc-rail {
     grid-row: auto;
     border-right: 0;
-    border-bottom: 1px solid var(--pc-line);
+    border-bottom: 1px solid var(--tb-line);
     padding: 12px;
   }
   #pdf-calm .pc-rail-head {
@@ -722,7 +640,7 @@ button {
   #pdf-calm .pc-toolbar {
     gap: 2px;
   }
-  #pdf-calm .pc-toolbar .pc-button {
+  #pdf-calm .pc-toolbar .tb-button {
     padding-inline: 7px;
     font-size: 12px;
   }
@@ -732,17 +650,13 @@ button {
   #pdf-calm .pc-notice {
     padding-inline: 12px;
   }
-  #pdf-calm .pc-dialog {
+  #pdf-calm .tb-dialog {
     padding: 18px;
   }
 }
 @media (pointer: coarse) {
-  #pdf-calm .pc-button,
   #pdf-calm .pc-tab {
     min-height: 44px;
-  }
-  #pdf-calm .pc-icon-button {
-    width: 44px;
   }
 }
 
@@ -787,19 +701,19 @@ button {
   align-items: center;
   gap: 2px;
 }
-#pdf-calm .pc-zoom .pc-input {
+#pdf-calm .pc-zoom .tb-input {
   width: 112px;
   padding: 5px 6px;
   font-size: 12px;
 }
 #pdf-calm #pc-session-status[data-state='error'] {
-  color: var(--pc-danger);
+  color: var(--tb-danger);
 }
 #pdf-calm .pc-preview-page:last-child {
   margin-bottom: 0;
 }
 #pdf-calm .pc-preview-page[aria-current='page'] .pc-view-meta {
-  color: var(--pc-accent);
+  color: var(--tb-accent);
   font-weight: 600;
 }
 #pdf-calm .pc-preview {
@@ -847,17 +761,17 @@ button {
   width: 40px;
   height: 40px;
   margin-bottom: 6px;
-  color: var(--pc-accent);
+  color: var(--tb-accent);
 }
 #pdf-calm .pc-empty-hint {
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   font-size: 12px;
 }
 #pdf-calm .pc-loading {
   display: grid;
   height: 100%;
   place-items: center;
-  color: var(--pc-muted);
+  color: var(--tb-muted);
   font-size: 12px;
 }
 #pdf-calm .pc-element-highlight {
@@ -867,15 +781,11 @@ button {
   pointer-events: none;
 }
 #pdf-calm .pc-element[aria-pressed='true'] {
-  color: var(--pc-accent);
-  background: var(--pc-tint);
+  color: var(--tb-accent);
+  background: var(--tb-tint);
 }
 #pdf-calm .pc-notice {
   flex-shrink: 0;
-}
-#pdf-calm .pc-dialog {
-  max-height: 85dvh;
-  overflow: auto;
 }
 #pdf-calm .pc-about {
   width: min(620px, calc(100% - 28px));
@@ -889,19 +799,6 @@ button {
 #pdf-calm .pc-about summary {
   cursor: pointer;
   padding-block: 10px;
-}
-#pdf-calm .pc-file-drop::after {
-  content: 'PDFをドロップして開く';
-  position: fixed;
-  inset: 8px;
-  border: 2px dashed var(--pc-accent);
-  border-radius: 12px;
-  background: #eaf1e9ed;
-  display: grid;
-  place-items: center;
-  font-size: 22px;
-  pointer-events: none;
-  z-index: 3;
 }
 #pdf-calm .pc-details > div {
   flex-wrap: wrap;

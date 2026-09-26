@@ -12,7 +12,7 @@ import { dropCursor } from 'prosemirror-dropcursor';
 import { editorSchema as schema, parseMarkdown, serializeMarkdown } from './markdown-document.js';
 import { markdownParser } from './markdown.js';
 import { getHandle, resolveReference } from './core.js';
-import { hasDroppedFiles, droppedFiles } from './assets.js';
+import { hasFiles, droppedFiles } from '../../../ui/file-drop.js';
 
 export function createRichEditor({ window, container, toolbar, source, root, path, onChange, onError, onNote, onAsset = () => {}, onAddFiles = () => {}, onDialog = () => {}, onComposition = () => {} }) {
   const document = window.document;
@@ -131,7 +131,7 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
       })();
     } else if (ref.kind === 'external') {
       dom.classList.add('image-placeholder'); dom.append(document.createTextNode(`${alt} — `));
-      const link = element('button', '外部画像を開く'); link.className = 'text-button'; link.type = 'button';
+      const link = element('button', '外部画像を開く'); link.className = 'tb-button text-button'; link.type = 'button';
       link.addEventListener('click', () => openReference(raw)); dom.append(link);
     } else { dom.classList.add('image-placeholder'); dom.textContent = `${alt}（参照できません: ${raw}）`; }
     return { dom, stopEvent: event => event.target.closest('button'), ignoreMutation: () => true,
@@ -169,7 +169,7 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
   }
   toolbar.append(blockSelect);
   const addButton = (parent, name, label, title = label) => {
-    const button = element('button', label); button.type = 'button'; button.dataset.command = name; button.title = title; button.setAttribute('aria-label', title);
+    const button = element('button', label); button.className = 'tb-button'; button.type = 'button'; button.dataset.command = name; button.title = title; button.setAttribute('aria-label', title);
     button.addEventListener('mousedown', event => event.preventDefault());
     button.addEventListener('click', () => name === 'link' ? openLinkDialog() : name === 'assets' ? pickAssets() : run(name));
     parent.append(button); buttons.set(name, button);
@@ -203,13 +203,14 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
     for (const checkbox of container.querySelectorAll('.task-item > input')) checkbox.disabled = !editable;
   }
 
-  const dialog = element('dialog'); dialog.className = 'link-dialog'; dialog.setAttribute('aria-label', 'リンクの編集');
+  const dialog = element('dialog'); dialog.className = 'tb-dialog link-dialog'; dialog.setAttribute('aria-label', 'リンクの編集');
   const title = element('h2', 'リンク');
-  const labelField = element('label', '表示する文字'); const labelInput = element('input'); labelInput.type = 'text'; labelField.append(labelInput);
-  const urlField = element('label', 'URL またはノートの相対パス'); const urlInput = element('input'); urlInput.type = 'text'; urlInput.spellcheck = false; urlField.append(urlInput);
+  const labelField = element('label', '表示する文字'); const labelInput = element('input'); labelInput.className = 'tb-input'; labelInput.type = 'text'; labelField.append(labelInput);
+  const urlField = element('label', 'URL またはノートの相対パス'); const urlInput = element('input'); urlInput.className = 'tb-input'; urlInput.type = 'text'; urlInput.spellcheck = false; urlField.append(urlInput);
   const error = element('p'); error.setAttribute('role', 'alert');
   const actions = element('div'); actions.className = 'link-actions';
-  const cancel = element('button', 'キャンセル'), remove = element('button', 'リンクを解除'), apply = element('button', '適用'); apply.className = 'primary';
+  const cancel = element('button', 'キャンセル'), remove = element('button', 'リンクを解除'), apply = element('button', '適用');
+  cancel.className = 'tb-button tb-secondary'; remove.className = 'tb-button tb-secondary'; apply.className = 'tb-button tb-primary';
   actions.append(cancel, remove, apply); dialog.append(title, labelField, urlField, error, actions); document.body.append(dialog);
   let linkSelection;
   function closeLinkDialog() { dialog.close(); onDialog(false); view.focus(); }
@@ -297,7 +298,7 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
     return canInsertAssets(position) ? position : null;
   }
   function fileDragOver(event) {
-    if (!hasDroppedFiles(event.dataTransfer)) return;
+    if (!hasFiles(event.dataTransfer)) return;
     event.preventDefault(); event.stopPropagation();
     const position = dropPosition(event);
     event.dataTransfer.dropEffect = position === null ? 'none' : 'copy';
@@ -308,7 +309,7 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
     }
   }
   function fileDrop(event) {
-    if (!hasDroppedFiles(event.dataTransfer)) return;
+    if (!hasFiles(event.dataTransfer)) return;
     event.preventDefault(); event.stopPropagation(); fileCursor.hidden = true;
     if (!editable || view.composing) return;
     const position = dropPosition(event);

@@ -238,7 +238,7 @@ test('ローカル画像のBlob URLを保存せず、ノート切り替えで解
 test('リンクダイアログは選択を保ち、安全な参照だけを適用する', async () => {
   const { app, view, window, $ } = await open('選択する文字'); selection(view, 1, 3);
   $('format-toolbar').querySelector('[data-command=link]').click();
-  const dialog = window.document.querySelector('.link-dialog'); const [label, url] = dialog.querySelectorAll('input'); const apply = dialog.querySelector('.primary');
+  const dialog = window.document.querySelector('.link-dialog'); const [label, url] = dialog.querySelectorAll('input'); const apply = dialog.querySelector('.tb-primary');
   assert.equal(app.state.asking, true); url.value = 'javascript:alert(1)'; apply.click(); assert.equal(dialog.open, true); assert.equal(app.dirty(), false);
   label.value = 'ノート'; url.value = 'other.md'; apply.click();
   assert.equal(app.state.asking, false); assert.match(app.state.draft, /\[ノート\]\(other.md\)する文字/);
@@ -283,7 +283,7 @@ test('引用の解除と装飾をまたぐリンク全体の編集ができる',
 test('空白と日本語を含む参照先をリンク編集で入力しても保存後に同じノートを指す', async () => {
   const { view, $, window, app } = await open('リンク'); selection(view, 1, 4);
   $('format-toolbar').querySelector('[data-command=link]').click();
-  const dialog = window.document.querySelector('.link-dialog'); dialog.querySelectorAll('input')[1].value = '日本語 ノート.md'; dialog.querySelector('.primary').click();
+  const dialog = window.document.querySelector('.link-dialog'); dialog.querySelectorAll('input')[1].value = '日本語 ノート.md'; dialog.querySelector('.tb-primary').click();
   const doc = parseMarkdown(app.state.draft);
   assert.equal(decodeURIComponent(doc.firstChild.firstChild.marks[0].attrs.href), '日本語 ノート.md');
 });

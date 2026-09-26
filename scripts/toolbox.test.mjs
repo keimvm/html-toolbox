@@ -83,14 +83,17 @@ test('配布加工はトップへのリンクの挿入位置の不足・重複�
   );
 });
 
-test('入口ページに一覧・版番号・注意書きが入り、外部を読み込まない', () => {
+test('入口ページに一覧・版番号・注意書きと共通の配色が入り、外部を読み込まない', async () => {
+  const theme = await readFile(new URL('../ui/theme.css', import.meta.url), 'utf8');
   const html = renderIndex(
     [
       { dir: 'a-tool', name: '<ツールA>', description: '説明 & 注意' },
       { dir: 'b.tool', name: 'ツールB', description: '説明B' },
     ],
     '2026.09.26.2',
+    theme,
   );
+  assert.ok(html.includes(theme));
   assert.ok(html.includes('<strong>2026.09.26.2</strong>'));
   assert.ok(html.includes('Chrome または Edge で開いてください'));
   assert.ok(html.includes('href="tools/a-tool.html"'));

@@ -41,7 +41,13 @@ export default defineConfig({
   ],
   // public/のファイルは埋め込まれないため、単一HTMLの配布には使わない。
   publicDir: false,
-  server: { host: '127.0.0.1', port: 5173, strictPort: true },
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    strictPort: true,
+    // toolbox 共通の ui/ をこのフォルダの外から読み込む。
+    fs: { allow: ['.', '../../ui'] },
+  },
   preview: { host: '127.0.0.1', port: 4173, strictPort: true },
   build: { target: 'es2022', modulePreload: false },
 });

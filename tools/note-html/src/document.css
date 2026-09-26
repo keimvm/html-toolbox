@@ -7,6 +7,12 @@
   --red:#bd352b;
   --blue:#157cbd;
   --completed-ink:#767670;
+  --soft-bg:#f8f8f5;
+  --code-bg:#f0f0eb;
+  --rule:#babbb2;
+  --quote-line:#afafa5;
+  --quote-ink:#585851;
+  --table-head:#f3f3ee;
   --default-font-family:
     -apple-system,
     BlinkMacSystemFont,
@@ -101,7 +107,7 @@ a {
   border: 1.5px solid var(--ink);
   border-radius: 3px;
   margin: 0 .5em 0 -1.65em;
-  background: white;
+  background: var(--paper);
   opacity: 1;
   color: var(--ink);
 }
@@ -111,17 +117,17 @@ a {
 .markdown .task-item input:checked:after {
   content: "\2713";
   display: block;
-  color: white;
+  color: var(--paper);
   font-size: .8125em;
   line-height: 1.15;
   text-align: center;
 }
 .markdown blockquote {
-  border-left: 3px solid #afafa5;
-  background: #f8f8f5;
+  border-left: 3px solid var(--quote-line);
+  background: var(--soft-bg);
   padding: 1px 20px;
   margin: 20px 0;
-  color: var(--item-color, #585851);
+  color: var(--item-color, var(--quote-ink));
 }
 .markdown hr {
   border: 0;
@@ -139,7 +145,7 @@ a {
     monospace;
 }
 .markdown :not(pre) > code {
-  background: #f0f0eb;
+  background: var(--code-bg);
   border-radius: 4px;
   padding: 2px 5px;
   font-size: .87em;
@@ -147,7 +153,7 @@ a {
 .markdown pre {
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #f8f8f5;
+  background: var(--soft-bg);
   overflow: auto;
   padding: 18px;
   line-height: 1.7;
@@ -164,12 +170,12 @@ a {
 }
 .markdown th,
 .markdown td {
-  border: 1px solid #babbb2;
+  border: 1px solid var(--rule);
   padding: 9px 14px;
   min-width: 75px;
 }
 .markdown th {
-  background: #f3f3ee;
+  background: var(--table-head);
   text-align: left;
 }
 .markdown img {
@@ -183,7 +189,7 @@ a {
 }
 .image-placeholder {
   display: inline-block;
-  border: 1px dashed #bebeb5;
+  border: 1px dashed var(--rule);
   padding: 5px 10px;
   border-radius: 4px;
 }

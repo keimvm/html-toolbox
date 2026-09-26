@@ -1,5 +1,6 @@
 import { renderMarkdown } from './markdown.js';
 import { FONT_SIZES } from './display.js';
+import { downloadBlob } from '../../../ui/download.js';
 
 function waitFor(promise, signal, milliseconds = 30000) {
   return new Promise((resolve, reject) => {
@@ -25,7 +26,8 @@ async function dataUrl(window, blob) {
 
 export function createExporter(window, { onError }) {
   const document = window.document;
-  const downloads = new Map();
+  // 画面を閉じたら、ダウンロード用に残している blob URL をすぐ解放する。
+  const downloads = new window.AbortController();
   let operation;
   let disposed = false;
 
@@ -64,15 +66,7 @@ export function createExporter(window, { onError }) {
         // 閲覧中のDOMへdata URLを設定するとアプリのCSPに拒否されるため、非アクティブな出力文書で置換する。
         for (const img of output.querySelectorAll('img')) img.src = await waitFor(dataUrl(window, renderer.imageBlobs.get(img.src)), signal);
         const blob = new window.Blob(['<!DOCTYPE html>\n', output.documentElement.outerHTML], { type: 'text/html;charset=utf-8' });
-        const url = window.URL.createObjectURL(blob);
-        // ダウンロード開始直後には解放せず、Chromeが取得する時間を確保する。
-        const timer = window.setTimeout(() => { window.URL.revokeObjectURL(url); downloads.delete(url); }, 60000);
-        downloads.set(url, timer);
-        const link = document.createElement('a'); link.href = url; link.download = `${title}.html`; link.hidden = true;
-        document.body.append(link);
-        try { link.click(); }
-        catch (error) { window.clearTimeout(timer); downloads.delete(url); window.URL.revokeObjectURL(url); throw error; }
-        finally { link.remove(); }
+        downloadBlob(blob, `${title}.html`, { window, signal: downloads.signal });
       } else {
         article.id = 'print-document'; document.body.append(article);
         previousTitle = document.title; document.title = title;
@@ -94,8 +88,6 @@ export function createExporter(window, { onError }) {
     }
   }
   return { run, dispose() {
-    disposed = true; operation?.abort();
-    for (const [url, timer] of downloads) { window.clearTimeout(timer); window.URL.revokeObjectURL(url); }
-    downloads.clear();
+    disposed = true; operation?.abort(); downloads.abort();
   } };
 }

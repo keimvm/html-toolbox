@@ -1,40 +1,32 @@
-:root { background: var(--bg); font-family: var(--ui-font-family, var(--default-font-family)); }
+/*
+ * 配色・文字・ボタン等の部品は toolbox 共通の ui/theme.css を使う。
+ * 本文の配色（document.css）は画面でだけ共通の配色へ置き換える。エクスポートには document.css だけを入れるため、出力は常にライト。
+ */
+:root {
+  --bg: var(--tb-bg);
+  --paper: var(--tb-surface);
+  --ink: var(--tb-ink);
+  --muted: var(--tb-muted);
+  --line: var(--tb-line);
+  --red: var(--tb-danger);
+  --blue: var(--tb-link);
+  --completed-ink: var(--tb-muted);
+  --soft-bg: var(--tb-subtle);
+  --code-bg: var(--tb-bg);
+  --rule: color-mix(in srgb, var(--tb-muted) 50%, var(--tb-surface));
+  --quote-line: var(--rule);
+  --quote-ink: var(--tb-muted);
+  --table-head: var(--tb-bg);
+  background: var(--bg);
+  /* 画面の既定は共通の書体。本文（.markdown）は document.css の書体のまま。 */
+  font-family: var(--ui-font-family, var(--tb-font));
+}
 .markdown { font-family: var(--default-font-family); }
-button,
-textarea,
-input,
-select {
+:where(button, textarea, input, select):where(:not(.tb-button, .tb-input)) {
   font: inherit;
 }
-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 8px 13px;
-  border: 1.5px solid var(--ink);
-  border-radius: 7px;
-  background: transparent;
-  color: var(--ink);
+.tb-button {
   font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-}
-button:hover:not(:disabled) {
-  background: #eeeDE8;
-}
-button:disabled {
-  opacity: .38;
-  cursor: default;
-}
-button.primary {
-  color: white;
-  background: var(--ink);
-}
-button.primary:hover:not(:disabled) {
-  background: #393934;
 }
 .text-button {
   min-height: 30px;
@@ -43,10 +35,6 @@ button.primary:hover:not(:disabled) {
   color: var(--muted);
   font-weight: 400;
   font-size: 12px;
-}
-:focus-visible {
-  outline: 3px solid var(--blue);
-  outline-offset: 3px;
 }
 button:focus-visible {
   position: relative;
@@ -175,8 +163,8 @@ svg.icon {
   margin-bottom: 7px;
 }
 .tree-row[aria-current=page] {
-  border-color: var(--ink);
-  background: #f0efeb;
+  border-color: var(--tb-accent);
+  background: var(--tb-tint);
   font-weight: 600;
 }
 .tree-row .chevron {
@@ -211,7 +199,7 @@ svg.icon {
   min-width: 0;
   min-height: 0;
   background: var(--paper);
-  border: 1.5px solid var(--ink);
+  border: 1px solid var(--line);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
@@ -288,8 +276,8 @@ svg.icon {
   gap: 12px;
   margin: 0 28px 12px;
   padding: 12px 14px;
-  border: 1px solid #d7b5af;
-  background: #fff7f5;
+  border: 1px solid color-mix(in srgb, var(--tb-danger) 40%, var(--tb-surface));
+  background: var(--tb-danger-tint);
   border-radius: 6px;
   font-size: 13px;
   line-height: 1.7;
@@ -306,7 +294,7 @@ svg.icon {
 .format-warning {
   margin: 0 28px 12px;
   padding: 12px 14px;
-  background: #fff8e8;
+  background: var(--tb-warning-tint);
   font-size: 13px;
   line-height: 1.7;
 }
@@ -321,8 +309,9 @@ svg.icon {
 }
 .welcome-mark {
   padding: 12px;
-  border: 1.5px solid var(--ink);
+  border: 1.5px solid var(--tb-accent);
   border-radius: 8px;
+  color: var(--tb-accent);
   margin-bottom: 28px;
 }
 .welcome-mark .icon {
@@ -335,7 +324,7 @@ svg.icon {
   line-height: 1.65;
   letter-spacing: .015em;
   margin: 0;
-  border-left: 8px solid var(--ink);
+  border-left: 8px solid var(--tb-accent);
   padding-left: 22px;
 }
 .welcome p {
@@ -359,7 +348,7 @@ svg.icon {
   font-size: 12px;
   font-weight: 400;
 }
-.source-button[aria-pressed=true] { background: #f0efeb; color: var(--ink); }
+.source-button[aria-pressed=true] { background: var(--tb-tint); color: var(--ink); }
 .toolbar-button {
   min-height: 34px;
   padding: 5px 8px;
@@ -368,7 +357,7 @@ svg.icon {
   font-size: 12px;
   font-weight: 400;
 }
-.toolbar-button[aria-expanded=true] { background: #f0efeb; }
+.toolbar-button[aria-expanded=true] { background: var(--tb-tint); }
 .toolbar-button .menu-chevron { width: 11px; height: 11px; transform: rotate(90deg); }
 #options-toggle { width: 32px; font-size: 24px; line-height: 1; }
 .toolbar-panel {
@@ -384,7 +373,7 @@ svg.icon {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--paper);
-  box-shadow: 0 8px 25px #17171518;
+  box-shadow: 0 8px 25px var(--tb-shadow);
 }
 .options-panel { display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 240px; }
 .options-panel .source-button { text-align: left; justify-content: flex-start; min-height: 36px; color: var(--ink); }
@@ -409,7 +398,7 @@ svg.icon {
   background: transparent;
 }
 .format-toolbar select { max-width: 145px; margin-right: 6px; }
-.format-toolbar button[aria-pressed=true] { background: var(--ink); color: white; }
+.format-toolbar button[aria-pressed=true] { background: var(--tb-accent); color: var(--tb-on-accent); }
 .format-toolbar [data-command=strong] { font-weight: 800; }
 .format-toolbar [data-command=em] { font-style: italic; }
 .format-toolbar [data-command=strike] { text-decoration: line-through; }
@@ -428,7 +417,7 @@ svg.icon {
 .rich-document:focus-visible { outline: none; }
 .rich-document > p:only-child:has(> br:only-child)::before {
   content: 'ここから本文を書き始める';
-  color: #93938b;
+  color: var(--muted);
   pointer-events: none;
   position: absolute;
 }
@@ -438,7 +427,7 @@ svg.icon {
 .rich-document td { position: relative; }
 .rich-document th > p,
 .rich-document td > p { margin: 0; }
-.rich-document .selectedCell:after { background: #157cbd20; }
+.rich-document .selectedCell:after { background: color-mix(in srgb, var(--blue) 13%, transparent); }
 .rich-document .list-content > p:first-child { margin-top: 0; }
 .rich-document .list-content > p:last-child { margin-bottom: 0; }
 .rich-document [data-tight=true] > li > .list-content > p { margin-block: 0; }
@@ -448,11 +437,11 @@ svg.icon {
 .rich-document .image-node { display: inline-block; max-width: 100%; vertical-align: middle; white-space: normal; }
 .rich-document .image-node img { display: block; }
 .rich-document .editor-link { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; cursor: text; }
-.rich-document .raw-block { white-space: pre-wrap; background: #fff8e8; }
+.rich-document .raw-block { white-space: pre-wrap; background: var(--tb-warning-tint); }
 .rich-document .raw-block::before { content: '原文を保持 · 編集は Markdownソースから'; display: block; color: var(--muted); font: 11px sans-serif; margin-bottom: 8px; }
 .link-dialog { width: 440px; }
 .link-dialog label { display: block; font-size: 12px; margin-top: 15px; }
-.link-dialog input { display: block; width: 100%; border: 1px solid var(--line); border-radius: 4px; padding: 8px; margin-top: 4px; font-size: 14px; }
+.link-dialog input { display: block; width: 100%; margin-top: 4px; font-size: 14px; }
 .link-dialog [role=alert] { color: var(--red); }
 .link-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
 .link-actions button { font-size: 12px; padding: 6px 8px; }
@@ -462,7 +451,7 @@ svg.icon {
   min-height: 0;
   width: 100%;
   border: 0;
-  background: #fdfdfa;
+  background: var(--paper);
   outline-offset: -4px;
   padding: 28px 36px 50px;
   font-size: var(--note-font-size, 16px);
@@ -471,18 +460,13 @@ svg.icon {
   color: var(--ink);
 }
 #editor:read-only {
-  background: #f5f5f0;
+  background: var(--soft-bg);
 }
 dialog {
+  width: auto;
   max-width: min(560px, calc(100vw - 40px));
-  border: 1.5px solid var(--ink);
-  border-radius: 12px;
   padding: 30px;
-  color: var(--ink);
   line-height: 1.8;
-}
-dialog::backdrop {
-  background: #16161055;
 }
 dialog h2 {
   font-size: 20px;
@@ -611,7 +595,7 @@ noscript {
 }
 
 .font-size-label { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
-#font-size { border: 1px solid var(--line); border-radius: 4px; padding: 5px; background: var(--paper); color: var(--ink); }
+#font-size { padding: 5px; }
 #print-document { display: none; }
 @media print {
   :root { background: white; }
@@ -628,9 +612,8 @@ noscript {
 #entry-menu h2 { overflow-wrap: anywhere; font-size: 16px; }
 .entry-menu-actions { display: grid; gap: 5px; }
 .entry-menu-actions button { justify-content: flex-start; border: 0; }
-button.danger { color: var(--red); }
 #entry-name-label, #settings-dialog > label { display: block; font-size: 13px; margin-top: 18px; }
-#entry-name, #ui-font { display: block; width: 100%; padding: 9px; margin-top: 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); color: var(--ink); }
+#entry-name, #ui-font { display: block; width: 100%; padding: 9px; margin-top: 6px; }
 #entry-error { color: var(--red); }
 #ui-font-hint { color: var(--muted); font-size: 12px; line-height: 1.7; }
 #settings-dialog .font-size-label { display: flex; justify-content: space-between; color: var(--ink); }

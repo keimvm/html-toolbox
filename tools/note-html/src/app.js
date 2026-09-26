@@ -6,7 +6,8 @@ import { createLayout } from './layout.js';
 import { createDisplay } from './display.js';
 import { createToolbar } from './toolbar.js';
 import { createExporter } from './export.js';
-import { saveAssets, hasDroppedFiles, createAssetOpener } from './assets.js';
+import { saveAssets, createAssetOpener } from './assets.js';
+import { watchFileDrop } from '../../../ui/file-drop.js';
 import { EntryError, entryName, parentPath, containsPath, entryAt, createEntry, snapshotEntry, countFiles, renameEntry, deleteEntry } from './file-operations.js';
 
 export function createApp(window, { sessionStore = createSessionStore(window), layoutStore = createLayoutStore(window), displayStore = createDisplayStore(window) } = {}) {
@@ -182,7 +183,7 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
       for (const choice of choices) {
         const button = document.createElement('button');
         button.textContent = choice.label; button.dataset.choice = choice.value;
-        if (choice.primary) button.className = 'primary';
+        button.className = choice.primary ? 'tb-button tb-primary' : 'tb-button tb-secondary';
         button.addEventListener('click', () => {
           let name;
           if (nameField && choice.start) {
@@ -224,7 +225,7 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
   }
   function entryRow(row, path, kind) {
     const wrap = document.createElement('div'); wrap.className = 'tree-item-row';
-    const button = document.createElement('button'); button.className = 'tree-entry-menu'; button.textContent = '⋯';
+    const button = document.createElement('button'); button.className = 'tb-button tree-entry-menu'; button.textContent = '⋯';
     button.setAttribute('aria-label', `${path || 'ルートフォルダ'}の操作`); button.setAttribute('aria-haspopup', 'dialog');
     button.addEventListener('click', () => {
       if (locked() || state.composing) return;
@@ -308,7 +309,7 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
     const outer = document.createElement('ul'); outer.className = 'tree-list';
     const makeDirectory = (handle, path, depth, initialEntries) => {
       const li = document.createElement('li');
-      const row = document.createElement('button'); row.className = `tree-row${!path ? ' root-row' : ''}`;
+      const row = document.createElement('button'); row.className = `tb-button tree-row${!path ? ' root-row' : ''}`;
       row.dataset.directory = path; row.style.setProperty('--depth', depth);
       row.setAttribute('aria-expanded', 'false'); row.title = path || handle.name;
       row.append(icon('chevron', 'chevron'), icon('folder'));
@@ -329,7 +330,7 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
             if (entry.kind === 'directory') children.append(makeDirectory(entry, childPath, depth + 1));
             else {
               const item = document.createElement('li'); const button = document.createElement('button');
-              button.className = 'tree-row file-row'; button.dataset.file = childPath; button.title = childPath; button.style.setProperty('--depth', depth + 1);
+              button.className = 'tb-button tree-row file-row'; button.dataset.file = childPath; button.title = childPath; button.style.setProperty('--depth', depth + 1);
               const label = document.createElement('span'); label.className = 'row-name'; label.textContent = entry.name;
               button.append(icon('note'), label); button.addEventListener('click', () => void openNote(childPath));
               item.append(entryRow(button, childPath, 'file')); children.append(item);
@@ -340,7 +341,7 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
         } catch (error) {
           if (version !== state.treeSequence) return;
           hint.textContent = errorMessage(error);
-          const retry = document.createElement('button'); retry.className = 'tree-retry'; retry.textContent = '再試行'; retry.addEventListener('click', () => void fill()); hint.append(retry);
+          const retry = document.createElement('button'); retry.className = 'tb-button tree-retry'; retry.textContent = '再試行'; retry.addEventListener('click', () => void fill()); hint.append(retry);
         } finally { loading = false; }
       };
       row.addEventListener('click', () => {
@@ -584,11 +585,10 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
   window.addEventListener('keydown', event => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') { event.preventDefault(); if (!locked() && !document.querySelector('dialog[open]')) void save(); }
   });
-  const preventFileNavigation = event => { if (hasDroppedFiles(event.dataTransfer)) { event.preventDefault(); if (event.type === 'dragover' && !ui['rich-editor'].contains(event.target)) event.dataTransfer.dropEffect = 'none'; } };
-  window.addEventListener('dragover', preventFileNavigation);
-  window.addEventListener('drop', preventFileNavigation);
+  // 本文への追加は rich-editor.js が受け付ける。それ以外の場所に落としたファイルで画面を離れないようにする。
+  const stopFileDrop = watchFileDrop({ window });
   window.addEventListener('beforeunload', event => { if (dirty() || ['adding', 'managing'].includes(state.busy)) { event.preventDefault(); event.returnValue = ''; } });
-  function dispose() { disposed = true; dialogResolve?.('cancel'); state.sequence++; state.treeSequence++; renderer?.dispose(); richEditor?.dispose(); toolbar.dispose(); layout.dispose(); display.dispose(); exporter.dispose(); assetOpener.dispose(); window.removeEventListener('dragover', preventFileNavigation); window.removeEventListener('drop', preventFileNavigation); }
+  function dispose() { disposed = true; dialogResolve?.('cancel'); state.sequence++; state.treeSequence++; renderer?.dispose(); richEditor?.dispose(); toolbar.dispose(); layout.dispose(); display.dispose(); exporter.dispose(); assetOpener.dispose(); stopFileDrop(); }
   window.addEventListener('pagehide', event => { if (!event.persisted) dispose(); });
   if (!supported) {
     ui['welcome-title'].textContent = 'この環境ではフォルダを開けません。';

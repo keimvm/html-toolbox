@@ -3,8 +3,9 @@
 - 最初に [README.md](README.md)、[開発・リリース手順](docs/development.md)、`docs/` の要件を読む。各ツールの作業では、そのツールのフォルダにある README・AGENTS.md に従う。
 - 直下の README はツールを使う人向けにする。開発・検証・ツール追加・リリースの手順は `docs/development.md` にまとめる。
 - 応答・説明・画面文言・コミットメッセージは日本語で書く。
-- ツールごとの依存関係は `tools/<フォルダ名>/` の中で閉じる。ツール間でも、リポジトリ直下とも共有しない。
-- `scripts/` は Node.js の標準機能だけで書き、npm の依存を足さない。変更したら `node --test 'scripts/*.test.mjs'` を実行する。
+- npm の依存関係は `tools/<フォルダ名>/` の中で閉じる。ツール間でも、リポジトリ直下とも共有しない。
+- ツール間で揃える見た目と処理（配色・部品・ダークモード・ファイルのドラッグ＆ドロップ・ダウンロード）は直下の `ui/` に置き、各ツールが相対パスでソースを取り込む。ツール側で同じものを作り直さない。`ui/` は npm の依存を持たず、変更したら全ツールを検証する。
+- `scripts/` は Node.js の標準機能だけで書き、npm の依存を足さない。`scripts/`・`ui/` を変更したら `node --test 'scripts/*.test.mjs' 'ui/*.test.mjs'` を実行する。
 - ツールの追加は `tools.json` とツール内の設定で完結させる。CI・リリースの共通手順は `.github/workflows/tool.yml` に置き、各ワークフローへ複製しない。
 - 変更ツールの確認には `node scripts/toolbox.mjs check <フォルダ名>`、手元の配布物作成には `node scripts/toolbox.mjs release <版>` を使う。`package` はビルド済み HTML の梱包だけなので、最新ソースの検証の代わりにしない。
 - 配布物はネット接続なし・`file://` で動く必要がある。CDN・外部サイトの読み込みを入れない。

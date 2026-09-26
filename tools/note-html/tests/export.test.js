@@ -29,6 +29,8 @@ test('HTMLは未保存のソース・文字サイズ・画像を含む単独文�
   assert.equal(downloads.at(-1).name, 'note.html');
   assert.equal(doc.querySelector('article').style.getPropertyValue('--note-font-size'), '20px');
   assert.match(doc.querySelector('style').textContent, /--completed-ink/);
+  // 画面のダークモード用の共通配色を持ち込まず、出力は常にライトの本文にする。
+  assert.doesNotMatch(doc.querySelector('style').textContent, /--tb-|color-scheme/);
   assert.equal(doc.querySelector('input').checked, true); assert.equal(doc.querySelector('input').disabled, true);
   assert.equal(doc.querySelectorAll('[data-checked=false]').length, 1);
   assert.match(doc.querySelector('.raw-block').textContent, /title: テスト/);

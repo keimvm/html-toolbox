@@ -38,6 +38,8 @@ test('一覧や共通処理の変更は全ツールを検証する', () => {
   for (const path of [
     'tools.json',
     'scripts/toolbox.mjs',
+    'ui/theme.css',
+    'ui/file-drop.js',
     'scripts/ci-tools.mjs',
     '.github/workflows/tool.yml',
     '.node-version',

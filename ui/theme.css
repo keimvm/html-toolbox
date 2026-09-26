@@ -1,0 +1,150 @@
+/*
+ * toolbox 共通の配色・文字・部品。入口ページと各ツールで同じものを使う。
+ * 色は light-dark() で持ち、OS の設定に合わせてライト・ダークを切り替える。印刷は常にライト。
+ * 部品は :where() で詳細度を 0 にし、ツール側のどのセレクターでも上書きできるようにする。
+ */
+:root {
+  color-scheme: light dark;
+  --tb-bg: light-dark(#eef0ed, #171d1a);
+  --tb-surface: light-dark(#ffffff, #232b26);
+  --tb-subtle: light-dark(#f9faf8, #202722);
+  --tb-ink: light-dark(#26382e, #e5ece7);
+  --tb-muted: light-dark(#6a776e, #a8b5ac);
+  --tb-line: light-dark(#e1e6df, #39433c);
+  --tb-accent: light-dark(#355b49, #b3d3bf);
+  --tb-on-accent: light-dark(#ffffff, #172b1e);
+  --tb-tint: light-dark(#eaf1e9, #344b3c);
+  --tb-link: light-dark(#1d6fa5, #8ec5ee);
+  --tb-danger: light-dark(#aa443f, #efa59e);
+  --tb-danger-tint: light-dark(#fff0ee, #492c28);
+  --tb-warning: light-dark(#b47e30, #e2b66f);
+  --tb-warning-tint: light-dark(#fff6dc, #3a3420);
+  --tb-warning-line: light-dark(#e7cf85, #6b5d2b);
+  --tb-focus: #7da68e;
+  --tb-shadow: light-dark(#15251e33, #00000080);
+  --tb-backdrop: light-dark(#15251e48, #00000099);
+  --tb-font:
+    -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', Meiryo,
+    sans-serif;
+  --tb-font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, 'Hiragino Kaku Gothic ProN',
+    monospace;
+  --tb-radius: 7px;
+  --tb-radius-large: 12px;
+  --tb-control-height: 36px;
+}
+@media print {
+  :root {
+    color-scheme: light;
+  }
+}
+
+:where(:focus-visible) {
+  outline: 3px solid var(--tb-focus);
+  outline-offset: 3px;
+}
+
+/* ボタン。既定は枠なし、secondary は枠付き、primary は塗り。 */
+:where(.tb-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: var(--tb-control-height);
+  padding: 7px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--tb-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+:where(.tb-button:hover:not(:disabled)) {
+  background: var(--tb-tint);
+}
+:where(.tb-button:disabled) {
+  opacity: 0.38;
+  cursor: default;
+}
+:where(.tb-button.tb-secondary) {
+  border-color: var(--tb-line);
+  background: var(--tb-surface);
+}
+:where(.tb-button.tb-secondary:hover:not(:disabled)) {
+  background: var(--tb-tint);
+}
+:where(.tb-button.tb-primary) {
+  padding-inline: 15px;
+  color: var(--tb-on-accent);
+  background: var(--tb-accent);
+  font-weight: 500;
+}
+:where(.tb-button.tb-primary:hover:not(:disabled)) {
+  background: var(--tb-accent);
+  filter: brightness(0.94);
+}
+:where(.tb-button.tb-danger) {
+  color: var(--tb-danger);
+}
+:where(.tb-button.tb-danger:hover:not(:disabled)) {
+  background: var(--tb-danger-tint);
+}
+:where(.tb-icon-button) {
+  flex-shrink: 0;
+  width: var(--tb-control-height);
+  padding: 7px;
+}
+@media (pointer: coarse) {
+  :where(.tb-button) {
+    min-height: 44px;
+  }
+  :where(.tb-icon-button) {
+    width: 44px;
+  }
+}
+
+/* 入力欄・選択欄。 */
+:where(.tb-input) {
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--tb-line);
+  border-radius: 6px;
+  color: var(--tb-ink);
+  background: var(--tb-surface);
+  font: inherit;
+}
+
+/* モーダルダイアログ。 */
+:where(.tb-dialog) {
+  box-sizing: border-box;
+  width: min(440px, calc(100% - 28px));
+  max-height: 85dvh;
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius-large);
+  color: var(--tb-ink);
+  background: var(--tb-surface);
+  box-shadow: 0 18px 60px var(--tb-shadow);
+}
+:where(.tb-dialog)::backdrop {
+  background: var(--tb-backdrop);
+}
+
+/* file-drop.js がファイルを受け付ける間だけ data-tb-file-drag を付ける。文言は data-tb-drop-label に書く。 */
+:where([data-tb-file-drag][data-tb-drop-label])::after {
+  content: attr(data-tb-drop-label);
+  position: fixed;
+  inset: 8px;
+  z-index: 2147483000;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--tb-accent);
+  border-radius: var(--tb-radius-large);
+  color: var(--tb-ink);
+  background: color-mix(in srgb, var(--tb-tint) 93%, transparent);
+  font-size: 22px;
+  pointer-events: none;
+}

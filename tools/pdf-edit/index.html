@@ -13,7 +13,12 @@
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
-    <div id="pdf-calm" lang="ja" aria-label="PDF編集" data-tone="forest">
+    <div
+      id="pdf-calm"
+      lang="ja"
+      aria-label="PDF編集"
+      data-tb-drop-label="PDFをドロップして開く"
+    >
       <div class="pc-shell">
         <header class="pc-header">
           <template id="toolbox-home"></template>
@@ -23,7 +28,7 @@
             ><span class="pc-brand-name">PDF編集</span
             ><button
               type="button"
-              class="pc-button pc-icon-button"
+              class="tb-button tb-icon-button"
               data-action="about"
               aria-label="このアプリについて"
             >
@@ -41,7 +46,7 @@
           <div class="pc-actions">
             <button
               type="button"
-              class="pc-button"
+              class="tb-button"
               data-action="close-document"
               hidden
             >
@@ -49,7 +54,7 @@
             </button>
             <button
               type="button"
-              class="pc-button pc-secondary"
+              class="tb-button tb-secondary"
               data-action="add"
               aria-label="別のPDFを追加"
             >
@@ -58,7 +63,7 @@
             </button>
             <button
               type="button"
-              class="pc-button pc-primary"
+              class="tb-button tb-primary"
               data-action="save"
             >
               <i data-lucide="download" aria-hidden="true"></i>PDFを保存
@@ -76,7 +81,7 @@
               <span>並べ替え</span
               ><button
                 type="button"
-                class="pc-button pc-icon-button"
+                class="tb-button tb-icon-button"
                 data-action="move-up"
                 aria-label="選んだページを前へ移動"
                 title="前へ移動"
@@ -84,7 +89,7 @@
                 <i data-lucide="arrow-up" aria-hidden="true"></i></button
               ><button
                 type="button"
-                class="pc-button pc-icon-button"
+                class="tb-button tb-icon-button"
                 data-action="move-down"
                 aria-label="選んだページを後ろへ移動"
                 title="後ろへ移動"
@@ -96,12 +101,12 @@
           <main class="pc-viewer" aria-label="PDFプレビュー">
             <div class="pc-toolbar">
               <div class="pc-tools">
-                <button type="button" class="pc-button" data-action="rotate">
+                <button type="button" class="tb-button" data-action="rotate">
                   <i data-lucide="rotate-cw" aria-hidden="true"></i>回転
                 </button>
                 <button
                   type="button"
-                  class="pc-button pc-delete"
+                  class="tb-button pc-delete"
                   data-action="delete"
                 >
                   <i data-lucide="trash-2" aria-hidden="true"></i>削除
@@ -109,7 +114,7 @@
                 <span class="pc-separator" aria-hidden="true"></span>
                 <button
                   type="button"
-                  class="pc-button pc-icon-button"
+                  class="tb-button tb-icon-button"
                   data-action="undo"
                   aria-label="元に戻す"
                   title="元に戻す"
@@ -125,7 +130,7 @@
               >
                 <button
                   type="button"
-                  class="pc-button pc-icon-button"
+                  class="tb-button tb-icon-button"
                   data-action="zoom-out"
                   aria-label="縮小"
                   title="縮小"
@@ -134,7 +139,7 @@
                 </button>
                 <select
                   id="pc-zoom"
-                  class="pc-input"
+                  class="tb-input"
                   aria-label="プレビューの倍率"
                 >
                   <option value="fit">幅に合わせる</option>
@@ -149,7 +154,7 @@
                 </select>
                 <button
                   type="button"
-                  class="pc-button pc-icon-button"
+                  class="tb-button tb-icon-button"
                   data-action="zoom-in"
                   aria-label="拡大"
                   title="拡大"
@@ -159,7 +164,7 @@
               </div>
               <button
                 type="button"
-                class="pc-button pc-inspect-button"
+                class="tb-button pc-inspect-button"
                 data-action="inspect"
                 aria-expanded="false"
                 aria-controls="pc-inspector"
@@ -176,7 +181,7 @@
             <div class="pc-pager">
               <button
                 type="button"
-                class="pc-button pc-icon-button"
+                class="tb-button tb-icon-button"
                 data-action="previous"
                 aria-label="前のページ"
               >
@@ -184,7 +189,7 @@
               ><span id="pc-page-position">2 / 4</span
               ><button
                 type="button"
-                class="pc-button pc-icon-button"
+                class="tb-button tb-icon-button"
                 data-action="next"
                 aria-label="次のページ"
               >
@@ -202,7 +207,7 @@
               <h2>このページから取り出す</h2>
               <button
                 type="button"
-                class="pc-button pc-icon-button"
+                class="tb-button tb-icon-button"
                 data-action="inspect-close"
                 aria-label="取り出しパネルを閉じる"
               >
@@ -242,11 +247,11 @@
           <i data-lucide="files" aria-hidden="true"></i>
           <h2>PDFを開いて、さっと整理。</h2>
           <p>ページを整える。必要な画像や文字を取り出す。</p>
-          <button type="button" class="pc-button pc-primary" data-action="open">
+          <button type="button" class="tb-button tb-primary" data-action="open">
             PDFを開く</button
           ><span class="pc-empty-hint"
             >ここにPDFをドロップすることもできます</span
-          ><button type="button" class="pc-button" data-action="sample">
+          ><button type="button" class="tb-button" data-action="sample">
             サンプルで試す
           </button>
           <p style="font-size: 11px; margin-top: 8px">
@@ -262,7 +267,7 @@
           ></span
           ><button
             type="button"
-            class="pc-button pc-icon-button"
+            class="tb-button tb-icon-button"
             data-action="dismiss"
             aria-label="通知を閉じる"
           >
@@ -270,7 +275,7 @@
           </button>
         </div>
         <dialog
-          class="pc-dialog"
+          class="tb-dialog"
           id="pc-save-dialog"
           aria-labelledby="pc-save-title"
         >
@@ -279,7 +284,7 @@
               <h2 id="pc-save-title">ファイルを保存</h2>
               <button
                 type="button"
-                class="pc-button pc-icon-button"
+                class="tb-button tb-icon-button"
                 data-action="close-save"
                 aria-label="保存を閉じる"
               >
@@ -308,7 +313,7 @@
             </div>
             <label class="pc-field"
               >ファイル名<input
-                class="pc-input"
+                class="tb-input"
                 id="pc-save-name"
                 value=""
                 maxlength="160"
@@ -318,11 +323,11 @@
               全4ページを保存
             </p>
             <div class="pc-dialog-actions">
-              <button type="button" class="pc-button" data-action="close-save">
+              <button type="button" class="tb-button" data-action="close-save">
                 キャンセル</button
               ><button
                 type="submit"
-                class="pc-button pc-primary"
+                class="tb-button tb-primary"
                 data-action="confirm-save"
               >
                 保存
@@ -331,7 +336,7 @@
           </form>
         </dialog>
         <dialog
-          class="pc-dialog pc-about"
+          class="tb-dialog pc-about"
           id="pc-about-dialog"
           aria-labelledby="pc-about-title"
         >
@@ -339,7 +344,7 @@
             <h2 id="pc-about-title">PDF編集について</h2>
             <button
               type="button"
-              class="pc-button pc-icon-button"
+              class="tb-button tb-icon-button"
               data-action="close-about"
               aria-label="説明を閉じる"
             >

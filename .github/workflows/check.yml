@@ -26,7 +26,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
-      - run: node --test 'scripts/*.test.mjs'
+      - run: node --test 'scripts/*.test.mjs' 'ui/*.test.mjs'
       - id: list
         name: 変更したツールを選ぶ
         run: node scripts/ci-tools.mjs

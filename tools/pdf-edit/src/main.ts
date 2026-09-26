@@ -1,4 +1,7 @@
+import '../../../ui/theme.css';
 import './style.css';
+import { downloadBlob } from '../../../ui/download.js';
+import { watchFileDrop } from '../../../ui/file-drop.js';
 import { Editor, type EditorPage } from './editor';
 import { renderIcons } from './icons';
 import { PdfClient } from './pdf/client';
@@ -582,7 +585,7 @@ function renderInspector() {
   if (kind === 'text') {
     selectedElement = undefined;
     content.innerHTML = text.trim()
-      ? '<p class="pc-inspector-caption">このページの文字</p><textarea class="pc-text" id="pc-extracted-text" aria-label="取り出した文字" readonly></textarea><button type="button" class="pc-button pc-secondary pc-full" data-action="extract-text"><i data-lucide="download"></i>テキストを保存</button>'
+      ? '<p class="pc-inspector-caption">このページの文字</p><textarea class="pc-text" id="pc-extracted-text" aria-label="取り出した文字" readonly></textarea><button type="button" class="tb-button tb-secondary pc-full" data-action="extract-text"><i data-lucide="download"></i>テキストを保存</button>'
       : '<p class="pc-inspector-caption">取り出せる文字情報がありません。スキャン画像の文字認識には対応していません。</p>';
     if (text.trim()) $<HTMLTextAreaElement>('#pc-extracted-text').value = text;
   } else if (kind === 'elements') {
@@ -614,7 +617,7 @@ function renderInspector() {
       highlight();
       return;
     }
-    content.innerHTML = `<p class="pc-inspector-caption">このページの画像 ${images.length}点</p><label class="pc-field">画像<select class="pc-input" id="pc-image-select">${images.map((image, index) => `<option value="${image.index}" ${image.index === selectedElement ? 'selected' : ''}>画像 ${index + 1}</option>`).join('')}</select></label><div class="pc-image-preview" id="pc-image-preview">プレビューを作成しています…</div><dl class="pc-details"><div><dt>ピクセル数</dt><dd>${number(info.width)} × ${number(info.height)} px</dd></div><div><dt>配置サイズ</dt><dd>${number(info.widthMm)} × ${number(info.heightMm)} mm</dd></div><div><dt>実効解像度</dt><dd>${number(info.dpiX)} × ${number(info.dpiY)} dpi</dd></div></dl><button type="button" class="pc-button pc-secondary pc-full" data-action="extract-image"><i data-lucide="download"></i>この画像を保存</button>`;
+    content.innerHTML = `<p class="pc-inspector-caption">このページの画像 ${images.length}点</p><label class="pc-field">画像<select class="tb-input" id="pc-image-select">${images.map((image, index) => `<option value="${image.index}" ${image.index === selectedElement ? 'selected' : ''}>画像 ${index + 1}</option>`).join('')}</select></label><div class="pc-image-preview" id="pc-image-preview">プレビューを作成しています…</div><dl class="pc-details"><div><dt>ピクセル数</dt><dd>${number(info.width)} × ${number(info.height)} px</dd></div><div><dt>配置サイズ</dt><dd>${number(info.widthMm)} × ${number(info.heightMm)} mm</dd></div><div><dt>実効解像度</dt><dd>${number(info.dpiX)} × ${number(info.dpiY)} dpi</dd></div></dl><button type="button" class="tb-button tb-secondary pc-full" data-action="extract-image"><i data-lucide="download"></i>この画像を保存</button>`;
     void showImage(element);
   }
   renderIcons(content);
@@ -721,16 +724,6 @@ async function openFiles(files: File[]) {
     }
   });
 }
-function download(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
 function baseName() {
   return filename.replace(/\.pdf$/i, '');
 }
@@ -772,7 +765,7 @@ async function save() {
         type: type === 'PNG' ? 'image/png' : 'image/jpeg',
       });
     const outputName = `${cleaned.replace(/\.(pdf|png|jpe?g)$/i, '')}.${type.toLowerCase()}`;
-    download(blob, outputName);
+    downloadBlob(blob, outputName);
     // ダウンロードの完了・キャンセルは確認できないため、変更状態を保つ。
     notify(`${outputName} のダウンロードを開始しました。`);
   });
@@ -909,7 +902,7 @@ $('#pdf-calm').addEventListener('click', (event) => {
       break;
     case 'extract-text':
       if (inspection) {
-        download(
+        downloadBlob(
           new Blob([inspection.text], { type: 'text/plain;charset=utf-8' }),
           `${baseName()}_${editor.selectedIndex + 1}.txt`,
         );
@@ -923,7 +916,7 @@ $('#pdf-calm').addEventListener('click', (event) => {
             page: editor.selected!,
             index: selectedElement!,
           });
-          download(
+          downloadBlob(
             blob,
             `${baseName()}_${editor.selectedIndex + 1}_画像${selectedElement! + 1}.png`,
           );
@@ -985,16 +978,12 @@ document.addEventListener('dragover', (event) => {
       event.preventDefault();
       page.classList.add('pc-drop');
     }
-  } else if (event.dataTransfer?.types.includes('Files')) {
-    event.preventDefault();
-    $('#pdf-calm').classList.add('pc-file-drop');
   }
 });
 function clearDrop() {
   document
     .querySelectorAll('.pc-drop')
     .forEach((element) => element.classList.remove('pc-drop'));
-  $('#pdf-calm').classList.remove('pc-file-drop');
 }
 document.addEventListener('dragleave', (event) => {
   (event.target as Element).closest('[data-page]')?.classList.remove('pc-drop');
@@ -1018,8 +1007,15 @@ document.addEventListener('drop', (event) => {
         editor.pages.findIndex((page) => page.id === target.dataset.page),
       );
     draggedId = undefined;
-  } else if (event.dataTransfer?.files.length)
-    void openFiles(Array.from(event.dataTransfer.files));
+  }
+});
+watchFileDrop({
+  zone: $('#pdf-calm'),
+  enabled: () => !busy,
+  onDrop: (files) => {
+    if (files) void openFiles(files);
+    else notify('フォルダは開けません。PDFファイルをドロップしてください。');
+  },
 });
 document.addEventListener('keydown', (event) => {
   if (
