@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      sizes="any"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23355b49'/%3E%3Cg transform='translate(4 4)' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 2H6a2 2 0 0 0-2 2v13m6-11h6l4 4v10a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z'/%3E%3Cpath d='M16 6v4h4'/%3E%3C/g%3E%3C/svg%3E"
+    />
+    <title>PDF編集</title>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <div id="pdf-calm" lang="ja" aria-label="PDF編集" data-tone="forest">
+      <div class="pc-shell">
+        <header class="pc-header">
+          <div class="pc-brand">
+            <span class="pc-brand-mark"
+              ><i data-lucide="files" aria-hidden="true"></i></span
+            ><span class="pc-brand-name">PDF編集</span
+            ><button
+              type="button"
+              class="pc-button pc-icon-button"
+              data-action="about"
+              aria-label="このアプリについて"
+            >
+              ?
+            </button>
+          </div>
+          <div class="pc-file" hidden>
+            <span class="pc-filename"></span>
+            <div class="pc-file-meta">
+              <span id="pc-file-count">4ページ</span
+              ><span id="pc-change-status">サンプル文書</span>
+              <span id="pc-session-status" role="status"></span>
+            </div>
+          </div>
+          <div class="pc-actions">
+            <button
+              type="button"
+              class="pc-button"
+              data-action="close-document"
+              hidden
+            >
+              閉じる
+            </button>
+            <button
+              type="button"
+              class="pc-button pc-secondary"
+              data-action="add"
+              aria-label="別のPDFを追加"
+            >
+              <i data-lucide="plus" aria-hidden="true"></i
+              ><span class="pc-add-label">PDFを追加</span>
+            </button>
+            <button
+              type="button"
+              class="pc-button pc-primary"
+              data-action="save"
+            >
+              <i data-lucide="download" aria-hidden="true"></i>PDFを保存
+            </button>
+          </div>
+        </header>
+        <div class="pc-workbench" id="pc-workbench" hidden>
+          <aside class="pc-rail" aria-label="ページ一覧">
+            <div class="pc-rail-head">
+              ページ <span class="pc-count" id="pc-rail-count">4</span>
+            </div>
+            <p class="pc-rail-hint">ドラッグで並べ替え</p>
+            <div class="pc-pages" id="pc-pages"></div>
+            <div class="pc-move">
+              <span>並べ替え</span
+              ><button
+                type="button"
+                class="pc-button pc-icon-button"
+                data-action="move-up"
+                aria-label="選んだページを前へ移動"
+                title="前へ移動"
+              >
+                <i data-lucide="arrow-up" aria-hidden="true"></i></button
+              ><button
+                type="button"
+                class="pc-button pc-icon-button"
+                data-action="move-down"
+                aria-label="選んだページを後ろへ移動"
+                title="後ろへ移動"
+              >
+                <i data-lucide="arrow-down" aria-hidden="true"></i>
+              </button>
+            </div>
+          </aside>
+          <main class="pc-viewer" aria-label="PDFプレビュー">
+            <div class="pc-toolbar">
+              <div class="pc-tools">
+                <button type="button" class="pc-button" data-action="rotate">
+                  <i data-lucide="rotate-cw" aria-hidden="true"></i>回転
+                </button>
+                <button
+                  type="button"
+                  class="pc-button pc-delete"
+                  data-action="delete"
+                >
+                  <i data-lucide="trash-2" aria-hidden="true"></i>削除
+                </button>
+                <span class="pc-separator" aria-hidden="true"></span>
+                <button
+                  type="button"
+                  class="pc-button pc-icon-button"
+                  data-action="undo"
+                  aria-label="元に戻す"
+                  title="元に戻す"
+                  disabled
+                >
+                  <i data-lucide="undo-2" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div
+                class="pc-zoom"
+                role="group"
+                aria-label="プレビューの拡大縮小"
+              >
+                <button
+                  type="button"
+                  class="pc-button pc-icon-button"
+                  data-action="zoom-out"
+                  aria-label="縮小"
+                  title="縮小"
+                >
+                  −
+                </button>
+                <select
+                  id="pc-zoom"
+                  class="pc-input"
+                  aria-label="プレビューの倍率"
+                >
+                  <option value="fit">幅に合わせる</option>
+                  <option value="25">25%</option>
+                  <option value="50">50%</option>
+                  <option value="75">75%</option>
+                  <option value="100" selected>100%</option>
+                  <option value="125">125%</option>
+                  <option value="150">150%</option>
+                  <option value="200">200%</option>
+                  <option value="300">300%</option>
+                </select>
+                <button
+                  type="button"
+                  class="pc-button pc-icon-button"
+                  data-action="zoom-in"
+                  aria-label="拡大"
+                  title="拡大"
+                >
+                  ＋
+                </button>
+              </div>
+              <button
+                type="button"
+                class="pc-button pc-inspect-button"
+                data-action="inspect"
+                aria-expanded="false"
+                aria-controls="pc-inspector"
+              >
+                <i data-lucide="scan-text" aria-hidden="true"></i>画像・文字
+              </button>
+            </div>
+            <div
+              class="pc-stage"
+              role="region"
+              aria-label="ページをスクロールして読む"
+              tabindex="0"
+            ></div>
+            <div class="pc-pager">
+              <button
+                type="button"
+                class="pc-button pc-icon-button"
+                data-action="previous"
+                aria-label="前のページ"
+              >
+                <i data-lucide="chevron-left" aria-hidden="true"></i></button
+              ><span id="pc-page-position">2 / 4</span
+              ><button
+                type="button"
+                class="pc-button pc-icon-button"
+                data-action="next"
+                aria-label="次のページ"
+              >
+                <i data-lucide="chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </main>
+          <aside
+            class="pc-inspector"
+            id="pc-inspector"
+            aria-label="画像と文字の取り出し"
+            hidden
+          >
+            <div class="pc-inspector-head">
+              <h2>このページから取り出す</h2>
+              <button
+                type="button"
+                class="pc-button pc-icon-button"
+                data-action="inspect-close"
+                aria-label="取り出しパネルを閉じる"
+              >
+                <i data-lucide="x" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="pc-tabs" role="group" aria-label="取り出す内容">
+              <button
+                type="button"
+                class="pc-tab"
+                data-kind="images"
+                aria-pressed="true"
+              >
+                画像
+              </button>
+              <button
+                type="button"
+                class="pc-tab"
+                data-kind="text"
+                aria-pressed="false"
+              >
+                文字
+              </button>
+              <button
+                type="button"
+                class="pc-tab"
+                data-kind="elements"
+                aria-pressed="false"
+              >
+                要素一覧
+              </button>
+            </div>
+            <div class="pc-inspector-content" id="pc-inspector-content"></div>
+          </aside>
+        </div>
+        <div class="pc-empty" id="pc-empty">
+          <i data-lucide="files" aria-hidden="true"></i>
+          <h2>PDFを開いて、さっと整理。</h2>
+          <p>ページを整える。必要な画像や文字を取り出す。</p>
+          <button type="button" class="pc-button pc-primary" data-action="open">
+            PDFを開く</button
+          ><span class="pc-empty-hint"
+            >ここにPDFをドロップすることもできます</span
+          ><button type="button" class="pc-button" data-action="sample">
+            サンプルで試す
+          </button>
+          <p style="font-size: 11px; margin-top: 8px">
+            ファイルはこのPC内で処理します
+          </p>
+        </div>
+        <div class="pc-notice" id="pc-notice" hidden>
+          <span
+            class="pc-notice-text"
+            id="pc-notice-text"
+            role="status"
+            aria-live="polite"
+          ></span
+          ><button
+            type="button"
+            class="pc-button pc-icon-button"
+            data-action="dismiss"
+            aria-label="通知を閉じる"
+          >
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <dialog
+          class="pc-dialog"
+          id="pc-save-dialog"
+          aria-labelledby="pc-save-title"
+        >
+          <form id="pc-save-form">
+            <div class="pc-dialog-head">
+              <h2 id="pc-save-title">ファイルを保存</h2>
+              <button
+                type="button"
+                class="pc-button pc-icon-button"
+                data-action="close-save"
+                aria-label="保存を閉じる"
+              >
+                <i data-lucide="x" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="pc-dialog-description">
+              編集した内容を、別のファイルとして保存します。
+            </p>
+            <div class="pc-field">
+              <span>形式</span>
+              <div class="pc-formats">
+                <label class="pc-format"
+                  ><input
+                    type="radio"
+                    name="format"
+                    value="PDF"
+                    checked
+                  />PDF</label
+                ><label class="pc-format"
+                  ><input type="radio" name="format" value="PNG" />PNG</label
+                ><label class="pc-format"
+                  ><input type="radio" name="format" value="JPEG" />JPEG</label
+                >
+              </div>
+            </div>
+            <label class="pc-field"
+              >ファイル名<input
+                class="pc-input"
+                id="pc-save-name"
+                value=""
+                maxlength="160"
+                required
+            /></label>
+            <p class="pc-dialog-description" id="pc-save-scope">
+              全4ページを保存
+            </p>
+            <div class="pc-dialog-actions">
+              <button type="button" class="pc-button" data-action="close-save">
+                キャンセル</button
+              ><button
+                type="submit"
+                class="pc-button pc-primary"
+                data-action="confirm-save"
+              >
+                保存
+              </button>
+            </div>
+          </form>
+        </dialog>
+        <dialog
+          class="pc-dialog pc-about"
+          id="pc-about-dialog"
+          aria-labelledby="pc-about-title"
+        >
+          <div class="pc-dialog-head">
+            <h2 id="pc-about-title">PDF編集について</h2>
+            <button
+              type="button"
+              class="pc-button pc-icon-button"
+              data-action="close-about"
+              aria-label="説明を閉じる"
+            >
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+          <p>
+            PDFはこのPC内で処理します。元のファイルは変更せず、保存時に別ファイルを作ります。
+          </p>
+          <p>
+            再読み込みに備えて、PDFと編集状態をこのブラウザー内に自動保存します。「閉じる」で復元用データを削除します。ファイルとして残す場合は「PDFを保存」を使ってください。
+          </p>
+          <p>
+            画像・要素一覧はページ直下の要素が対象です。グループ内の画像は個別抽出の対象外です。文字情報のないスキャンPDFはOCRに対応していません。
+          </p>
+          <p>
+            ページを組み直す保存方式のため、しおり・電子署名・文書単位の付加情報の保持は保証しません。画像の個別保存では、マスクや切り抜きなどの見た目を完全には再現できない場合があります。
+          </p>
+          <details>
+            <summary>使用ライブラリとライセンス</summary>
+            <pre id="pc-licenses"></pre>
+          </details>
+        </dialog>
+      </div>
+    </div>
+
+    <input
+      id="pc-file-input"
+      type="file"
+      accept="application/pdf,.pdf"
+      multiple
+      hidden
+    />
+    <noscript>JavaScriptを有効にして開いてください。</noscript>
+  </body>
+</html>

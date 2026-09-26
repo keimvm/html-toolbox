@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: 配布HTMLをGitHub Releasesへ添付
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp 'dist/PDF編集.html' "$RUNNER_TEMP/pdf-edit.html"
+          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/pdf-edit.html" \
+            --verify-tag \
+            --title "PDF編集 $GITHUB_REF_NAME" \
+            --latest \
+            --notes-file - <<'NOTES'
+          ブラウザーで使うPDF編集ツールの試作版です。
+
+          Assetsの`pdf-edit.html`をダウンロードし、ChromeまたはEdgeで開いてください。インストールやビルドは不要です。
+
+          ページの削除・並べ替え・回転・結合、PDF保存、画像・文字の取り出しができます。PDFとその内容を外部に送信しない構成です。
+
+          `file://`・完全オフライン・Windows・Edgeでの受入は未完了です。対応範囲と検証結果は、このタグのREADMEとdocs/verification.mdを参照してください。
+          NOTES

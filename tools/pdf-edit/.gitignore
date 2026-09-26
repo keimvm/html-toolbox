@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+output/
+.playwright-cli/
+test-results/
+playwright-report/
+.pnpm-store/
+.DS_Store
+*.log
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+# 個人・業務用PDFはローカルのこのフォルダーに置く。
+local-samples/
