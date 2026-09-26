@@ -174,7 +174,7 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
     button.addEventListener('click', () => name === 'link' ? openLinkDialog() : name === 'assets' ? pickAssets() : run(name));
     parent.append(button); buttons.set(name, button);
   };
-  for (const [name, label, title] of [['strong', 'B', '太字（⌘ / Ctrl+B）'], ['em', 'I', '斜体（⌘ / Ctrl+I）'], ['strike', 'S', '取り消し線'], ['bullet', '箇条書き'], ['ordered', '番号'], ['task', 'チェック'], ['link', 'リンク']]) addButton(toolbar, name, label, title);
+  for (const [name, label, title] of [['strong', 'B', '太字（⌘ / Ctrl+B）'], ['em', 'I', '斜体（⌘ / Ctrl+I）'], ['strike', 'S', '取り消し線'], ['bullet', '箇条書き'], ['ordered', '番号'], ['task', 'チェックボックス'], ['link', 'リンク']]) addButton(toolbar, name, label, title);
   const more = element('details'); more.className = 'format-more';
   more.append(element('summary', '挿入・操作'));
   const menu = element('div'); menu.className = 'format-menu'; more.append(menu); toolbar.append(more);
@@ -199,6 +199,7 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
     for (const [name, button] of buttons) {
       button.disabled = !editable || (name === 'assets' ? view.composing || !canInsertAssets(state.selection.from) : name === 'link' ? !state.selection.$from.parent.type.allowsMarkType(schema.marks.link) : !commands[name](state));
       if (schema.marks[name]) button.setAttribute('aria-pressed', String(state.selection.empty ? Boolean(schema.marks[name].isInSet(marks)) : state.doc.rangeHasMark(state.selection.from, state.selection.to, schema.marks[name])));
+      if (name === 'task') button.setAttribute('aria-pressed', String(ancestor(state, 'list_item')?.node.attrs.checked != null));
     }
     for (const checkbox of container.querySelectorAll('.task-item > input')) checkbox.disabled = !editable;
   }
