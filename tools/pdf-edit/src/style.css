@@ -125,17 +125,19 @@ body {
 }
 #pdf-calm .pc-page[aria-pressed='true'] {
   background: var(--tb-tint);
-  border-color: var(--tb-accent);
+  border-color: color-mix(in srgb, var(--tb-gold) 65%, var(--tb-line));
 }
 #pdf-calm .pc-page.pc-drop {
-  border: 2px dashed var(--tb-accent);
+  border: 1.5px dashed var(--tb-gold);
 }
 #pdf-calm .pc-mini {
   width: 62px;
   height: 88px;
   flex-shrink: 0;
   background: #fff;
-  box-shadow: 0 1px 3px #13241a1a;
+  box-shadow:
+    0 0 0 1px var(--tb-line),
+    0 2px 5px var(--tb-shadow);
   position: relative;
   overflow: hidden;
 }
@@ -354,8 +356,9 @@ body {
   font-size: 11px;
   margin-top: 3px;
 }
+/* PDF の白い紙の上に重ねるため、配色によらず真鍮色（ライトの --tb-gold）にする。 */
 #pdf-calm .pc-highlight .pc-room {
-  outline: 2px solid #51865b;
+  outline: 2px solid #94743f;
   outline-offset: 3px;
 }
 #pdf-calm .pc-notice {
@@ -384,8 +387,10 @@ body {
   text-align: center;
 }
 #pdf-calm .pc-empty h2 {
-  font-size: 23px;
-  font-weight: 500;
+  font-family: var(--tb-font-display);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
   margin: 4px 0;
 }
 #pdf-calm .pc-empty p {
@@ -393,8 +398,10 @@ body {
   margin: 0 0 12px;
 }
 #pdf-calm .tb-dialog h2 {
-  font-size: 18px;
+  font-family: var(--tb-font-display);
+  font-size: 20px;
   font-weight: 500;
+  letter-spacing: 0.03em;
   margin: 0;
 }
 #pdf-calm .pc-dialog-head {
@@ -447,7 +454,7 @@ body {
   background: var(--tb-subtle);
   padding: 16px;
   border: 1px solid var(--tb-line);
-  border-radius: 8px;
+  border-radius: var(--tb-radius);
 }
 #pdf-calm .pc-merge-preview small {
   display: block;
@@ -655,8 +662,8 @@ body {
 #pdf-calm .pc-preview {
   background: white;
   box-shadow:
-    0 3px 5px #1e352013,
-    0 18px 38px #1e35200c;
+    0 0 0 1px light-dark(#2a24180d, #ffffff0f),
+    var(--tb-elevation);
 }
 #pdf-calm .pc-view-meta {
   margin-bottom: 12px;
@@ -694,10 +701,19 @@ body {
   gap: 15px;
 }
 #pdf-calm .pc-empty > svg {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 6px;
+  box-sizing: content-box;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 10px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--tb-gold) 60%, var(--tb-line));
+  border-radius: 50%;
   color: var(--tb-accent);
+  stroke-width: 1.5;
+}
+#pdf-calm .pc-empty .tb-primary {
+  min-height: 44px;
+  padding-inline: 28px;
 }
 #pdf-calm .pc-empty-hint {
   color: var(--tb-muted);
@@ -712,8 +728,8 @@ body {
 }
 #pdf-calm .pc-element-highlight {
   position: absolute;
-  border: 2px solid #51865b;
-  background: #51865b15;
+  border: 2px solid #94743f;
+  background: #94743f1a;
   pointer-events: none;
 }
 #pdf-calm .pc-element[aria-pressed='true'] {

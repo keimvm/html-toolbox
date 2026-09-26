@@ -153,8 +153,8 @@ body {
   gap: 9px;
   width: 100%;
   min-height: 39px;
-  border: 1.5px solid transparent;
-  border-radius: 7px;
+  border: 1px solid transparent;
+  border-radius: var(--tb-radius);
   text-align: left;
   justify-content: flex-start;
   padding: 7px 9px;
@@ -171,7 +171,7 @@ body {
   margin-bottom: 7px;
 }
 .tree-row[aria-current=page] {
-  border-color: var(--tb-accent);
+  border-color: color-mix(in srgb, var(--tb-gold) 65%, var(--tb-line));
   background: var(--tb-tint);
   font-weight: 600;
 }
@@ -208,7 +208,8 @@ body {
   min-height: 0;
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--tb-radius-large);
+  box-shadow: 0 1px 2px var(--tb-shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -307,11 +308,11 @@ body {
   overflow: auto;
 }
 .welcome-mark {
-  padding: 12px;
-  border: 1.5px solid var(--tb-accent);
-  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--tb-gold) 60%, var(--tb-line));
+  border-radius: 50%;
   color: var(--tb-accent);
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 .welcome-mark .icon {
   display: block;
@@ -319,12 +320,20 @@ body {
   height: 28px;
 }
 .welcome h2 {
-  font-size: clamp(26px, 3vw, 40px);
-  line-height: 1.65;
-  letter-spacing: .015em;
+  font-family: var(--tb-font-display);
+  font-size: clamp(28px, 3.2vw, 42px);
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: .04em;
   margin: 0;
-  border-left: 8px solid var(--tb-accent);
-  padding-left: 22px;
+}
+.welcome h2::after {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 1px;
+  margin-top: 26px;
+  background: var(--tb-gold);
 }
 .welcome p {
   line-height: 1.95;
@@ -337,7 +346,8 @@ body {
   margin-top: 15px;
 }
 .welcome button {
-  padding: 11px 20px;
+  min-height: 44px;
+  padding: 11px 24px;
 }
 .source-button {
   border: 0;
@@ -456,6 +466,9 @@ dialog {
   line-height: 1.8;
 }
 dialog h2 {
+  font-family: var(--tb-font-display);
+  font-weight: 500;
+  letter-spacing: .03em;
   font-size: 20px;
   line-height: 1.5;
   margin: 0 0 14px;

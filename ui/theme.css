@@ -6,33 +6,44 @@
  */
 :root {
   color-scheme: light dark;
-  --tb-bg: light-dark(#eef0ed, #171d1a);
-  --tb-surface: light-dark(#ffffff, #232b26);
-  --tb-subtle: light-dark(#f9faf8, #202722);
-  --tb-ink: light-dark(#26382e, #e5ece7);
-  --tb-muted: light-dark(#6a776e, #a8b5ac);
-  --tb-line: light-dark(#e1e6df, #39433c);
-  --tb-accent: light-dark(#355b49, #b3d3bf);
-  --tb-on-accent: light-dark(#ffffff, #172b1e);
-  --tb-tint: light-dark(#eaf1e9, #344b3c);
-  --tb-link: light-dark(#1d6fa5, #8ec5ee);
-  --tb-danger: light-dark(#aa443f, #efa59e);
-  --tb-danger-tint: light-dark(#fff0ee, #492c28);
-  --tb-warning: light-dark(#b47e30, #e2b66f);
-  --tb-warning-tint: light-dark(#fff6dc, #3a3420);
-  --tb-warning-line: light-dark(#e7cf85, #6b5d2b);
-  --tb-focus: #7da68e;
-  --tb-shadow: light-dark(#15251e33, #00000080);
-  --tb-backdrop: light-dark(#15251e48, #00000099);
+  /* 温かみのあるアイボリーの地に、深いエバーグリーンを主色、真鍮色を細部の差し色にする。ダークでは主色をシャンパンにする。 */
+  --tb-bg: light-dark(#f3f1ec, #0f1110);
+  --tb-surface: light-dark(#fdfcf9, #171a18);
+  --tb-subtle: light-dark(#f8f6f1, #131614);
+  --tb-ink: light-dark(#1c1e1c, #ebe7de);
+  --tb-muted: light-dark(#67655e, #a29e94);
+  --tb-line: light-dark(#e4e0d7, #2a2e2b);
+  --tb-accent: light-dark(#1f3d35, #d5c29b);
+  --tb-on-accent: light-dark(#f8f4ea, #1a1813);
+  --tb-tint: light-dark(#ebede6, #232823);
+  --tb-gold: light-dark(#94743f, #c7ab74);
+  --tb-link: light-dark(#2b5c85, #9dc3e3);
+  --tb-danger: light-dark(#a3392f, #eca59c);
+  --tb-danger-tint: light-dark(#f9ebe8, #372320);
+  --tb-warning: light-dark(#94681d, #dcb86f);
+  --tb-warning-tint: light-dark(#f7f0de, #2b271b);
+  --tb-warning-line: light-dark(#e2d0a3, #574b2c);
+  --tb-focus: var(--tb-gold);
+  --tb-shadow: light-dark(#2a24181f, #00000080);
+  --tb-backdrop: light-dark(#1c1e1c59, #000000a6);
+  /* 浮いた面の影。近くの細い影と遠くの柔らかい影を重ねる。 */
+  --tb-elevation:
+    0 1px 2px light-dark(#2a241810, #00000040),
+    0 10px 30px light-dark(#2a241814, #00000059);
   --tb-font:
     -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', Meiryo,
     sans-serif;
+  /* 見出し用の明朝体。OS に入っている書体だけを使う。 */
+  --tb-font-display:
+    'Iowan Old Style', 'Palatino Linotype', Palatino, 'Hiragino Mincho ProN',
+    'Yu Mincho', YuMincho, serif;
   --tb-font-mono:
     ui-monospace, SFMono-Regular, Menlo, Consolas, 'Hiragino Kaku Gothic ProN',
     monospace;
-  --tb-radius: 7px;
-  --tb-radius-large: 12px;
+  --tb-radius: 8px;
+  --tb-radius-large: 14px;
   --tb-control-height: 36px;
+  --tb-transition: 160ms cubic-bezier(0.2, 0, 0, 1);
 }
 :root[data-tb-theme='light'] {
   color-scheme: light;
@@ -48,8 +59,11 @@
 }
 
 :where(:focus-visible) {
-  outline: 3px solid var(--tb-focus);
-  outline-offset: 3px;
+  outline: 2px solid var(--tb-focus);
+  outline-offset: 2px;
+}
+:where(::selection) {
+  background: color-mix(in srgb, var(--tb-gold) 28%, transparent);
 }
 
 /* ボタン。既定は枠なし、secondary は枠付き、primary は塗り。 */
@@ -59,15 +73,21 @@
   justify-content: center;
   gap: 7px;
   min-height: var(--tb-control-height);
-  padding: 7px 11px;
+  padding: 7px 12px;
   border: 1px solid transparent;
   border-radius: var(--tb-radius);
   background: transparent;
   color: inherit;
   font: inherit;
+  letter-spacing: 0.02em;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color var(--tb-transition),
+    border-color var(--tb-transition),
+    color var(--tb-transition),
+    box-shadow var(--tb-transition);
 }
 :where(.tb-button:hover:not(:disabled)) {
   background: var(--tb-tint);
@@ -81,17 +101,19 @@
   background: var(--tb-surface);
 }
 :where(.tb-button.tb-secondary:hover:not(:disabled)) {
-  background: var(--tb-tint);
+  border-color: color-mix(in srgb, var(--tb-ink) 22%, var(--tb-line));
+  background: var(--tb-subtle);
 }
 :where(.tb-button.tb-primary) {
-  padding-inline: 15px;
+  padding-inline: 18px;
   color: var(--tb-on-accent);
   background: var(--tb-accent);
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow: 0 1px 2px var(--tb-shadow);
 }
 :where(.tb-button.tb-primary:hover:not(:disabled)) {
-  background: var(--tb-accent);
-  filter: brightness(0.94);
+  background: color-mix(in srgb, var(--tb-accent) 88%, var(--tb-ink));
+  box-shadow: 0 3px 10px var(--tb-shadow);
 }
 :where(.tb-button.tb-danger) {
   color: var(--tb-danger);
@@ -112,16 +134,28 @@
     width: 44px;
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  :where(.tb-button) {
+    transition: none;
+  }
+}
 
 /* 入力欄・選択欄。 */
 :where(.tb-input) {
   box-sizing: border-box;
   padding: 8px 10px;
   border: 1px solid var(--tb-line);
-  border-radius: 6px;
+  border-radius: var(--tb-radius);
   color: var(--tb-ink);
   background: var(--tb-surface);
   font: inherit;
+  transition: border-color var(--tb-transition);
+}
+:where(.tb-input:hover:not(:disabled, :focus)) {
+  border-color: color-mix(in srgb, var(--tb-ink) 22%, var(--tb-line));
+}
+:where(.tb-input:focus) {
+  border-color: var(--tb-gold);
 }
 
 /* モーダルダイアログ。 */
@@ -130,15 +164,18 @@
   width: min(440px, calc(100% - 28px));
   max-height: 85dvh;
   overflow: auto;
-  padding: 24px;
+  padding: 28px;
   border: 1px solid var(--tb-line);
   border-radius: var(--tb-radius-large);
   color: var(--tb-ink);
   background: var(--tb-surface);
-  box-shadow: 0 18px 60px var(--tb-shadow);
+  box-shadow:
+    0 2px 6px var(--tb-shadow),
+    0 24px 70px var(--tb-shadow);
 }
 :where(.tb-dialog)::backdrop {
   background: var(--tb-backdrop);
+  backdrop-filter: blur(3px);
 }
 
 /* ダイアログ内の操作。選択肢を縦に並べる場合は stack を付ける。 */
@@ -147,7 +184,7 @@
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 24px;
+  margin-top: 26px;
 }
 :where(.tb-dialog-actions.tb-stack) {
   flex-direction: column;
@@ -165,27 +202,30 @@
   max-height: min(440px, 45dvh);
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid var(--tb-line);
-  border-radius: var(--tb-radius);
+  border-radius: 10px;
   color: var(--tb-ink);
   background: var(--tb-surface);
-  box-shadow: 0 8px 25px var(--tb-shadow);
+  box-shadow: var(--tb-elevation);
 }
 
 /* file-drop.js がファイルを受け付ける間だけ data-tb-file-drag を付ける。文言は data-tb-drop-label に書く。 */
 :where([data-tb-file-drag][data-tb-drop-label])::after {
   content: attr(data-tb-drop-label);
   position: fixed;
-  inset: 8px;
+  inset: 10px;
   z-index: 2147483000;
   display: grid;
   place-items: center;
-  border: 2px dashed var(--tb-accent);
+  border: 1.5px dashed var(--tb-gold);
   border-radius: var(--tb-radius-large);
   color: var(--tb-ink);
-  background: color-mix(in srgb, var(--tb-tint) 93%, transparent);
-  font-size: 22px;
+  background: color-mix(in srgb, var(--tb-surface) 90%, transparent);
+  backdrop-filter: blur(2px);
+  font-family: var(--tb-font-display);
+  font-size: 24px;
+  letter-spacing: 0.06em;
   pointer-events: none;
 }
 
@@ -198,7 +238,9 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 16px;
-  padding: 10px 16px;
+  min-height: 56px;
+  box-sizing: border-box;
+  padding: 10px 18px;
   border-bottom: 1px solid var(--tb-line);
   color: var(--tb-ink);
   background: var(--tb-surface);
@@ -217,16 +259,19 @@
 :where(.tb-header-brand) {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding-inline: 6px 2px;
+  gap: 10px;
+  padding-inline: 8px 4px;
   font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.04em;
   white-space: nowrap;
 }
 :where(.tb-header-icon) {
   width: 28px;
   height: 28px;
   flex: none;
+  border-radius: 7px;
+  box-shadow: 0 1px 2px var(--tb-shadow);
 }
 :where(.tb-header-end) {
   display: flex;
@@ -241,8 +286,17 @@
  * ツール側のリンクの配色（a 要素への指定）に左右されず、全ツールで同じ見た目にする。
  */
 #toolbox-home {
-  color: inherit;
+  color: var(--tb-muted);
   text-decoration: none;
+}
+#toolbox-home:hover {
+  color: var(--tb-ink);
+}
+/* 戻るリンクとツール名の間に細い区切り線を入れる。 */
+:where(#toolbox-home + .tb-header-brand) {
+  margin-left: 6px;
+  padding-left: 14px;
+  border-left: 1px solid var(--tb-line);
 }
 #toolbox-home::before {
   content: '';
@@ -254,6 +308,12 @@
     center / contain no-repeat;
 }
 /* 切り替えた後の配色のアイコン。月はダークへ、太陽はライトへ切り替える。 */
+:where(.tb-theme-toggle) {
+  color: var(--tb-muted);
+}
+:where(.tb-theme-toggle:hover) {
+  color: var(--tb-ink);
+}
 :where(.tb-theme-toggle)::before {
   content: '';
   width: 18px;

@@ -121,9 +121,9 @@ export function decorateToolHtml(html, version) {
   const badge =
     '<style>#toolbox-version{all:initial;color-scheme:inherit;position:fixed;right:2px;bottom:2px;' +
     'z-index:2147483647;pointer-events:none;padding:0 5px;border-radius:3px;' +
-    'background:light-dark(rgba(255,255,255,.85),rgba(23,29,26,.85));color:light-dark(#555,#b5beb8);' +
-    'box-shadow:0 0 0 1px light-dark(rgba(0,0,0,.12),rgba(255,255,255,.16));' +
-    'font:10px/1.5 system-ui,sans-serif}</style>' +
+    'background:light-dark(rgba(253,252,249,.88),rgba(23,26,24,.88));color:light-dark(#67655e,#a29e94);' +
+    'box-shadow:0 0 0 1px light-dark(rgba(42,36,24,.12),rgba(255,255,255,.12));' +
+    'font:10px/1.5 system-ui,sans-serif;letter-spacing:.04em}</style>' +
     `<div id="toolbox-version" aria-hidden="true">toolbox ${escapeHtml(version)}</div>`;
   return html.slice(0, end) + badge + html.slice(end);
 }
@@ -143,8 +143,10 @@ export function renderIndex(tools, version, { theme, themeToggle }) {
     .map(
       (tool) => `      <li>
         <a class="card" href="tools/${escapeHtml(tool.dir)}.html">
-          <span class="card-title"><img class="icon" src="${escapeHtml(tool.icon)}" alt=""><span class="name">${escapeHtml(tool.name)}</span></span>
+          <img class="icon" src="${escapeHtml(tool.icon)}" alt="">
+          <span class="name">${escapeHtml(tool.name)}</span>
           <span class="description">${escapeHtml(tool.description)}</span>
+          <span class="open" aria-hidden="true">開く</span>
         </a>
       </li>`,
     )
@@ -163,48 +165,112 @@ ${theme}
         margin: 0;
         background: var(--tb-bg);
         color: var(--tb-ink);
-        font: 15px/1.7 var(--tb-font);
+        font: 15px/1.75 var(--tb-font);
+        -webkit-font-smoothing: antialiased;
       }
-      main { max-width: 960px; margin: 0 auto; padding: 32px 16px 48px; }
-      header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-      h1 { margin: 0; font-size: 26px; letter-spacing: .02em; }
-      .meta { display: flex; align-items: center; gap: 8px; }
-      .version { margin: 0; color: var(--tb-muted); font-size: 14px; font-variant-numeric: tabular-nums; }
-      .version strong { color: var(--tb-ink); }
+      main { max-width: 1040px; margin: 0 auto; padding: clamp(40px, 8vw, 88px) 24px 64px; }
+      header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+      h1 {
+        margin: 0;
+        font: 400 clamp(36px, 6vw, 52px)/1.1 var(--tb-font-display);
+        letter-spacing: .03em;
+      }
+      .lead { margin: 16px 0 0; color: var(--tb-muted); font-size: 14px; letter-spacing: .06em; }
+      .lead::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 1px;
+        margin-bottom: 16px;
+        background: var(--tb-gold);
+      }
+      .meta { display: flex; align-items: center; gap: 6px; }
+      .version {
+        margin: 0;
+        padding: 3px 12px;
+        border: 1px solid var(--tb-line);
+        border-radius: 999px;
+        color: var(--tb-muted);
+        font-size: 12px;
+        letter-spacing: .04em;
+        font-variant-numeric: tabular-nums;
+      }
+      .version strong { color: var(--tb-ink); font-weight: 600; }
       .notice {
-        margin: 20px 0 24px;
-        padding: 10px 14px;
-        border: 1px solid var(--tb-warning-line);
-        border-radius: var(--tb-radius);
-        background: var(--tb-warning-tint);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 36px 0 40px;
+        padding: 12px 0;
+        border-block: 1px solid var(--tb-line);
+        color: var(--tb-muted);
+        font-size: 13px;
+      }
+      .notice::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        flex: none;
+        border-radius: 50%;
+        background: var(--tb-gold);
       }
       ul {
         list-style: none;
         margin: 0;
         padding: 0;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+        gap: 20px;
       }
       li { display: flex; }
       .card {
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        padding: 18px;
+        align-items: flex-start;
+        padding: 28px 28px 24px;
         border: 1px solid var(--tb-line);
         border-radius: var(--tb-radius-large);
         background: var(--tb-surface);
         color: inherit;
         text-decoration: none;
-        transition: border-color .15s, box-shadow .15s;
+        transition: border-color var(--tb-transition), box-shadow var(--tb-transition), translate var(--tb-transition);
       }
-      .card:hover { border-color: var(--tb-accent); box-shadow: 0 4px 16px var(--tb-shadow); }
-      .card-title { display: flex; align-items: center; gap: 12px; }
-      .icon { width: 40px; height: 40px; flex: none; }
-      .name { color: var(--tb-accent); font-weight: 700; font-size: 17px; }
-      .description { display: block; color: var(--tb-muted); }
+      .card:hover {
+        border-color: color-mix(in srgb, var(--tb-gold) 55%, var(--tb-line));
+        box-shadow: var(--tb-elevation);
+        translate: 0 -2px;
+      }
+      .icon { width: 48px; height: 48px; flex: none; border-radius: 12px; box-shadow: 0 2px 6px var(--tb-shadow); }
+      .name {
+        margin-top: 22px;
+        font: 500 22px/1.4 var(--tb-font-display);
+        letter-spacing: .04em;
+      }
+      .description { display: block; margin-top: 10px; color: var(--tb-muted); font-size: 14px; line-height: 1.85; }
+      .open {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: auto;
+        padding-top: 22px;
+        color: var(--tb-accent);
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: .08em;
+      }
+      .open::after {
+        content: '';
+        width: 18px;
+        height: 1px;
+        background: currentColor;
+        transition: width var(--tb-transition);
+      }
+      .card:hover .open::after { width: 30px; }
+      @media (prefers-reduced-motion: reduce) {
+        .card, .open::after { transition: none; }
+        .card:hover { translate: none; }
+      }
     </style>
     <script type="module">
 ${themeToggle}
@@ -214,7 +280,10 @@ setupThemeToggle(document.getElementById('theme-toggle'));
   <body>
     <main>
       <header>
-        <h1>toolbox</h1>
+        <div>
+          <h1>toolbox</h1>
+          <p class="lead">PC の中で完結する、便利ツール集</p>
+        </div>
         <div class="meta">
           <p class="version">版 <strong>${v}</strong></p>
           <button type="button" id="theme-toggle" class="tb-button tb-icon-button tb-theme-toggle"></button>

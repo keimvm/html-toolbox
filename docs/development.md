@@ -78,6 +78,7 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 | `file-drop.js` | `watchFileDrop({ zone, onDrop, enabled })`。`zone` の外に落としたファイルでブラウザーが画面を離れないようにする。受け付ける間は `zone` に `data-tb-file-drag` を付け、`data-tb-drop-label` の文言を重ねて表示する。フォルダを含む場合は `onDrop` に `null` を渡す。`hasFiles`・`droppedFiles` も使える |
 | `session-key.js` | `sessionKey(href)`。クエリーとフラグメントを除いた HTML の配置 URL。両ツールの復元情報の保存先に使い、従来のキーを維持する。DB名・形式・保存処理は各ツールで管理する |
 
+- 配色は、ライトがアイボリーの地に深いエバーグリーン（`--tb-accent`）、ダークが黒に近い地にシャンパン色（同）です。真鍮色の `--tb-gold` は選択中の細い縁・区切りの短い線・フォーカス枠など細部の差し色に限り、文字色には使いません。大きな見出しは OS の明朝体（`--tb-font-display`）、それ以外は `--tb-font` を使います。浮いた面の影は `--tb-elevation` です。
 - 色はすべて `light-dark()` で持ち、OS のダークモード設定に従います。切り替えボタンで選んだ表示は `:root[data-tb-theme]` で `color-scheme` を上書きします。印刷は常にライトです。ツールの CSS で `prefers-color-scheme` を使うと切り替えが効かないため、色は `--tb-*` か `light-dark()` で書きます。
 - 共通ヘッダーは次の形で書き、`setupToolHeader()` をツールの起動処理の最初に呼びます（保存した表示を早く反映するため）。左上の一角は全ツールで同じ中身・順序にし、ツール固有の操作は右側に置きます。ファイル名など中央に置く要素は一角と右側の間に書きます。
 
@@ -92,7 +93,7 @@ Check は PR と main への push で動きます。作業ブランチへの pus
   </header>
   ```
 
-- アイコンは各ツールの `src/icon.svg`（32×32、角丸の緑地に白い線画）を正とし、ビルドで data URL として埋め込みます（PDF編集は Vite のアセット、ローカルノートは `scripts/build.mjs`）。favicon は `header.js` が同じ画像から設定するため、HTML に `link rel="icon"` を書きません。
+- アイコンは各ツールの `src/icon.svg`（32×32、角丸のエバーグリーンのグラデーション地に真鍮色の細い縁、アイボリーの線画）を正とし、ビルドで data URL として埋め込みます（PDF編集は Vite のアセット、ローカルノートは `scripts/build.mjs`）。favicon は `header.js` が同じ画像から設定するため、HTML に `link rel="icon"` を書きません。
 - 部品は `:where()` で詳細度を 0 にしているため、ツールの CSS で余白などを上書きできます。逆に、ツールの CSS でボタン全体に `color` や `font` を指定すると部品の指定も打ち消すため、`:where(:not(.tb-button))` のように部品を除外してください。
 - 入口ページは `scripts/toolbox.mjs` が `theme.css` と `theme-toggle.js` を埋め込んで作り、版番号の右に切り替えボタンを置きます。ツールは `tools.json` の順にカードで並べ、カードには各ツールの `src/icon.svg`（data URL）・表示名・説明を載せます。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
 - ローカルノートがエクスポートする HTML には本文用の `document.css` だけを入れるため、常にライトで出力されます。
