@@ -1,5 +1,13 @@
 # 実装・検証記録
 
+## Mac のコード内の Ctrl+A / Ctrl+E（2026年10月3日）
+
+Mac ではコード内の Ctrl+E がコードブロック全体の末尾へ移動していた。prosemirror-commands の `baseKeymap` が Mac の Ctrl+E をテキストブロックの末尾への移動に割り当てており、複数行のコードも1つのテキストブロックのためである。Ctrl+A もコード内ではブロック全体を選択しており、コード外の段落の先頭への移動と異なっていた。Mac のコード内だけ、Ctrl+A / Ctrl+E でカーソルのある行の先頭・末尾へ移るようにし、コードブロックだけの全選択は Cmd+A に残した。コード外と Windows のキー操作は変えていない。
+
+- 自動テストを追加・更新した（Mac のコード内の各行で行頭・行末へ移ること、範囲選択からの移動、先頭の空行、本文を変えないこと）。コードだけの全選択のテストは OS の全選択キー（Mac は Cmd+A）で押すようにした。
+- `node scripts/toolbox.mjs test note-html`：151件が成功（追加した Mac 用のテストも macOS で実行）。`node scripts/toolbox.mjs build 2026.10.03`：全ツールのローカルビルドと `out/toolbox-2026.10.03/`・zip の作成が成功し、警告・エラーはなかった。
+- 実ブラウザーでの Ctrl+A / Ctrl+E の動作は未確認。
+
 ## Typora に合わせた入力時の変換（2026年10月3日）
 
 直接編集の入力を Typora の挙動に合わせた。コードブロック・区切り線は記法の入力直後ではなく Enter で確定し、`~~~` と言語名に対応した。表の見出し行の Enter での作成、本文中の強調・取り消し線・リンク・画像の変換、見出しと空のコードの Backspace、コードの言語欄、コード内の Tab / Shift+Tab と字下げの引き継ぎ、Typora と同じショートカット、Markdown 文字列の貼り付けを追加した。既存の ProseMirror（inputrules・keymap・NodeView・clipboardTextParser）と markdown-it の URL 検査を使い、新しい依存は追加していない。

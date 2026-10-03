@@ -70,13 +70,13 @@ test('末尾のコードから下矢印・Shift+Enterでも本文を作れる', 
   assert.equal(view.state.doc.firstChild.textContent, 'code');
 });
 
-test('コード内のCtrl+Aはそのブロックだけを選び、繰り返し・置換・取り消しにも対応する', async () => {
+test('コード内の全選択（Mac は Cmd+A、Windows は Ctrl+A）はそのブロックだけを選び、繰り返し・置換・取り消しにも対応する', async () => {
   const source = '前の本文\n\n```js\nfirst\nsecond\n```\n\n```\nother\n```\n\n後の本文';
   const { app, editor, view, window } = await open(source);
   const from = findText(view, 'first'), to = findText(view, 'second') + 6;
   selection(view, from + 2);
   for (let i = 0; i < 2; i++) {
-    press(view, window, 'a', { ctrlKey: true });
+    press(view, window, 'a', selectAllKeys);
     assert.equal(view.state.selection.from, from); assert.equal(view.state.selection.to, to);
   }
   assert.equal(app.dirty(), false);
@@ -95,10 +95,27 @@ test('コード内のCtrl+Aはそのブロックだけを選び、繰り返し�
   assert.equal(view.state.selection.from, 0); assert.equal(view.state.selection.to, view.state.doc.content.size);
 });
 
-test('空のコード内のCtrl+Aでも周囲の本文を選ばない', async () => {
+test('空のコード内の全選択でも周囲の本文を選ばない', async () => {
   const { view, window } = await open('```\n```\n\n本文');
-  selection(view, 1); press(view, window, 'a', { ctrlKey: true });
+  selection(view, 1); press(view, window, 'a', selectAllKeys);
   assert.equal(view.state.selection.from, 1); assert.equal(view.state.selection.to, 1);
+});
+
+test('Mac のコード内のCtrl+A / Ctrl+Eはブロック全体ではなく今の行の先頭・末尾へ移る', { skip: !selectAllKeys.metaKey }, async () => {
+  const { app, view, window } = await open('```js\n\nfirst\nsecond\n```\n\n後の本文');
+  const first = findText(view, 'first'), second = findText(view, 'second');
+  selection(view, first + 1); press(view, window, 'e', { ctrlKey: true });
+  assert.equal(view.state.selection.empty, true); assert.equal(view.state.selection.from, first + 5);
+  selection(view, second + 1, second + 3); press(view, window, 'e', { ctrlKey: true });
+  assert.equal(view.state.selection.empty, true); assert.equal(view.state.selection.from, second + 6);
+  selection(view, second + 3); press(view, window, 'a', { ctrlKey: true });
+  assert.equal(view.state.selection.empty, true); assert.equal(view.state.selection.from, second);
+  selection(view, first + 2); press(view, window, 'a', { ctrlKey: true });
+  assert.equal(view.state.selection.from, first);
+  // 先頭の空行では、前の行がなくてもブロックの先頭で止まる。
+  selection(view, first - 1); press(view, window, 'a', { ctrlKey: true });
+  assert.equal(view.state.selection.from, first - 1);
+  assert.equal(app.dirty(), false);
 });
 
 test('連続するコードの間へ下矢印で本文を挿入し、履歴・保存・再読み込みを保つ', async () => {

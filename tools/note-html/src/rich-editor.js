@@ -473,6 +473,15 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
     if (dispatch) dispatch(state.tr.setSelection(TextSelection.create(state.doc, $from.start(), $from.end())));
     return true;
   };
+  // Mac の Ctrl+A / Ctrl+E は baseKeymap でテキストブロックの先頭・末尾へ移るため、コード内では本文の段落と同じく今の行の先頭・末尾で止める。
+  const codeLineSide = side => (state, dispatch) => {
+    const { $from, $to } = state.selection, $pos = side < 0 ? $from : $to;
+    if ($pos.parent.type !== schema.nodes.code_block) return false;
+    const text = $pos.parent.textContent, end = text.indexOf('\n', $pos.parentOffset);
+    const offset = side < 0 ? text.slice(0, $pos.parentOffset).lastIndexOf('\n') + 1 : end < 0 ? text.length : end;
+    if (dispatch) dispatch(state.tr.setSelection(TextSelection.create(state.doc, $pos.start() + offset)).scrollIntoView());
+    return true;
+  };
   const exitInlineCode = (state, dispatch) => {
     const { empty, $from } = state.selection;
     const code = schema.marks.code;
@@ -596,7 +605,7 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
         markInput(/(^|[^*])\*([^*\s](?:[^*]*[^*\s])?)\*$/, 'em', 1), markInput(/(^|[^_\p{L}\p{N}])_([^_\s](?:[^_]*[^_\s])?)_$/u, 'em', 1),
         markInput(/(^|[^~])~~([^~\s](?:[^~]*[^~\s])?)~~$/, 'strike', 2)] }),
       history(), keymap({ 'Mod-z': undo, 'Shift-Mod-z': redo, 'Mod-y': redo, 'Mod-b': commands.strong, 'Mod-i': commands.em, 'Mod-`': commands.code,
-        'Mod-a': selectCode, 'Ctrl-a': selectCode,
+        'Mod-a': selectCode, ...(mac ? { 'Ctrl-a': codeLineSide(-1), 'Ctrl-e': codeLineSide(1) } : {}),
         'Mod-k': () => { openLinkDialog(); return true; }, Backspace: chainCommands(undoInputRule, backspaceBlock),
         Enter: chainCommands(tableNext, fenceEnter, ruleEnter, tableEnter, exitCodeOnEmptyLine, codeNewline, (state, dispatch) => splitListItem(schema.nodes.list_item, { checked: ancestor(state, 'list_item')?.node.attrs.checked == null ? null : false })(state, dispatch)),
         ArrowDown: exitCodeDown, ArrowUp: exitCodeUp,
