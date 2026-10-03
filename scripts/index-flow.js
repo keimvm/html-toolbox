@@ -3,6 +3,7 @@
 // カーソルの近くを通った線は真鍮色に光り、離れると元の色へ戻る。
 // 飾りなので、動きを減らす設定では描かず、canvas を使えない環境では何もしない。
 // 入口ページのボタンで止められる。止めたことは localStorage に残し、版をまたいで引き継ぐ。
+// 見ていないときは休む。カーソルをしばらく動かさないか、ウィンドウが前面から外れたら、流れを静めて描画を止める。
 
 export const FLOW_KEY = 'toolbox-flow';
 
@@ -12,6 +13,10 @@ const TRAIL = 30;
 const LEVELS = 6;
 // カーソルの渦が届く半径（CSS ピクセル）。
 const RADIUS = 180;
+// 操作がないまま、この時間が過ぎたら流れを静める（ミリ秒）。
+const IDLE_MS = 8000;
+// 描き直しの最短間隔。120Hz などの画面でも毎秒60回までにする。60Hz の揺らぎで間引かないよう少し短くする。
+const FRAME_MS = 1000 / 60 - 2;
 
 /**
  * button の押下で背景の流れを止める・動かす。止めたら localStorage に 'off' を残し、動かしたら記録を消す。
@@ -77,6 +82,10 @@ export function setupFlow({ canvas, toggle }, { window: win = globalThis.window 
   let frameId = 0;
   let haltTimer = 0;
   let on = true;
+  // 流れの速さの倍率。静めるときは 0 へ近づけ、線をその場に残して止める。
+  let pace = 1;
+  let lastActive = 0;
+  let focused = win.document.hasFocus();
   let ink = '';
   let glow = '';
   let dark = false;
@@ -89,6 +98,8 @@ export function setupFlow({ canvas, toggle }, { window: win = globalThis.window 
     ink = style.color;
     glow = style.outlineColor;
     dark = (root.dataset.tbTheme ?? (system.matches ? 'dark' : 'light')) === 'dark';
+    // 静めて止めている間も、残した線の色を変える。
+    if (count && 'running' in canvas.dataset && !frameId) draw();
   }
 
   function spawn(i, fresh) {
@@ -138,18 +149,22 @@ export function setupFlow({ canvas, toggle }, { window: win = globalThis.window 
     );
   }
 
-  function update(step) {
-    time += step;
+  // カーソルの速さと渦の強さは、流れを静めている間も実際の時間（elapsed）で進める。
+  function updatePointer(elapsed) {
     const p = pointer;
-    const ease = 1 - Math.pow(0.7, step);
-    p.vx += (p.dx / step - p.vx) * ease;
-    p.vy += (p.dy / step - p.vy) * ease;
+    const ease = 1 - Math.pow(0.7, elapsed);
+    p.vx += (p.dx / elapsed - p.vx) * ease;
+    p.vy += (p.dy / elapsed - p.vy) * ease;
     p.dx = 0;
     p.dy = 0;
     // 動かすほど渦が強まり、止めると静かな渦に、画面の外へ出ると消える。
     const target = p.inside ? Math.min(1.6, 0.45 + Math.hypot(p.vx, p.vy) / 14) : 0;
-    p.energy += (target - p.energy) * (1 - Math.pow(target > p.energy ? 0.85 : 0.97, step));
+    p.energy += (target - p.energy) * (1 - Math.pow(target > p.energy ? 0.85 : 0.97, elapsed));
+  }
 
+  function update(step) {
+    time += step;
+    const p = pointer;
     const r2 = RADIUS * RADIUS;
     const eye2 = (RADIUS * 0.4) ** 2;
     const swirl = 2.4 * p.energy;
@@ -249,21 +264,41 @@ export function setupFlow({ canvas, toggle }, { window: win = globalThis.window 
   }
 
   function loop(now) {
+    if (now - last < FRAME_MS) {
+      frameId = win.requestAnimationFrame(loop);
+      return;
+    }
     // 60fps を1として進める。タブを離れていた後などは大きく飛ばない。
-    const step = Math.min(Math.max((now - last) / (1000 / 60), 0.25), 3);
+    const elapsed = Math.min(Math.max((now - last) / (1000 / 60), 0.25), 3);
     last = now;
-    update(step);
+    // 操作が続く間は流し、途絶えるかウィンドウが前面から外れたら、2秒ほどかけて静める。
+    const awake = focused && now - lastActive < IDLE_MS;
+    pace += ((awake ? 1 : 0) - pace) * (1 - Math.pow(awake ? 0.9 : 0.96, elapsed));
+    updatePointer(elapsed);
+    update(elapsed * pace);
     draw();
+    // 静まったら、最後の絵を残したまま描き直しをやめる。
+    frameId = awake || pace > 0.01 ? win.requestAnimationFrame(loop) : 0;
+  }
+
+  function run() {
+    if (frameId) return;
+    last = win.performance.now();
     frameId = win.requestAnimationFrame(loop);
+  }
+
+  // 操作があったら、静めていた流れを再び動かす。
+  function wake() {
+    lastActive = win.performance.now();
+    if ('running' in canvas.dataset) run();
   }
 
   function start() {
     win.clearTimeout(haltTimer);
     // 開いたときは CSS でゆっくり浮かび上がらせる。
     canvas.dataset.running = '';
-    if (frameId) return;
-    last = win.performance.now();
-    frameId = win.requestAnimationFrame(loop);
+    lastActive = win.performance.now();
+    run();
   }
 
   function halt() {
@@ -272,11 +307,11 @@ export function setupFlow({ canvas, toggle }, { window: win = globalThis.window 
     ctx.clearRect(0, 0, width, height);
   }
 
-  // ボタンで止めるときは、CSS で薄くし終わるまで流したままにする。
+  // ボタンで止めるときは、CSS で薄くし終わるまで今の線を残す（流れている間は流したまま）。
   function stop(fade) {
     win.clearTimeout(haltTimer);
     delete canvas.dataset.running;
-    if (fade && frameId) haltTimer = win.setTimeout(halt, 700);
+    if (fade) haltTimer = win.setTimeout(halt, 700);
     else halt();
   }
 
@@ -297,16 +332,28 @@ export function setupFlow({ canvas, toggle }, { window: win = globalThis.window 
       pointer.x = event.clientX;
       pointer.y = event.clientY;
       pointer.inside = true;
+      wake();
     },
     { passive: true },
   );
+  for (const type of ['pointerdown', 'keydown', 'wheel']) {
+    win.addEventListener(type, wake, { passive: true });
+  }
   win.document.addEventListener('pointerout', (event) => {
     if (!event.relatedTarget) pointer.inside = false;
   });
   win.addEventListener('blur', () => {
+    focused = false;
     pointer.inside = false;
   });
-  win.addEventListener('resize', resize);
+  win.addEventListener('focus', () => {
+    focused = true;
+    wake();
+  });
+  win.addEventListener('resize', () => {
+    resize();
+    wake();
+  });
   motion.addEventListener('change', () => sync(false));
   // 切り替えボタン（data-tb-theme）と OS の設定のどちらで配色が変わっても、線の色を合わせる。
   system.addEventListener('change', readColors);
