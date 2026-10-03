@@ -148,6 +148,26 @@
               ページ <span class="pc-count" id="pc-rail-count">4</span>
             </div>
             <p class="pc-rail-hint">ドラッグで並べ替え</p>
+            <div class="pc-pager">
+              <button
+                type="button"
+                class="tb-button tb-icon-button"
+                data-action="previous"
+                aria-label="前のページ"
+                title="前のページ"
+              >
+                <i data-lucide="chevron-left" aria-hidden="true"></i></button
+              ><span id="pc-page-position">2 / 4</span
+              ><button
+                type="button"
+                class="tb-button tb-icon-button"
+                data-action="next"
+                aria-label="次のページ"
+                title="次のページ"
+              >
+                <i data-lucide="chevron-right" aria-hidden="true"></i>
+              </button>
+            </div>
             <div class="pc-move">
               <span>並べ替え</span
               ><button
@@ -177,24 +197,6 @@
               aria-label="ページをスクロールして読む"
               tabindex="0"
             ></div>
-            <div class="pc-pager">
-              <button
-                type="button"
-                class="tb-button tb-icon-button"
-                data-action="previous"
-                aria-label="前のページ"
-              >
-                <i data-lucide="chevron-left" aria-hidden="true"></i></button
-              ><span id="pc-page-position">2 / 4</span
-              ><button
-                type="button"
-                class="tb-button tb-icon-button"
-                data-action="next"
-                aria-label="次のページ"
-              >
-                <i data-lucide="chevron-right" aria-hidden="true"></i>
-              </button>
-            </div>
           </main>
           <aside
             class="pc-inspector"

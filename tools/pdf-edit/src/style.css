@@ -90,7 +90,11 @@ body {
 #pdf-calm .pc-workbench.pc-inspecting {
   grid-template-columns: 164px minmax(0, 1fr) 254px;
 }
+/* 見出し・前後ボタン・並べ替えは残し、サムネイルの一覧だけをスクロールする。 */
 #pdf-calm .pc-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: var(--tb-subtle);
   border-right: 1px solid var(--tb-line);
   padding: var(--pc-space) 12px;
@@ -113,7 +117,14 @@ body {
 }
 #pdf-calm .pc-pages {
   display: grid;
+  align-content: start;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  /* フォーカス枠がスクロール領域の端で切れないよう余白を取る。 */
+  margin: 0 -3px;
+  padding: 3px;
 }
 #pdf-calm .pc-page {
   display: flex;
@@ -183,7 +194,8 @@ body {
   margin-bottom: 14px;
   font-size: 11px;
 }
-#pdf-calm .pc-move .tb-icon-button {
+#pdf-calm .pc-move .tb-icon-button,
+#pdf-calm .pc-pager .tb-icon-button {
   min-height: 30px;
 }
 #pdf-calm .pc-viewer {
@@ -239,12 +251,9 @@ body {
 #pdf-calm .pc-pager {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: 8px 16px;
-  background: var(--tb-surface);
-  border-top: 1px solid var(--tb-line);
-  gap: 15px;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
   color: var(--tb-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;

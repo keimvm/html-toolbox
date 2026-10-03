@@ -62,6 +62,12 @@ interface PreviewPage {
 }
 const previews = new Map<string, PreviewPage>();
 let selectedScrollTop: number | undefined;
+const arrowSteps: Partial<Record<string, number>> = {
+  ArrowUp: -1,
+  ArrowLeft: -1,
+  ArrowDown: 1,
+  ArrowRight: 1,
+};
 
 function notify(message: string) {
   $('#pc-notice').hidden = false;
@@ -348,15 +354,14 @@ function selectPage(id: string, scroll = true) {
     rememberSession();
     const button = document.querySelector<HTMLElement>(`[data-page="${id}"]`);
     if (button) {
-      const rail = $('.pc-rail');
-      const bounds = button.getBoundingClientRect();
-      const railBounds = rail.getBoundingClientRect();
-      if (bounds.top < railBounds.top)
-        rail.scrollTop += bounds.top - railBounds.top;
-      else if (bounds.bottom > railBounds.bottom)
-        rail.scrollTop += bounds.bottom - railBounds.bottom;
+      // scrollIntoViewは狭い画面で文書全体も動かすため、一覧の中だけを動かす。
       const pages = $('#pc-pages');
+      const bounds = button.getBoundingClientRect();
       const pagesBounds = pages.getBoundingClientRect();
+      if (bounds.top < pagesBounds.top)
+        pages.scrollTop += bounds.top - pagesBounds.top;
+      else if (bounds.bottom > pagesBounds.bottom)
+        pages.scrollTop += bounds.bottom - pagesBounds.bottom;
       if (bounds.left < pagesBounds.left)
         pages.scrollLeft += bounds.left - pagesBounds.left;
       else if (bounds.right > pagesBounds.right)
@@ -364,6 +369,17 @@ function selectPage(id: string, scroll = true) {
     }
   }
   if (scroll) scrollToSelectedPreview();
+}
+/** 前後のページを選ぶ。一覧にフォーカスがあれば、選んだページへ移す。 */
+function selectAdjacent(step: number) {
+  const page = editor.pages[editor.selectedIndex + step];
+  if (!page) return;
+  const focused = document.activeElement?.closest('[data-page]');
+  selectPage(page.id);
+  if (focused)
+    document
+      .querySelector<HTMLElement>(`[data-page="${page.id}"]`)
+      ?.focus({ preventScroll: true });
 }
 function effectiveZoom() {
   const preview = previews.get(editor.selectedId);
@@ -810,6 +826,8 @@ $('#pdf-calm').addEventListener('click', (event) => {
   if (!button || button.disabled) return;
   if (button.dataset.page) {
     selectPage(button.dataset.page);
+    // Safariはクリックでボタンにフォーカスしないため、続けて矢印キーで選べるようにする。
+    button.focus({ preventScroll: true });
     return;
   }
   if (button.dataset.kind) {
@@ -857,12 +875,9 @@ $('#pdf-calm').addEventListener('click', (event) => {
       move(editor.selectedId, editor.selectedIndex + 1);
       break;
     case 'previous':
-    case 'next': {
-      const page =
-        editor.pages[editor.selectedIndex + (action === 'previous' ? -1 : 1)];
-      if (page) selectPage(page.id);
+    case 'next':
+      selectAdjacent(action === 'previous' ? -1 : 1);
       break;
-    }
     case 'inspect':
       toggleInspector(!inspecting);
       break;
@@ -1011,6 +1026,16 @@ document.addEventListener('keydown', (event) => {
     if (editor.undo()) render();
   }
   if (event.key === 'Escape' && inspecting) toggleInspector(false);
+  // 左のページ一覧では、縦並び・横並びのどちらでも矢印キーで前後のページを選ぶ。
+  const step = arrowSteps[event.key];
+  if (
+    step &&
+    !(event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) &&
+    (event.target as Element).closest('.pc-rail')
+  ) {
+    event.preventDefault();
+    selectAdjacent(step);
+  }
 });
 window.addEventListener('beforeunload', (event) => {
   if (busy || (editor.pages.length && !recoveryReady)) event.preventDefault();
