@@ -67,6 +67,19 @@ export function unrotatePoint(
   }
 }
 
+/** 切り抜き・回転した画像の点を、元の画像（source）の点に戻す。 */
+export function sourcePoint(point: Point, source: Size, edits: Edits): Point {
+  const crop = edits.crop ?? { x: 0, y: 0, ...source };
+  const [x, y] = unrotatePoint(point, crop, edits.rotation);
+  return [x + crop.x, y + crop.y];
+}
+
+/** 元の画像（source）の点を、切り抜き・回転した画像の点にする。切り抜いた範囲の外の点は、範囲の外の座標になる。 */
+export function editedPoint([x, y]: Point, source: Size, edits: Edits): Point {
+  const crop = edits.crop ?? { x: 0, y: 0, ...source };
+  return rotatePoint([x - crop.x, y - crop.y], crop, edits.rotation);
+}
+
 /** 2点を対角とする長方形。 */
 export function between([x1, y1]: Point, [x2, y2]: Point): Rect {
   const x = Math.min(x1, x2),

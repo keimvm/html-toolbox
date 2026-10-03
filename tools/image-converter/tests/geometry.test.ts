@@ -1,11 +1,13 @@
 import { expect, test } from 'vitest';
 import {
+  editedPoint,
   editedSize,
   fitLongSide,
   fitPixels,
   pixelRect,
   rotatePoint,
   rotateRect,
+  sourcePoint,
   turn,
   unrotatePoint,
   unrotateRect,
@@ -78,6 +80,29 @@ test('切り抜き・回転した後の大きさ', () => {
     width: 10,
     height: 20,
   });
+});
+
+test('見比べで、切り抜き・回転した画像の点と元の画像の点を行き来できる', () => {
+  const crop = { x: 10, y: 5, width: 20, height: 10 };
+  // 切り抜いた範囲の左上は、右に90度回すと右上に来る。
+  expect(
+    editedPoint([10, 5], size, { rotation: 90, crop, redactions: [] }),
+  ).toEqual([10, 0]);
+  expect(
+    sourcePoint([10, 0], size, { rotation: 90, crop, redactions: [] }),
+  ).toEqual([10, 5]);
+  // 切り抜いた範囲の外の点は、切り抜いた画像の外の座標になる。
+  expect(
+    editedPoint([0, 0], size, { rotation: 0, crop, redactions: [] }),
+  ).toEqual([-10, -5]);
+  for (const rotation of rotations)
+    for (const edits of [
+      { rotation, crop, redactions: [] },
+      { rotation, crop: null, redactions: [] },
+    ])
+      expect(
+        sourcePoint(editedPoint([17, 9], size, edits), size, edits),
+      ).toEqual([17, 9]);
 });
 
 test('長い辺だけを基準に縮め、拡大はしない', () => {

@@ -1,12 +1,15 @@
 import { decode, drawEdited } from './convert';
 import {
   between,
+  editedPoint,
   editedSize,
   fitLongSide,
   fitPixels,
+  noEdits,
   pixelRect,
   rotateRect,
   rotatedSize,
+  sourcePoint,
   turn,
   unrotateRect,
   type Size,
@@ -28,7 +31,7 @@ type Zoom = 'fit' | 1 | 2;
 
 const HINTS: Record<Mode, string> = {
   compare:
-    '左が元の画像（切り抜き・回転・塗りつぶしを当てたもの）、右が保存する画像です。100%・200% ではどちらもスクロールでき、同じ場所を表示します。',
+    '左が元の画像（切り抜き・回転・塗りつぶしの前）、右が保存する画像です。100%・200% ではどちらもスクロールでき、同じ場所を表示します。',
   crop: '画像の上をドラッグして、残す範囲を囲みます。囲み直すと範囲が変わります。',
   redact:
     'ドラッグで囲んだ範囲を黒く塗りつぶします。保存する画像には、塗りつぶした部分の元の画素は残りません。',
@@ -91,7 +94,7 @@ function changed(item: Item) {
   render();
 }
 
-/** 表示する大きさ。変換後の画素を基準にし、元の画像も同じ大きさに並べる。 */
+/** 変換後の欄に表示する大きさ（変換後の画素数）。 */
 function viewSize(): Size | null {
   const source = sourceSize();
   if (!current || !source) return null;
@@ -103,29 +106,88 @@ function viewSize(): Size | null {
   );
 }
 
+/**
+ * 変換後の画素数を基準に並べる。元の画像は変換後と同じ割合で縮めた大きさとし、
+ * 同じ部分が左右で同じ大きさに見えるようにする。全体表示では、それぞれを欄に収める。
+ */
 function layoutCompare() {
   const size = viewSize();
-  if (!size) return;
-  const scale =
-    zoom === 'fit'
-      ? Math.min(
-          1,
-          (beforeScroll.clientWidth - 2) / size.width,
-          (beforeScroll.clientHeight - 2) / size.height,
-        )
-      : zoom;
-  for (const view of [before, after]) {
-    view.style.width = `${Math.max(1, size.width * scale)}px`;
-    view.style.height = `${Math.max(1, size.height * scale)}px`;
+  const source = sourceSize();
+  if (!size || !source || !current) return;
+  const ratio = size.width / editedSize(source, current.edits).width;
+  const original = {
+    width: source.width * ratio,
+    height: source.height * ratio,
+  };
+  for (const [view, scroll, shownSize] of [
+    [before, beforeScroll, original],
+    [after, afterScroll, size],
+  ] as const) {
+    const scale =
+      zoom === 'fit'
+        ? Math.min(
+            1,
+            (scroll.clientWidth - 2) / shownSize.width,
+            (scroll.clientHeight - 2) / shownSize.height,
+          )
+        : zoom;
+    view.style.width = `${Math.max(1, shownSize.width * scale)}px`;
+    view.style.height = `${Math.max(1, shownSize.height * scale)}px`;
   }
 }
 
+/** 元の画像は、切り抜き・回転・塗りつぶしの前のまま描く。 */
 function renderBefore() {
   const source = sourceSize();
-  if (!current || !bitmap || !source) return;
-  const size = fitPixels(editedSize(source, current.edits), MAX_VIEW_PIXELS);
-  show(before, drawEdited(bitmap, current.edits, size, null));
+  if (!bitmap || !source) return;
+  show(
+    before,
+    drawEdited(bitmap, noEdits(), fitPixels(source, MAX_VIEW_PIXELS), null),
+  );
   layoutCompare();
+}
+
+/** 自分で動かした欄のスクロール位置。この位置への scroll では、もう片方を動かさない。 */
+const moved = new WeakMap<HTMLElement, [number, number]>();
+
+/** 欄の中央が、画像のどこに当たるか（画像の幅・高さに対する割合）。 */
+function centerOf(scroll: HTMLElement, image: DOMRect): [number, number] {
+  const box = scroll.getBoundingClientRect();
+  return [
+    (box.left + scroll.clientLeft + scroll.clientWidth / 2 - image.left) /
+      image.width,
+    (box.top + scroll.clientTop + scroll.clientHeight / 2 - image.top) /
+      image.height,
+  ];
+}
+
+/** 欄の中央に見えている点を、もう片方の欄でも中央に表示する。 */
+function follow(from: HTMLElement, to: HTMLElement) {
+  const source = sourceSize();
+  if (!current || !source) return;
+  const viewOf = (scroll: HTMLElement) =>
+    scroll === beforeScroll ? before : after;
+  const fromImage = viewOf(from).getBoundingClientRect();
+  const toImage = viewOf(to).getBoundingClientRect();
+  if (!fromImage.width || !fromImage.height) return;
+  if (!toImage.width || !toImage.height) return;
+  const edited = editedSize(source, current.edits);
+  const [fromSize, toSize] =
+    from === beforeScroll ? [source, edited] : [edited, source];
+  const [fx, fy] = centerOf(from, fromImage);
+  const point: [number, number] = [fx * fromSize.width, fy * fromSize.height];
+  const [x, y] =
+    from === beforeScroll
+      ? editedPoint(point, source, current.edits)
+      : sourcePoint(point, source, current.edits);
+  const [cx, cy] = centerOf(to, toImage);
+  const previous = [to.scrollLeft, to.scrollTop];
+  to.scrollBy(
+    (x / toSize.width - cx) * toImage.width,
+    (y / toSize.height - cy) * toImage.height,
+  );
+  if (previous[0] !== to.scrollLeft || previous[1] !== to.scrollTop)
+    moved.set(to, [to.scrollLeft, to.scrollTop]);
 }
 
 function clearAfter() {
@@ -341,6 +403,7 @@ export async function openDetail(item: Item) {
   renderBefore();
   renderEditStage();
   render();
+  follow(afterScroll, beforeScroll);
 }
 
 /** 変換が済んだら、開いている画像の表示を更新する。 */
@@ -362,6 +425,7 @@ function setMode(next: Mode) {
   mode = next;
   render();
   renderEditStage();
+  if (mode === 'compare') follow(afterScroll, beforeScroll);
 }
 
 let dragStart: [number, number] | null = null;
@@ -391,7 +455,6 @@ function finishDrag(event: PointerEvent) {
   if (mode === 'crop') current.edits.crop = area;
   else current.edits.redactions.push(area);
   changed(current);
-  renderBefore();
   renderEditStage();
 }
 
@@ -415,6 +478,7 @@ export function setupDetail(next: Hooks) {
           ? 'fit'
           : (Number(target.dataset.zoom) as Zoom);
       render();
+      follow(afterScroll, beforeScroll);
       return;
     }
     const item = current;
@@ -435,19 +499,16 @@ export function setupDetail(next: Hooks) {
           target.dataset.action === 'rotate-left' ? -1 : 1,
         );
         changed(item);
-        renderBefore();
         renderEditStage();
         break;
       case 'clear-crop':
         item.edits.crop = null;
         changed(item);
-        renderBefore();
         renderEditStage();
         break;
       case 'undo-redact':
         item.edits.redactions.pop();
         changed(item);
-        renderBefore();
         renderEditStage();
         break;
       case 'reset-item':
@@ -518,8 +579,10 @@ export function setupDetail(next: Hooks) {
     [afterScroll, beforeScroll],
   ] as const)
     from.addEventListener('scroll', () => {
-      if (to.scrollLeft !== from.scrollLeft || to.scrollTop !== from.scrollTop)
-        to.scrollTo(from.scrollLeft, from.scrollTop);
+      const own = moved.get(from);
+      moved.delete(from);
+      if (own?.[0] === from.scrollLeft && own[1] === from.scrollTop) return;
+      follow(from, to);
     });
   new ResizeObserver(() => {
     if (!dialog.open) return;
