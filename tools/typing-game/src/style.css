@@ -1,0 +1,670 @@
+/* タイピングゲームの画面配置と動き。配色・部品は ui/theme.css の --tb-* とクラスを使う。 */
+/* 部品やレイアウトの display 指定より、hidden 属性を優先する。 */
+[hidden] {
+  display: none !important;
+}
+body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+  margin: 0;
+  color: var(--tb-ink);
+  background: var(--tb-bg);
+  font-family: var(--tb-font);
+  font-size: 14px;
+  line-height: 1.6;
+}
+h2 {
+  margin: 0;
+}
+kbd {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0 6px;
+  border: 1px solid var(--tb-line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  color: var(--tb-ink);
+  background: var(--tb-surface);
+  font-family: var(--tb-font-mono);
+  font-size: 11px;
+  line-height: 1.7;
+  text-align: center;
+}
+.tg-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 左に見本、右に入力。画面の高さいっぱいに並べ、文章は枠の中でスクロールする。 */
+.tg-main {
+  --tg-text-size: 19px;
+  /* まだ打っていない見本の文字。 */
+  --tg-undone: color-mix(in srgb, var(--tb-muted) 58%, var(--tb-surface));
+  --tg-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1480px;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 16px 18px 26px;
+}
+.tg-pane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius-large);
+  background: var(--tb-surface);
+  transition:
+    border-color var(--tb-transition),
+    box-shadow var(--tb-transition);
+}
+.tg-pane:focus-within {
+  border-color: var(--tb-gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tb-gold) 14%, transparent);
+}
+.tg-pane-head {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 9px 18px;
+  border-bottom: 1px solid var(--tb-line);
+}
+.tg-pane-head h2 {
+  font-family: var(--tb-font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.tg-count,
+.tg-elapsed {
+  color: var(--tb-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.tg-elapsed {
+  margin-left: auto;
+  font-family: var(--tb-font-mono);
+  letter-spacing: 0.04em;
+}
+.tg-pane-body {
+  position: relative;
+  min-height: 0;
+}
+
+/* 見本の進み具合。見出しの下の線に重ねて、真鍮色から主色へ伸ばす。 */
+.tg-progress {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: calc(var(--tg-progress, 0) * 100%);
+  height: 2px;
+  background: linear-gradient(90deg, var(--tb-accent), var(--tb-gold));
+  transition:
+    width 420ms var(--tg-ease),
+    box-shadow 600ms ease;
+}
+/* 線の先端の光。確定のたびに脈打つ（main.ts）。 */
+.tg-progress::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tb-gold);
+  box-shadow: 0 0 6px var(--tb-gold);
+  opacity: 0.85;
+}
+.tg-main[data-state='setup'] .tg-progress {
+  opacity: 0;
+}
+.tg-main[data-complete] .tg-progress {
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tb-gold) 70%, transparent);
+}
+
+/* 見本・入力・結果の文章。どれも同じ文字の大きさと行の高さにする。 */
+.tg-text {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 20px 24px 48px;
+  overflow: auto;
+  color: var(--tb-ink);
+  font-family: var(--tb-font);
+  font-size: var(--tg-text-size);
+  line-height: 1.95;
+  letter-spacing: 0.04em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+}
+textarea.tg-text {
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  resize: none;
+}
+textarea.tg-text::placeholder {
+  color: var(--tg-undone);
+}
+textarea.tg-text:disabled {
+  cursor: default;
+}
+
+/* 見本。打つ前は淡く、確定した文字から主色に変わる。 */
+.tg-sample {
+  position: relative;
+  color: var(--tg-undone);
+  cursor: default;
+}
+.tg-main[data-state='countdown'] .tg-sample {
+  animation: tg-dim 700ms ease both;
+}
+@keyframes tg-dim {
+  from {
+    color: var(--tb-ink);
+  }
+}
+.tg-ch {
+  position: relative;
+  transition: color 280ms ease;
+}
+.tg-ch.is-done {
+  color: var(--tb-accent);
+  animation: tg-ink 620ms var(--tg-ease) var(--tg-delay, 0ms) backwards;
+}
+/* 確定した文字が、真鍮色の光をまとって少し浮き、主色に落ち着く。真鍮色は文字色には使わない。 */
+@keyframes tg-ink {
+  0% {
+    top: 0;
+    color: var(--tg-undone);
+    text-shadow: none;
+  }
+  24% {
+    top: -0.18em;
+    text-shadow:
+      0 0 0.35em color-mix(in srgb, var(--tb-gold) 85%, transparent),
+      0 0 0.9em color-mix(in srgb, var(--tb-gold) 45%, transparent);
+  }
+  100% {
+    top: 0;
+    color: var(--tb-accent);
+    text-shadow: 0 0 0 transparent;
+  }
+}
+/* 次に打つ文字の下に、真鍮色の線をゆっくり点滅させる。 */
+.tg-main:is([data-state='countdown'], [data-state='typing'])
+  .tg-ch.is-next::after {
+  content: '';
+  position: absolute;
+  left: 0.04em;
+  right: 0.08em;
+  bottom: 0.02em;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--tb-gold);
+  animation: tg-caret 1.2s ease-in-out infinite;
+}
+@keyframes tg-caret {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* 開始前の右側 */
+.tg-ready {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  height: 100%;
+  overflow: auto;
+  padding: 24px;
+  text-align: center;
+}
+.tg-start {
+  min-width: 176px;
+  min-height: 54px;
+  padding-inline: 30px 34px;
+  border-radius: 999px;
+  font-size: 17px;
+  letter-spacing: 0.24em;
+  transition:
+    background-color var(--tb-transition),
+    box-shadow var(--tb-transition),
+    transform 120ms ease;
+}
+/* 再生の三角。 */
+.tg-start::before {
+  content: '';
+  width: 0;
+  height: 0;
+  margin-right: 4px;
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent currentColor;
+}
+.tg-start:not(:disabled) {
+  animation: tg-breathe 2.8s ease-in-out infinite;
+}
+.tg-start:active:not(:disabled) {
+  transform: scale(0.96);
+}
+@keyframes tg-breathe {
+  50% {
+    box-shadow:
+      0 0 0 9px color-mix(in srgb, var(--tb-accent) 10%, transparent),
+      0 3px 10px var(--tb-shadow);
+  }
+}
+.tg-shortcut {
+  margin: 0;
+  color: var(--tb-muted);
+  font-size: 12px;
+}
+.tg-note {
+  max-width: 340px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--tb-radius);
+  color: var(--tb-warning);
+  background: var(--tb-warning-tint);
+  font-size: 13px;
+}
+.tg-note:empty {
+  display: none;
+}
+.tg-steps {
+  display: grid;
+  gap: 8px;
+  margin: 22px 0 0;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--tb-line);
+  color: var(--tb-muted);
+  font-size: 13px;
+  text-align: left;
+  list-style: none;
+  counter-reset: step;
+}
+.tg-steps li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  counter-increment: step;
+}
+.tg-steps li::before {
+  content: counter(step);
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid color-mix(in srgb, var(--tb-gold) 60%, var(--tb-line));
+  border-radius: 50%;
+  color: var(--tb-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* カウントダウン。入力欄の上に重ね、終わったら「スタート」を広げながら消す。 */
+.tg-countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  outline: none;
+  background: color-mix(in srgb, var(--tb-surface) 76%, transparent);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+.tg-countdown > * {
+  grid-area: 1 / 1;
+}
+.tg-ring {
+  width: 156px;
+  height: 156px;
+  transform: rotate(-90deg);
+}
+.tg-ring circle {
+  fill: none;
+  stroke-width: 2.5;
+}
+.tg-ring-track {
+  stroke: var(--tb-line);
+}
+.tg-ring-bar {
+  stroke: var(--tb-gold);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.tg-count-number {
+  color: var(--tb-accent);
+  font-family: var(--tb-font-display);
+  font-size: 68px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.tg-countdown-hint {
+  align-self: end;
+  margin-bottom: 22px;
+  color: var(--tb-muted);
+  font-size: 12px;
+}
+.tg-countdown.is-go {
+  animation: tg-clear 800ms ease forwards;
+}
+.tg-countdown.is-go .tg-count-number {
+  font-size: 34px;
+  letter-spacing: 0.3em;
+  animation: tg-go 800ms var(--tg-ease) forwards;
+}
+.tg-countdown.is-go .tg-ring {
+  animation: tg-ring-out 800ms var(--tg-ease) forwards;
+}
+.tg-countdown.is-go .tg-countdown-hint {
+  visibility: hidden;
+}
+@keyframes tg-clear {
+  to {
+    background: transparent;
+    backdrop-filter: blur(0);
+  }
+}
+@keyframes tg-go {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+@keyframes tg-ring-out {
+  to {
+    opacity: 0;
+    transform: rotate(-90deg) scale(1.9);
+  }
+}
+
+/* 打っている間の案内 */
+.tg-esc-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  color: var(--tb-muted);
+  font-size: 12px;
+  transition:
+    opacity var(--tb-transition),
+    color var(--tb-transition);
+}
+/* 変換中は Esc で終了しないため、案内を薄くする。 */
+.tg-esc-hint[data-composing] {
+  opacity: 0.4;
+}
+/* 見本の最後まで進んだら、Esc を促す。 */
+.tg-main[data-complete] .tg-esc-hint {
+  color: var(--tb-ink);
+}
+.tg-main[data-complete] .tg-esc-hint kbd {
+  border-color: var(--tb-gold);
+  animation: tg-nudge 1.6s ease-in-out infinite;
+}
+@keyframes tg-nudge {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--tb-gold) 24%, transparent);
+  }
+}
+
+.tg-judging {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--tb-muted);
+  background: color-mix(in srgb, var(--tb-surface) 80%, transparent);
+  /* すぐ終わる判定では出さない。 */
+  animation: tg-appear 200ms ease 300ms backwards;
+}
+@keyframes tg-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 結果 */
+.tg-result {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.tg-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px 32px;
+  padding: 18px 22px 20px;
+  border-bottom: 1px solid var(--tb-line);
+  background: var(--tb-subtle);
+  animation: tg-rise 480ms var(--tg-ease) both;
+}
+@keyframes tg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+.tg-stat {
+  position: relative;
+  display: grid;
+  gap: 2px;
+}
+.tg-stat-label {
+  color: var(--tb-muted);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+.tg-stat-value {
+  font-family: var(--tb-font-display);
+  font-size: 36px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+}
+.tg-stat-value small {
+  margin-left: 4px;
+  font-family: var(--tb-font);
+  font-size: 14px;
+  font-weight: 400;
+}
+#tg-diffs[data-kind='none'] {
+  color: var(--tb-accent);
+}
+#tg-diffs[data-kind='some'] {
+  color: var(--tb-danger);
+}
+#tg-diffs[data-kind='unknown'] {
+  color: var(--tb-muted);
+}
+.tg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+.tg-legend,
+.tg-result-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  padding: 12px 24px 0;
+  color: var(--tb-muted);
+  font-size: 12px;
+}
+.tg-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tg-diff {
+  flex: 1;
+  min-height: 0;
+  padding-top: 12px;
+}
+
+/* 打ち間違い・余分は赤、抜けた見本の文字は点線の枠で差し込む。 */
+.tg-wrong {
+  border-radius: 3px;
+  color: var(--tb-danger);
+  background: var(--tb-danger-tint);
+  text-decoration: underline wavy
+    color-mix(in srgb, var(--tb-danger) 70%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.24em;
+  box-decoration-break: clone;
+}
+.tg-missing {
+  border-radius: 3px;
+  color: var(--tb-muted);
+  background: color-mix(in srgb, var(--tb-gold) 13%, transparent);
+  text-decoration: underline dashed
+    color-mix(in srgb, var(--tb-muted) 80%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.24em;
+  box-decoration-break: clone;
+}
+.tg-diff :is(.tg-wrong, .tg-missing) {
+  animation: tg-mark 420ms ease calc(240ms + var(--tg-order, 0) * 45ms)
+    backwards;
+}
+@keyframes tg-mark {
+  from {
+    border-color: transparent;
+    color: inherit;
+    background: transparent;
+    text-decoration-color: transparent;
+  }
+}
+.tg-diff .tg-missing {
+  animation-name: tg-mark-in;
+}
+@keyframes tg-mark-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 違いがなかったときの光 */
+.tg-spark {
+  position: absolute;
+  left: 32px;
+  top: 60%;
+  width: 12px;
+  height: 12px;
+  margin: -6px;
+  background: var(--tb-gold);
+  clip-path: polygon(
+    50% 0,
+    61% 39%,
+    100% 50%,
+    61% 61%,
+    50% 100%,
+    39% 61%,
+    0 50%,
+    39% 39%
+  );
+  pointer-events: none;
+  animation: tg-spark 1000ms cubic-bezier(0.15, 0.7, 0.3, 1) var(--d) both;
+}
+@keyframes tg-spark {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.2) rotate(0);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--x), var(--y)) scale(1.1) rotate(120deg);
+  }
+}
+.tg-result[data-perfect] #tg-diffs {
+  animation: tg-glow 1.4s ease 200ms both;
+}
+@keyframes tg-glow {
+  0% {
+    text-shadow: 0 0 0 transparent;
+  }
+  35% {
+    text-shadow: 0 0 18px color-mix(in srgb, var(--tb-gold) 80%, transparent);
+  }
+  100% {
+    text-shadow: 0 0 0 transparent;
+  }
+}
+
+/* 狭い画面では上下に並べる。 */
+@media (max-width: 760px) {
+  body {
+    height: auto;
+    min-height: 100dvh;
+  }
+  .tg-main {
+    --tg-text-size: 17px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 10px 26px;
+  }
+  .tg-pane {
+    height: max(300px, 46dvh);
+  }
+  .tg-text {
+    padding: 14px 16px 32px;
+  }
+  .tg-summary {
+    padding: 14px 16px 16px;
+  }
+  .tg-actions {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tg-main *,
+  .tg-main *::before,
+  .tg-main *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
