@@ -535,7 +535,15 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
     const { empty, $from } = state.selection;
     const parent = $from.parent;
     if (!empty || $from.parentOffset !== 0) return false;
-    // Typora と同じく、見出しと空のコードは先頭の Backspace で標準テキストへ戻す。
+    // 空のコードは空の段落と同じく、前にブロックがあれば取り除いて前の行の末尾へ移る。
+    if (parent.type === schema.nodes.code_block && !parent.content.size && $from.index(-1) > 0) {
+      if (dispatch) {
+        const tr = closeHistory(state.tr.delete($from.before(), $from.after()));
+        dispatch(tr.setSelection(TextSelection.near(tr.doc.resolve($from.before()), -1)).scrollIntoView());
+      }
+      return true;
+    }
+    // Typora と同じく、見出しと、入れ物の先頭にある空のコードは先頭の Backspace で標準テキストへ戻す。
     if (parent.type !== schema.nodes.heading && !(parent.type === schema.nodes.code_block && !parent.content.size)) return false;
     return setBlockType(schema.nodes.paragraph)(state, dispatch && (tr => dispatch(closeHistory(tr))));
   };

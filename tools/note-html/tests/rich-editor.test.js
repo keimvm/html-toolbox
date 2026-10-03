@@ -52,6 +52,16 @@ test('末尾のコードでEnterを2回押すと本文へ戻り、取り消し�
   assert.equal($('rich-editor').querySelector('p').textContent, '通常の本文');
 });
 
+test('前にブロックがある空のコードはBackspaceで取り除き、前の行の末尾へ移る', async () => {
+  const { app, editor, view, window } = await open('本文\n\n```js\n```\n\n```\na\n```\n');
+  selection(view, view.state.doc.child(0).nodeSize + 1);
+  press(view, window, 'Backspace');
+  assert.deepEqual(view.state.doc.content.content.map(node => node.type.name), ['paragraph', 'code_block']);
+  assert.equal(view.state.selection.$from.parent.textContent, '本文'); assert.equal(view.state.selection.$from.parentOffset, 2);
+  editor.run('undo'); assert.equal(view.state.doc.child(1).type.name, 'code_block'); assert.equal(view.state.doc.child(1).attrs.params, 'js');
+  editor.run('redo'); assert.doesNotMatch(app.state.draft, /```js/);
+});
+
 test('コード途中の改行と選択の置換はコード内に残る', async () => {
   const { view, window } = await open('```\na\nb\n```');
   selection(view, 3); press(view, window, 'Enter');
