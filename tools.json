@@ -1,5 +1,15 @@
 [
   {
+    "dir": "prompt-library",
+    "name": "プロンプト集",
+    "description": "よく使うAIチャットのプロンプトをPCのフォルダに保存し、タグで絞り込んでコピーできます。"
+  },
+  {
+    "dir": "image-converter",
+    "name": "画像変換",
+    "description": "写真やスクリーンショットの大きさ・容量・形式を、仕上がりを確かめながら変えられます。PDFとの相互変換や、重いPDFの縮小もできます。"
+  },
+  {
     "dir": "pdf-edit",
     "name": "PDF編集",
     "description": "PDFのページの削除・並べ替え・回転・結合と、画像・文字の取り出しができます。"
@@ -15,18 +25,8 @@
     "description": "文字とコードの値（Unicode・UTF-8・UTF-16・Shift_JIS）を、どちら向きにも変換して確かめられます。"
   },
   {
-    "dir": "prompt-library",
-    "name": "プロンプト集",
-    "description": "よく使うAIチャットのプロンプトをPCのフォルダに保存し、タグで絞り込んでコピーできます。"
-  },
-  {
     "dir": "typing-game",
     "name": "タイピングゲーム",
     "description": "好きな文章を貼り付けて日本語入力で打ち、かかった時間と見本と違う箇所を確かめられます。"
-  },
-  {
-    "dir": "image-converter",
-    "name": "画像変換",
-    "description": "写真やスクリーンショットの大きさ・容量・形式を、仕上がりを確かめながら変えられます。PDFとの相互変換や、重いPDFの縮小もできます。"
   }
 ]
