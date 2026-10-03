@@ -2,18 +2,14 @@
 
 文字を入れると文字コードの値が分かり、コードの値を入れるとどの文字か分かるツールです。toolbox に含まれる単一 HTML のツールで、入力した文字を外部へ送信しません。
 
-## 入手方法
-
-toolbox のリリースに添付される `toolbox-<版>.zip` を解凍して使います。手順はリポジトリ直下の [README](../../README.md) を参照してください。
-
 ## 使い方
 
-1. toolbox の `index.html` を Chrome または Edge で開き、一覧から「文字コード変換」を選びます。
+1. toolbox の `index.html` を Chrome または Edge で開き（[使い始める](../../README.md#使い始める)）、一覧から「文字コード変換」を選びます。
 2. 「文字」の欄に文字や短い文章を打つか貼り付けます。Unicode の番号・UTF-8・UTF-16・Shift_JIS の欄と、大きな表示がすぐ変わります。
 3. コードの値から文字を調べるときは、どれかのコード欄を書き換えます（例：Shift_JIS の欄に `82 A0`）。文字とほかの欄が変わります。
 4. 「大きく表示」で形を確かめます。フォントを変えるときは、フォント名を入力するか、「PCのフォントを一覧にする」を押して一覧から選びます。
 
-一覧へ戻るときは、画面左上の家のマーク（トップへ戻る）を押します。その右のボタンで明るい表示と暗い表示を切り替えられます（toolbox の全ツールで共通）。入力した内容は保存しません。
+入力した内容は保存しません。
 
 ### 各欄の書き方
 
@@ -45,11 +41,6 @@ API は Windows・macOS のデスクトップ版 Chrome・Edge に対応して�
 
 ## 開発する
 
-必要なものは Git、Node.js、pnpm です。
-
-- Node.js：24.21.0 以降の24系を推奨。CI は [.node-version](.node-version) の24.21.0を使用します。26.9.0 以降の26系も許可しています。
-- pnpm：12.4.2。[package.json](package.json) の `packageManager` で固定しています。
-
 `tools/mojicode-converter/` で実行します。
 
 ```sh
@@ -57,15 +48,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-| コマンド     | 内容                                                       |
-| ------------ | ---------------------------------------------------------- |
-| `pnpm dev`   | 開発サーバー（http://127.0.0.1:5174/）                     |
-| `pnpm build` | 型検査のあと、`dist/文字コード変換.html` を1ファイルで作る |
-| `pnpm test` | ソースのテストだけを実行（ビルド不要） |
-| `pnpm test:dist` | 生成済みHTMLだけを検証（事前に明示的なビルドが必要） |
-| `pnpm check` | 整形・lint・ソースのテスト・1回のビルド・配布HTMLのテスト・差分の空白検査 |
-
-テストの指示時は `node scripts/toolbox.mjs test mojicode-converter`、総合検証の指示時は `node scripts/toolbox.mjs check mojicode-converter` をリポジトリ直下で実行します。通常は実装・必要なテスト作成・文書更新・コミットまでです。ローカルzip作成とGitHub公開は、それぞれ指示時に [共通の開発・リリース手順](../../docs/development.md) に従います。
+`pnpm dev` で開発サーバー（http://127.0.0.1:5174/）が開きます。`pnpm build` は型検査のあと `dist/文字コード変換.html` を1ファイルで作ります。Node.js・pnpm の版、`test`・`test:dist`・`check` などのスクリプトの役割、リポジトリ直下からのテスト・検証は [共通の開発・リリース手順](../../docs/development.md#コマンド) に従います。
 
 ### ファイル配置
 

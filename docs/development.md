@@ -18,24 +18,15 @@
 | `.github/workflows/tool.yml`    | 通常 CI・リリース共通の依存取得・検証・ビルド・HTML 収集 |
 | `.github/workflows/release.yml` | リリースの公開時に検査・ビルドし、`toolbox-<版>.zip` をリリースへ添付           |
 
-zip の中身は次のとおりです。ファイル名は英数字と `-` `.` だけにしています。
-
-```
-toolbox-<版>/
-  index.html
-  tools/
-    <フォルダ名>.html
-```
+zip の中身と名前の決まりは [software-requirements.md](software-requirements.md#zip-の中身) を参照してください。
 
 ## 開発する
 
 各ツールの依存関係は、そのフォルダの中だけに置きます。直下の workspace や共通の npm 依存はありません。見た目と一部の処理は、直下の `ui/` のソースを各ツールのビルドで取り込みます（[共通 UI](#共通-ui)）。日常の開発サーバーや個別テストは、各ツールの README を参照してください。
 
-### 通常の作業と実行の指示
+### コマンド
 
-通常のエージェント作業は **実装 → 必要なテストの作成・更新 → 関連文書の更新 → 差分の読み直し → コミット** までです。テスト・lint・型チェック・ビルドはユーザーから指示されたときだけ実行します。コミットは毎回、日本語で作成し、最終報告にはテスト未実行などの確認状況を明記します。push・マージ・GitHub 公開もそれぞれ指示時のみ行います。
-
-追加するテストは、主要な振る舞い、データの保存・変換、重要な失敗条件、不具合の再発防止を優先します。単純な文言・見た目の変更や、実装をなぞるだけの形式的なテストは不要です。既存の有用なテストは維持し、振る舞いの変更に合わせて更新します。
+エージェントの作業の進め方（実行は指示時のみ、テストの方針、コミット）は [AGENTS.md](../AGENTS.md#作業の流れ) に従います。既存の有用なテストは維持し、振る舞いの変更に合わせて更新します。
 
 | 指示する操作 | リポジトリ直下のコマンド | 実行する内容 |
 | --- | --- | --- |
@@ -46,9 +37,16 @@ toolbox-<版>/
 
 `test` と `check` はツール名を省略すると全ツールを対象にします。どちらも共通スクリプト・UI のテストを実行します。共通部分を変更した場合は、次に検証を指示されたときに全ツールを対象にします。
 
-各ツールの `pnpm test` はソースのテストだけを実行し、`dist/` がなくても動く構成です。`pnpm test:dist` は生成済みHTMLのテストだけを実行します。ビルドは自動では始めず、生成物がなければ失敗します。単独で実行するときは、事前にビルドしたソースから変更していないことを確認してください。`pnpm check` は既存の整形・lint等の検査、ソースのテスト、1回のビルド、配布HTMLのテスト、`git diff --check` を順に実行します。ブラウザー実機での確認は含みません。
+各ツールの `package.json` には、次の役割のスクリプトを揃えます。ツール固有の開発サーバーや追加のコマンドは各ツールの README に書きます。
 
-スクリプトは Node.js 24.21.0 以降で動かし、各ツールの Node.js の対応範囲も満たしてください。ローカルでは Node.js を自動で切り替えません。CI はツールごとの `.node-version` を使用します。pnpm は各ツールの `packageManager` の版を使い、依存取得は `pnpm install --frozen-lockfile` で行います。
+| スクリプト | 内容 |
+| --- | --- |
+| `pnpm test` | ソースのテストだけを実行する。`dist/` がなくても動く |
+| `pnpm test:dist` | 生成済みHTMLのテストだけを実行する。ビルドは自動では始めず、生成物がなければ失敗する。単独で実行するときは、事前にビルドしたソースから変更していないことを確認する |
+| `pnpm build` | テストなしで `dist/` に単一 HTML を作る（既存の型チェックを含む） |
+| `pnpm check` | 既存の整形・lint等の検査、ソースのテスト、1回のビルド、配布HTMLのテスト、`git diff --check` を順に実行する。ブラウザー実機での確認は含まない |
+
+スクリプトは Node.js 24.21.0 以降で動かし、各ツールの Node.js の対応範囲（`package.json` の `engines`）も満たしてください。ローカルでは Node.js を自動で切り替えません。CI はツールごとの `.node-version` を使用します。pnpm は各ツールの `packageManager` の版を使い、依存取得は各ツールのフォルダで `pnpm install --frozen-lockfile` を実行します。
 
 ### 実装方針
 
@@ -91,7 +89,7 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 | `session-key.js` | `sessionKey(href)`。クエリーとフラグメントを除いた HTML の配置 URL。両ツールの復元情報の保存先に使い、従来のキーを維持する。DB名・形式・保存処理は各ツールで管理する |
 
 - 配色は、ライトがアイボリーの地に深いエバーグリーン（`--tb-accent`）、ダークが黒に近い地にシャンパン色（同）です。真鍮色の `--tb-gold` は選択中の細い縁・区切りの短い線・フォーカス枠など細部の差し色に限り、文字色には使いません。大きな見出しは OS の明朝体（`--tb-font-display`）、それ以外は `--tb-font` を使います。浮いた面の影は `--tb-elevation` です。
-- 色はすべて `light-dark()` で持ち、OS のダークモード設定に従います。切り替えボタンで選んだ表示は `:root[data-tb-theme]` で `color-scheme` を上書きします。印刷は常にライトです。ツールの CSS で `prefers-color-scheme` を使うと切り替えが効かないため、色は `--tb-*` か `light-dark()` で書きます。
+- 色はすべて `light-dark()` で持ち、OS のダークモード設定に従います。切り替えボタンで選んだ表示は `:root[data-tb-theme]` で `color-scheme` を上書きします。印刷と、ツールが書き出す文書（ローカルノートの HTML エクスポートは本文用の `document.css` だけを入れる）は常にライトです。ツールの CSS で `prefers-color-scheme` を使うと切り替えが効かないため、色は `--tb-*` か `light-dark()` で書きます。
 - 共通ヘッダーは次の形で書き、`setupToolHeader()` をツールの起動処理の最初に呼びます（保存した表示を早く反映するため）。左上の一角は全ツールで同じ中身・順序にし、ツール固有の操作は右側に置きます。ファイル名など中央に置く要素は一角と右側の間に書きます。
 
   ```html
@@ -110,10 +108,8 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 - 入口ページは `scripts/toolbox.mjs` が `theme.css` と `theme-toggle.js` を埋め込んで作り、版番号の右に切り替えボタンを置きます。ツールは `tools.json` の順にカードで並べ、カードには各ツールの `src/icon.png`（data URL）・表示名・説明を載せます。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
 - 入口ページ専用の `scripts/index-cards.js`（`setupCards()`）も埋め込みます。「並べ替え・表示」の編集中だけ、各カードに表示のチェックボックスと「前へ」「後へ」を出し、標準のドラッグ＆ドロップでも並べ替えられるようにします。選んだ内容は `localStorage` の `toolbox-cards` に `{ "order": [フォルダ名…], "hidden": [フォルダ名…] }` で残し、`tools.json` と同じ並び・全部表示に戻したら記録を消します。一覧にないフォルダ名は無視し、並べ替えた後に増えたツールは最後に置きます。ツールだけで使わない処理なので `ui/` には置きません。
 - 入口ページ専用の favicon は `ui/toolbox-icon.png`（128×128、道具箱の図柄）です。`scripts/toolbox.mjs` が既存の `iconDataUrl()` で変換し、`link rel="icon"` に直接埋め込みます。配布物へ画像ファイルを追加せず、オフラインでも表示できます。
-- ローカルノートがエクスポートする HTML には本文用の `document.css` だけを入れるため、常にライトで出力されます。
 - メニューは `<button popovertarget="対象ID">` と `<div id="対象ID" popover="auto" class="tb-popover">` を組み合わせます。開閉・排他表示・外側クリック・Escape・展開状態の支援技術への通知は [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using)、配置は CSS のアンカー配置に任せます。`hidden` や `aria-expanded` に開閉状態を重複して保持しません。ローカルノートの Tab による閉鎖・操作後の閉鎖は固有処理として残します。
 - TypeScript からは同じ名前の `.d.ts` で型を参照します。Vite の開発サーバーでは、`server.fs.allow` に `../../ui` を加えます（PDF編集の `vite.config.ts`）。
-- `ui/` を変えた場合、次に検証を指示されたときはツール名を省略して全ツールを対象にします。配布HTMLを含む総合検証は `node scripts/toolbox.mjs check` です。CI も `ui/` の変更で全ツールを検証します。
 
 ## GitHub に版を公開する
 
@@ -139,7 +135,7 @@ GitHub の版は `2026.10.03` のような日付形式にします。同日の�
 2. そのフォルダの中だけで次のことができるようにする。
    - `package.json` の `packageManager` で pnpm の版（`pnpm@x.y.z`）を、`.node-version` で Node.js の版（`x.y.z`）を固定する。
    - `pnpm install --frozen-lockfile` で依存関係を取得できる。
-   - `pnpm test` はソースのテスト、`pnpm test:dist` はビルド済みHTMLのテスト、`pnpm build` はテストなしのビルドに分ける。`pnpm check` でソース検証・1回のビルド・配布HTML検証を行い、`dist/` に外部を何も読み込まない HTML を1つだけ出力する。別のファイルやフォルダは残さない。
+   - `pnpm test`・`test:dist`・`build`・`check` を[コマンド](#コマンド)の役割どおりに用意し、`dist/` に外部を何も読み込まない HTML を1つだけ出力する。別のファイルやフォルダは残さない。
    - 画面上部に[共通ヘッダー](#共通-ui)を置き、`ui/header.js` の `setupToolHeader()` を呼ぶ。左上の一角の先頭に `<template id="toolbox-home"></template>` を1つ置き、ビルド後にもこの文字列を残す。アイコンは `src/icon.png` に置く（入口ページのカードにも使う）。画面が狭い場合はヘッダーを折り返せるようにする。
    - CSP を指定する場合は、`img-src` に `data:`（アイコン）を、`style-src` にインラインの style（版番号）を許可する。
    - `ui/theme.css` を読み込み、配色は `--tb-*`、ボタン・入力欄・ダイアログは共通部品のクラスを使う。ファイルのドラッグ＆ドロップとダウンロードは `ui/` の処理を使う（[共通 UI](#共通-ui)）。
@@ -173,9 +169,9 @@ node scripts/toolbox.mjs build 2026.10.03
 
 版は今日の日付（`YYYY.MM.DD`）だけにします。同じ日に作り直すときも枝番を付けず、同じ版で上書きします。実装やコミットのたびには作り直しません。
 
-全ツールの依存取得・ビルド・単一HTMLの構成確認・収集を行い、`out/toolbox-2026.10.03.zip` と同じ中身のフォルダを作ります。既存の型チェックはビルドに含みますが、ソースや配布HTMLのテスト・lintは行いません。テスト未実行でも生成できるため、ビルド成功と検証成功は区別してください。公開やアップロードは行いません。
+`out/toolbox-2026.10.03.zip` と同じ中身のフォルダ（`out/toolbox-2026.10.03/`）を作ります。テスト未実行でも生成できるため、ビルド成功と検証成功は区別してください。公開やアップロードは行いません。全検証付きのzip作成を指示された場合は `node scripts/toolbox.mjs release <版>` を使います。
 
-古い `build/` と同じ版の出力を消してから作り直すため、途中で失敗しても同じ版の古いzipは残りません。`build/` と `out/` は Git 管理対象外です。全検証付きのzip作成を指示された場合は、従来の `node scripts/toolbox.mjs release <版>` を使います。
+古い `build/` と同じ版の出力を消してから作り直すため、途中で失敗しても同じ版の古いzipは残りません。`build/` と `out/` は Git 管理対象外です。
 
 `collect <フォルダ名>` と `package <版>` は、CI が検証済みHTMLを集めて梱包するための個別コマンドです。`package` は再ビルドしないため、通常のローカルビルドには `build` を使います。
 
@@ -184,30 +180,6 @@ node scripts/toolbox.mjs build 2026.10.03
 ```bash
 node --test 'scripts/*.test.mjs' 'ui/*.test.mjs'
 ```
-
-## ローカルノートの開発
-
-`tools/note-html/` は既存の esbuild と Node.js のテストランナーを使います。Node.js は `.node-version` の24.21.0、対応範囲は `package.json` の24.21.0以降の24系または26.9.0以降の26系です。pnpm は11.15.0に固定し、PDF編集とは独立して管理します。ライブラリとロックファイルは移行前のものを維持しています。
-
-個別のテストを指示された場合は `tools/note-html/` で実行します。
-
-```sh
-pnpm install --frozen-lockfile
-pnpm test
-```
-
-| コマンド | 内容 |
-| --- | --- |
-| `pnpm build` | `dist/` を作り直し、JS・CSS・ライセンスを内包した `dist/index.html` を生成 |
-| `pnpm test` | ソースを Node.js・jsdom で検証。ビルド不要 |
-| `pnpm test:dist` | 生成済みHTMLを検証。先に明示的な `pnpm build` が必要 |
-| `pnpm check` | ソースのテスト、1回のビルド、配布HTMLのテスト、`git diff --check` を実行 |
-
-編集対象は `src/` です。`src/index.html` はテンプレートなので直接開かず、生成した `dist/index.html` を Chrome または Edge で開きます。生成物は直接編集しません。`dist/` と検証記録の `output/` は Git 管理対象外です。
-
-toolbox の戻るリンク・版番号を含む確認には、ローカルビルドの指示時にリポジトリ直下で `node scripts/toolbox.mjs build <版>` を実行し、`out/toolbox-<版>/index.html` を開きます。共通処理が `dist/index.html` を `tools/note-html.html` として収集・梱包します。
-
-自動テストはファイル API を模擬しており、実ノートを読み書きしません。実機では検証専用のフォルダを使い、通常の編集・保存、未保存時のトップへの移動とキャンセル、保存後の往復、狭い画面の折り返しを確認します。`file://`、オフライン、OS・ブラウザー別の受入は区別して [ツールの検証記録](../tools/note-html/docs/VERIFICATION.md) に残します。Playwright スキル・CLI は明示的な使用依頼がある場合に限って使います。
 
 ## 未確認のこと
 

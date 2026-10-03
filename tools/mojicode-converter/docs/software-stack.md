@@ -4,8 +4,7 @@
 
 ## 選定に関わる制約
 
-- 単一 HTML で配り、オフライン・`file://`・Windows/Mac の Chrome・Edge で動かす。外部を読み込まない。
-- 依存関係は `tools/mojicode-converter/` の中で閉じる。共通の見た目・ヘッダー・ダークモードは `ui/` を取り込む（[開発・リリース手順](../../../docs/development.md)）。
+- toolbox 共通の制約（[要件の制約](software-requirements.md#制約)）と [ツール追加の手順](../../../docs/development.md#ツールを追加する) に従う。
 - 値の正しさ（Windows と同じ値）を最優先する。
 
 ## 採用する技術

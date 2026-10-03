@@ -45,5 +45,5 @@
 
 ## 未決事項
 - 会社PCのブラウザやセキュリティ設定で、ローカルのHTMLを開くときに制限がないか（未確認）
-- 手で書いた（ビルドのない）HTMLのツールがあるか（未確認）。現在の配布対象はPDF編集とローカルノート。
+- 手で書いた（ビルドのない）HTMLのツールがあるか（未確認）。現在の配布対象は `tools.json` を参照。
 - リポジトリ構成、1ファイルで配る形、入れるツールの選び方、オフライン対応、版番号の付け方と表示場所、zipの自動作成は決定済み。[software-requirements.md](software-requirements.md)と[software-stack.md](software-stack.md)を参照。

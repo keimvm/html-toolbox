@@ -339,10 +339,7 @@ toolbox のトップへ戻るボタン、タブを閉じる、ページを再読
 - コード内の選択と下矢印は ProseMirror の `keymap`・`TextSelection`・`exitCode` を使い、選択範囲と段落を作る条件だけを追加する。ToDo は既存のリスト入力ルールに続く `InputRule` で `list_item.checked` を設定し、既存の NodeView と Markdown 保存へ接続する。標準のスキーマには ToDo の入力変換がないため、この判定だけをツール側で持ち、新しい依存や文書形式は追加しない。
 - OS・ブラウザーの標準機能とライブラリを優先する [共通の実装方針](../../../docs/development.md#実装方針) に従う。上部メニューは Popover API と CSS アンカー配置で開閉・配置し、対象は Chrome・Edge 129 以降とする。HTML 出力の画像は FileReader で data URL に変換する。
 - 復元用の配置 URL は `ui/session-key.js`、ダイアログの操作欄は `ui/theme.css` の `.tb-dialog-actions` を使う。保存キーの文字列・DB名・記録形式は従来どおり。
-
-- 依存関係・ロックファイル・Node.js と pnpm の版指定は `tools/note-html/` 内で独立して持つ。既存の esbuild による単一 HTML 生成を継続する。
+- 依存関係・ロックファイル・Node.js と pnpm の版指定は `tools/note-html/` 内で独立して持つ。既存の esbuild による単一 HTML 生成を継続し、`dist/` には `index.html` だけを出力する。生成物と検証時の画像・PDF は Git 管理に含めない。
 - 配色・ボタン・入力欄・ダイアログは toolbox 共通の `ui/theme.css` を使い、OS のダークモード設定とヘッダーの切り替えに従う。本文の書体は変えず、印刷と HTML エクスポートは常にライトにする。添付のダウンロード、HTML の書き出し、本文外へのファイルドロップの抑止は `ui/` の共通処理を使う。
-- `pnpm check` でビルド・自動テストを行い、`dist/` には `index.html` だけを出力する。生成物と検証時の画像・PDF は Git 管理に含めない。
-- 画面上部に toolbox 共通のヘッダーを置き、全幅に表示する。左上の一角の先頭に `<template id="toolbox-home"></template>` を1つ置き、アイコン（`src/icon.png`。favicon にも使う）とツール名、表示の切り替えを並べる。共通の配布処理が同じタブで `../index.html` へ戻るリンクに置き換え、右下に toolbox の版番号を追加する。ヘッダーは狭い画面で折り返す。
-- ビルド・収集・zip 化・CI はリポジトリ共通の手順を使い、専用ワークフローやツール単体のリリースは設けない。
+- 共通ヘッダー（全幅に表示し、狭い画面で折り返す）、戻るリンクと版番号の追加、ビルド・収集・zip 化・CI は toolbox 共通の[ツール追加の手順](../../../docs/development.md#ツールを追加する)に従う。専用ワークフローやツール単体のリリースは設けない。
 - 版の切り替えでは HTML の配置場所が変わるため、復元情報や表示設定を引き継ぐことは保証しない。保存済みの Markdown と添付は元のノートフォルダに残る。

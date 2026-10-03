@@ -4,8 +4,7 @@
 
 ## 選定に関わる制約
 
-- 単一 HTML で配り、オフライン・`file://`・Windows/Mac の Chrome・Edge 129 以降で動かす。外部を読み込まない。
-- 依存関係は `tools/prompt-library/` の中で閉じる。共通の見た目・ヘッダー・ダークモード・ダイアログは `ui/` を取り込む（[開発・リリース手順](../../../docs/development.md)）。
+- toolbox 共通の制約（[要件の制約](software-requirements.md#制約)）と [ツール追加の手順](../../../docs/development.md#ツールを追加する) に従う。
 - プロンプトは本人が選んだフォルダのファイルに残す。ブラウザー内に本文を持たない。
 
 ## 採用する技術
