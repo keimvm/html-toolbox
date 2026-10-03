@@ -337,10 +337,6 @@ body {
   color: var(--muted);
   margin: 22px 0 26px;
 }
-.welcome .welcome-hint {
-  font-size: 11px;
-  margin-top: 15px;
-}
 .welcome button {
   min-height: 44px;
   padding: 11px 24px;
