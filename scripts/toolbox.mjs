@@ -1,6 +1,8 @@
 // toolbox の一覧読み込み・ビルド済みHTMLの収集・zip の作成を行う。
 //
 //   node scripts/toolbox.mjs list               tools.json のフォルダ名をJSON配列で出力
+//   node scripts/toolbox.mjs test [フォルダ名]   共通部分とソースのテスト（ビルドなし）
+//   node scripts/toolbox.mjs build <版>          全ツールをビルドして zip を作る（テストなし）
 //   node scripts/toolbox.mjs check [フォルダ名]  依存取得・検査・ビルド・収集（省略時は全ツール）
 //   node scripts/toolbox.mjs release <版>        全ツールを check して zip を作る
 //   node scripts/toolbox.mjs check-version <版> 版番号の形式を検査
@@ -64,8 +66,10 @@ export async function readTools(rootDir = root) {
         `tools/${dir}/package.json の packageManager に pnpm の版を固定してください。`,
       );
     }
-    if (typeof pkg.scripts?.check !== 'string' || !pkg.scripts.check.trim()) {
-      throw new Error(`tools/${dir}/package.json に scripts.check が必要です。`);
+    for (const command of ['test', 'test:dist', 'build', 'check']) {
+      if (typeof pkg.scripts?.[command] !== 'string' || !pkg.scripts[command].trim()) {
+        throw new Error(`tools/${dir}/package.json に scripts.${command} が必要です。`);
+      }
     }
     const nodeVersion = (await readFile(join(toolDir, '.node-version'), 'utf8')).trim();
     if (!/^\d+\.\d+\.\d+$/.test(nodeVersion)) {
@@ -400,30 +404,65 @@ function runPnpm(args, cwd) {
   execFileSync(command, commandArgs, { cwd, stdio: 'inherit' });
 }
 
-export async function checkTools(dir, rootDir = root, run = runPnpm) {
+function runSharedTests(rootDir) {
+  execFileSync(process.execPath, ['--test', 'scripts/*.test.mjs', 'ui/*.test.mjs'], {
+    cwd: rootDir, stdio: 'inherit',
+  });
+}
+
+async function selectTools(dir, rootDir) {
   const tools = await readTools(rootDir);
   const selected = dir ? tools.filter((tool) => tool.dir === dir) : tools;
   if (selected.length === 0) throw new Error(`${dir} は tools.json にありません。`);
-  for (const tool of selected) {
-    await rm(join(rootDir, 'build', `${tool.dir}.html`), { force: true });
-  }
+  return selected;
+}
+
+async function runTools(selected, command, rootDir, run) {
   for (const tool of selected) {
     const cwd = join(rootDir, 'tools', tool.dir);
-    console.log(`\n${tool.dir}: 依存取得・検査・ビルド`);
-    await rm(join(cwd, 'dist'), { recursive: true, force: true });
+    console.log(`\n${tool.dir}: 依存取得・${command}`);
+    if (command !== 'test') {
+      await rm(join(cwd, 'dist'), { recursive: true, force: true });
+    }
     await run(['install', '--frozen-lockfile'], cwd);
-    await run(['check'], cwd);
-    await collect(tool.dir, rootDir);
+    await run([command], cwd);
+    if (command !== 'test') await collect(tool.dir, rootDir);
   }
 }
 
-export async function release(version, rootDir = root, run = runPnpm) {
+export async function testTools(dir, rootDir = root, run = runPnpm, runShared = runSharedTests) {
+  const selected = await selectTools(dir, rootDir);
+  await runShared(rootDir);
+  await runTools(selected, 'test', rootDir, run);
+}
+
+export async function checkTools(dir, rootDir = root, run = runPnpm, runShared = runSharedTests) {
+  const selected = await selectTools(dir, rootDir);
+  // 共通テストが失敗した場合も、古い収集物を次の package に使わせない。
+  for (const tool of selected) {
+    await rm(join(rootDir, 'build', `${tool.dir}.html`), { force: true });
+  }
+  await runShared(rootDir);
+  await runTools(selected, 'check', rootDir, run);
+}
+
+async function prepareDistribution(version, rootDir) {
   assertVersion(version);
   await rm(join(rootDir, 'build'), { recursive: true, force: true });
   const target = join(rootDir, 'out', `toolbox-${version}`);
   await rm(target, { recursive: true, force: true });
   await rm(`${target}.zip`, { force: true });
-  await checkTools(undefined, rootDir, run);
+}
+
+export async function build(version, rootDir = root, run = runPnpm) {
+  await prepareDistribution(version, rootDir);
+  await runTools(await selectTools(undefined, rootDir), 'build', rootDir, run);
+  await packageRelease(version, rootDir);
+}
+
+export async function release(version, rootDir = root, run = runPnpm, runShared = runSharedTests) {
+  await prepareDistribution(version, rootDir);
+  await checkTools(undefined, rootDir, run, runShared);
   await packageRelease(version, rootDir);
 }
 
@@ -439,6 +478,12 @@ async function main([command, arg, ...extra]) {
     case 'check':
       await checkTools(arg);
       break;
+    case 'test':
+      await testTools(arg);
+      break;
+    case 'build':
+      await build(arg);
+      break;
     case 'release':
       await release(arg);
       break;
@@ -450,7 +495,7 @@ async function main([command, arg, ...extra]) {
       break;
     default:
       throw new Error(
-        '使い方: node scripts/toolbox.mjs <list|check|release|check-version|collect|package> [引数]',
+        '使い方: node scripts/toolbox.mjs <list|test|build|check|release|check-version|collect|package> [引数]',
       );
   }
 }

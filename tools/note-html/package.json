@@ -11,7 +11,8 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test \"tests/*.test.js\"",
-    "check": "pnpm build && pnpm test && git diff --check"
+    "test:dist": "node --test \"tests/*.dist-test.js\"",
+    "check": "pnpm test && pnpm build && pnpm test:dist && git diff --check"
   },
   "dependencies": {
     "markdown-it": "14.2.0",

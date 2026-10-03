@@ -36,7 +36,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: tools/${{ inputs.tool }}/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      - name: 検査とビルド
+      - name: ソースの検証・ビルド・配布 HTML の検証
         run: pnpm check
       # 収集スクリプトはリポジトリ直下の Node.js で実行する。
       - uses: actions/setup-node@v7

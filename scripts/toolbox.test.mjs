@@ -7,16 +7,23 @@ import { test } from 'node:test';
 import { pathToFileURL } from 'node:url';
 import {
   decorateToolHtml,
-  checkTools,
+  build,
+  checkTools as runCheckTools,
   collect,
   iconDataUrl,
   isValidVersion,
   packageRelease,
   readTools,
-  release,
+  release as runRelease,
+  testTools,
   renderIndex,
   validateTools,
 } from './toolbox.mjs';
+
+// テスト内では共通テストの再帰実行を避け、子プロセスの境界だけを差し替える。
+const skipShared = () => {};
+const checkTools = (dir, root, run) => runCheckTools(dir, root, run, skipShared);
+const release = (version, root, run) => runRelease(version, root, run, skipShared);
 
 test('版番号は日付形式と同じ日の連番だけを受け付ける', () => {
   for (const version of ['2026.09.26', '2026.09.26.2', '2026.09.26.10', '2024.02.29']) {
@@ -137,7 +144,12 @@ async function fixture(t) {
       join(cwd, 'package.json'),
       JSON.stringify({
         packageManager: 'pnpm@12.4.2',
-        scripts: { check: 'node check.mjs' },
+        scripts: {
+          test: 'node test.mjs',
+          'test:dist': 'node dist-test.mjs',
+          build: 'node build.mjs',
+          check: 'node check.mjs',
+        },
       }),
     );
     await writeFile(join(cwd, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n');
@@ -220,89 +232,151 @@ test('check は指定ツールだけを取得・検証し、作り直した HTML
   await assert.rejects(checkTools('unknown', root), /tools.json/);
 });
 
-test('全ツールの zip に戻るリンクと版番号を追加し、登録順・英数字の名前・加工前HTMLを保持する', async (t) => {
+test('test は dist なしで指定または全ツールのソースだけを検証し、配布物を変更しない', async (t) => {
   const root = await fixture(t);
+  for (const dir of ['alpha', 'beta']) {
+    await rm(join(root, 'tools', dir, 'dist'), { recursive: true });
+  }
   await mkdir(join(root, 'build'));
-  await writeFile(join(root, 'build', 'old.html'), '<body>削除済みツール</body>');
-  const calls = [];
-  await release('2026.09.26', root, async (args, cwd) => {
-    calls.push([basename(cwd), args]);
-    if (args[0] === 'check') {
-      await mkdir(join(cwd, 'dist'));
-      await writeFile(join(cwd, 'dist', '配布.html'), toolHtml(`最新 ${basename(cwd)}`));
-    }
-  });
-  assert.deepEqual(calls, [
-    ['alpha', ['install', '--frozen-lockfile']],
-    ['alpha', ['check']],
-    ['beta', ['install', '--frozen-lockfile']],
-    ['beta', ['check']],
-  ]);
-  const target = join(root, 'out', 'toolbox-2026.09.26');
-  const entries = execFileSync('unzip', ['-Z1', `${target}.zip`], { encoding: 'utf8' })
-    .trim()
-    .split('\n');
-  assert.deepEqual(entries.filter((name) => !name.endsWith('/')).sort(), [
-    'toolbox-2026.09.26/index.html',
-    'toolbox-2026.09.26/tools/alpha.html',
-    'toolbox-2026.09.26/tools/beta.html',
-  ]);
-  assert.ok(entries.every((name) => /^[A-Za-z0-9./-]+$/.test(name)));
-  const index = await readFile(join(target, 'index.html'), 'utf8');
-  assert.ok(index.indexOf('alpha.html') < index.indexOf('beta.html'));
-  // カードのアイコンは各ツールの src/icon.png を埋め込む。
-  for (const dir of ['alpha', 'beta']) {
-    const png = await readFile(join(root, 'tools', dir, 'src', 'icon.png'));
-    assert.ok(index.includes(`src="${iconDataUrl(png)}"`));
+  await writeFile(join(root, 'build', 'alpha.html'), '前回の収集物');
+  await mkdir(join(root, 'out'));
+  await writeFile(join(root, 'out', 'toolbox-2026.10.03.zip'), '前回の zip');
+  for (const [dir, names] of [['beta', ['beta']], [undefined, ['alpha', 'beta']]]) {
+    const calls = [];
+    await testTools(dir, root, async (args, cwd) => {
+      calls.push([basename(cwd), args]);
+      await assert.rejects(access(join(cwd, 'dist')));
+    }, (cwd) => {
+      assert.equal(cwd, root);
+      calls.push('shared');
+    });
+    assert.deepEqual(calls, ['shared', ...names.flatMap((name) => [
+      [name, ['install', '--frozen-lockfile']], [name, ['test']],
+    ])]);
   }
-  for (const dir of ['alpha', 'beta']) {
-    const html = await readFile(join(target, 'tools', `${dir}.html`), 'utf8');
-    assert.ok(html.includes(`最新 ${dir}`));
-    assert.equal(html.match(/id="toolbox-version"/g).length, 1);
-    assert.equal(html.split(homeLink).length, 2);
-    assert.equal(html.includes(homeSlot), false);
-    const homeHref = /<a id="toolbox-home" [^>]*href="([^"]+)"/.exec(html)[1];
-    const toolUrl = pathToFileURL(join(target, 'tools', `${dir}.html`));
-    assert.equal(new URL(homeHref, toolUrl).href, pathToFileURL(join(target, 'index.html')).href);
-    assert.ok(html.includes('toolbox 2026.09.26'));
-    const zipped = execFileSync(
-      'unzip',
-      ['-p', `${target}.zip`, `toolbox-2026.09.26/tools/${dir}.html`],
-      { encoding: 'utf8' },
-    );
-    assert.equal(zipped, html);
-    assert.equal(
-      await readFile(join(root, 'tools', dir, 'dist', '配布.html'), 'utf8'),
-      toolHtml(`最新 ${dir}`),
-    );
-    assert.equal(await readFile(join(root, 'build', `${dir}.html`), 'utf8'), toolHtml(`最新 ${dir}`));
-  }
-  assert.deepEqual(await readdir(join(root, 'build')), ['alpha.html', 'beta.html']);
+  assert.equal(await readFile(join(root, 'build', 'alpha.html'), 'utf8'), '前回の収集物');
+  assert.equal(await readFile(join(root, 'out', 'toolbox-2026.10.03.zip'), 'utf8'), '前回の zip');
+  assert.deepEqual((await readdir(join(root, 'tools', 'alpha'))).sort(), [
+    '.node-version', 'package.json', 'pnpm-lock.yaml', 'src',
+  ]);
 });
 
-test('検証途中で失敗したら zip を作らず、同じ版の古い zip も残さない', async (t) => {
+test('不明なツール名では共通テストも依存取得も始めない', async (t) => {
   const root = await fixture(t);
-  const zip = join(root, 'out', 'toolbox-2026.09.26.zip');
-  await mkdir(join(root, 'out'));
-  await writeFile(zip, '古い zip');
+  const unexpected = () => assert.fail('子プロセスを実行してはいけない');
+  for (const command of [testTools, runCheckTools]) {
+    await assert.rejects(command('unknown', root, unexpected, unexpected), /tools.json/);
+  }
+});
+
+test('ソースのテスト失敗は後続ツールを止め、ビルドに進まない', async (t) => {
+  const root = await fixture(t);
   const calls = [];
-  await assert.rejects(
-    release('2026.09.26', root, async (args, cwd) => {
-      calls.push([basename(cwd), args[0]]);
-      if (basename(cwd) === 'alpha' && args[0] === 'check') throw new Error('検証失敗');
-    }),
-    /検証失敗/,
-  );
-  assert.deepEqual(calls, [
-    ['alpha', 'install'],
-    ['alpha', 'check'],
-  ]);
-  await assert.rejects(access(zip));
-  await assert.rejects(packageRelease('2026.09.26', root), /build\/alpha.html/);
-  await assert.rejects(access(zip));
-  await assert.rejects(release('v1', root), /日付形式/);
-  await writeFile(zip, '古い zip');
-  await rm(join(root, 'tools', 'beta', 'pnpm-lock.yaml'));
-  await assert.rejects(release('2026.09.26', root), /pnpm-lock.yaml/);
+  await assert.rejects(testTools(undefined, root, (args, cwd) => {
+    calls.push([basename(cwd), args[0]]);
+    if (args[0] === 'test') throw new Error('ソースのテスト失敗');
+  }, skipShared), /ソースのテスト失敗/);
+  assert.deepEqual(calls, [['alpha', 'install'], ['alpha', 'test']]);
+  assert.equal(await readFile(join(root, 'tools', 'alpha', 'dist', '配布.html'), 'utf8'), toolHtml('alpha'));
+});
+
+test('release は共通テストに失敗しても同じ版の古い zip を残さない', async (t) => {
+  const root = await fixture(t);
+  await mkdir(join(root, 'out'));
+  const zip = join(root, 'out', 'toolbox-2026.10.03.zip');
+  await writeFile(zip, '前回の zip');
+  await assert.rejects(runRelease('2026.10.03', root,
+    () => assert.fail('ツールを実行してはいけない'),
+    () => { throw new Error('共通テスト失敗'); },
+  ), /共通テスト失敗/);
   await assert.rejects(access(zip));
 });
+
+for (const [command, createZip] of [['build', build], ['check', release]]) {
+  test(`${command} の zip に戻るリンクと版番号を追加し、登録順・英数字の名前・加工前HTMLを保持する`, async (t) => {
+    const root = await fixture(t);
+    await mkdir(join(root, 'build'));
+    await writeFile(join(root, 'build', 'old.html'), '<body>削除済みツール</body>');
+    const calls = [];
+    await createZip('2026.09.26', root, async (args, cwd) => {
+      calls.push([basename(cwd), args]);
+      if (args[0] === command) {
+        await mkdir(join(cwd, 'dist'));
+        await writeFile(join(cwd, 'dist', '配布.html'), toolHtml(`最新 ${basename(cwd)}`));
+      }
+    });
+    assert.deepEqual(calls, [
+      ['alpha', ['install', '--frozen-lockfile']],
+      ['alpha', [command]],
+      ['beta', ['install', '--frozen-lockfile']],
+      ['beta', [command]],
+    ]);
+    const target = join(root, 'out', 'toolbox-2026.09.26');
+    const entries = execFileSync('unzip', ['-Z1', `${target}.zip`], { encoding: 'utf8' })
+      .trim()
+      .split('\n');
+    assert.deepEqual(entries.filter((name) => !name.endsWith('/')).sort(), [
+      'toolbox-2026.09.26/index.html',
+      'toolbox-2026.09.26/tools/alpha.html',
+      'toolbox-2026.09.26/tools/beta.html',
+    ]);
+    assert.ok(entries.every((name) => /^[A-Za-z0-9./-]+$/.test(name)));
+    const index = await readFile(join(target, 'index.html'), 'utf8');
+    assert.ok(index.indexOf('alpha.html') < index.indexOf('beta.html'));
+    // カードのアイコンは各ツールの src/icon.png を埋め込む。
+    for (const dir of ['alpha', 'beta']) {
+      const png = await readFile(join(root, 'tools', dir, 'src', 'icon.png'));
+      assert.ok(index.includes(`src="${iconDataUrl(png)}"`));
+    }
+    for (const dir of ['alpha', 'beta']) {
+      const html = await readFile(join(target, 'tools', `${dir}.html`), 'utf8');
+      assert.ok(html.includes(`最新 ${dir}`));
+      assert.equal(html.match(/id="toolbox-version"/g).length, 1);
+      assert.equal(html.split(homeLink).length, 2);
+      assert.equal(html.includes(homeSlot), false);
+      const homeHref = /<a id="toolbox-home" [^>]*href="([^"]+)"/.exec(html)[1];
+      const toolUrl = pathToFileURL(join(target, 'tools', `${dir}.html`));
+      assert.equal(new URL(homeHref, toolUrl).href, pathToFileURL(join(target, 'index.html')).href);
+      assert.ok(html.includes('toolbox 2026.09.26'));
+      const zipped = execFileSync(
+        'unzip',
+        ['-p', `${target}.zip`, `toolbox-2026.09.26/tools/${dir}.html`],
+        { encoding: 'utf8' },
+      );
+      assert.equal(zipped, html);
+      assert.equal(
+        await readFile(join(root, 'tools', dir, 'dist', '配布.html'), 'utf8'),
+        toolHtml(`最新 ${dir}`),
+      );
+      assert.equal(await readFile(join(root, 'build', `${dir}.html`), 'utf8'), toolHtml(`最新 ${dir}`));
+    }
+    assert.deepEqual(await readdir(join(root, 'build')), ['alpha.html', 'beta.html']);
+  });
+
+  test(`${command} 途中で失敗したら zip を作らず、同じ版の古い zip も残さない`, async (t) => {
+    const root = await fixture(t);
+    const zip = join(root, 'out', 'toolbox-2026.09.26.zip');
+    await mkdir(join(root, 'out'));
+    await writeFile(zip, '古い zip');
+    const calls = [];
+    await assert.rejects(
+      createZip('2026.09.26', root, async (args, cwd) => {
+        calls.push([basename(cwd), args[0]]);
+        if (basename(cwd) === 'alpha' && args[0] === command) throw new Error('検証失敗');
+      }),
+      /検証失敗/,
+    );
+    assert.deepEqual(calls, [
+      ['alpha', 'install'],
+      ['alpha', command],
+    ]);
+    await assert.rejects(access(zip));
+    await assert.rejects(packageRelease('2026.09.26', root), /build\/alpha.html/);
+    await assert.rejects(access(zip));
+    await assert.rejects(createZip('v1', root), /日付形式/);
+    await writeFile(zip, '古い zip');
+    await rm(join(root, 'tools', 'beta', 'pnpm-lock.yaml'));
+    await assert.rejects(createZip('2026.09.26', root), /pnpm-lock.yaml/);
+    await assert.rejects(access(zip));
+  });
+}

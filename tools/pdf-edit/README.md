@@ -60,7 +60,6 @@ export PATH="$(brew --prefix node@24)/bin:$PATH"
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm check
 pnpm dev
 ```
 
@@ -69,6 +68,8 @@ pnpm dev
 依存パッケージの初回取得にはネット接続が必要です。利用者に配布するHTMLのオフライン動作とは別の条件です。
 
 ## コマンド
+
+通常は実装・必要なテスト作成・文書更新・コミットまでです。テスト・lint・型チェック・ビルドは指示時のみ実行します。ローカルzip作成とGitHub公開は[共通の開発・リリース手順](../../docs/development.md)に従います。
 
 | コマンド            | 内容                                                     |
 | ------------------- | -------------------------------------------------------- |
@@ -79,8 +80,9 @@ pnpm dev
 | `pnpm lint`         | ESLintで検査。警告も失敗として扱う                       |
 | `pnpm format`       | Prettierで整形                                           |
 | `pnpm format:check` | 整形状態を変更せず検査                                   |
-| `pnpm test`         | ビルドを作り直してVitestを実行                           |
-| `pnpm check`        | 整形・Lint・型・ビルド・テスト・差分の空白をまとめて検査 |
+| `pnpm test` | ソースのテストだけを実行（ビルド不要） |
+| `pnpm test:dist` | 生成済みHTMLだけを検証（事前に明示的なビルドが必要） |
+| `pnpm check` | 整形・lint・ソースのテスト・1回のビルド・配布HTMLのテスト・差分の空白検査 |
 
 `dist/`は生成物としてGit管理から除外しています。配布するファイルは`pnpm build`で生成する`dist/PDF編集.html`だけです。起動確認には、このファイルをChromeまたはEdgeで直接開いてください。`preview`で表示できても、`file://`での動作確認の代わりにはなりません。
 

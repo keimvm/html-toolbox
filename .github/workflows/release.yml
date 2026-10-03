@@ -1,6 +1,6 @@
 name: Release
 
-# GitHub の画面でリリースを公開すると、tools.json のツールを検査・ビルドし、
+# GitHub の画面または gh release create でリリースを公開すると、tools.json のツールを検査・ビルドし、
 # toolbox-<版>.zip をそのリリースに添付する。版番号はリリースのタグから取る。
 on:
   release:
@@ -29,7 +29,7 @@ jobs:
           node-version-file: .node-version
       - name: 版番号が日付形式か確認
         run: node scripts/toolbox.mjs check-version "$VERSION"
-      - run: node --test 'scripts/*.test.mjs'
+      - run: node --test 'scripts/*.test.mjs' 'ui/*.test.mjs'
       - id: list
         run: echo "tools=$(node scripts/toolbox.mjs list)" >> "$GITHUB_OUTPUT"
 

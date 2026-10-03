@@ -16,8 +16,9 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "pnpm build && vitest run",
-    "check": "pnpm format:check && pnpm lint && pnpm test && git diff --check"
+    "test": "vitest run --exclude tests/build.test.ts",
+    "test:dist": "vitest run tests/build.test.ts",
+    "check": "pnpm format:check && pnpm lint && pnpm test && pnpm build && pnpm test:dist && git diff --check"
   },
   "dependencies": {
     "diff": "9.0.0"

@@ -61,10 +61,11 @@ pnpm dev
 | ------------ | ---------------------------------------------------------- |
 | `pnpm dev`   | 開発サーバー（http://127.0.0.1:5174/）                     |
 | `pnpm build` | 型検査のあと、`dist/文字コード変換.html` を1ファイルで作る |
-| `pnpm test`  | ビルドし、Vitest で変換・対応表・配布物を検証              |
-| `pnpm check` | 整形・lint・テスト・`git diff --check`                     |
+| `pnpm test` | ソースのテストだけを実行（ビルド不要） |
+| `pnpm test:dist` | 生成済みHTMLだけを検証（事前に明示的なビルドが必要） |
+| `pnpm check` | 整形・lint・ソースのテスト・1回のビルド・配布HTMLのテスト・差分の空白検査 |
 
-リポジトリ直下からは `node scripts/toolbox.mjs check mojicode-converter` で検証します。
+テストの指示時は `node scripts/toolbox.mjs test mojicode-converter`、総合検証の指示時は `node scripts/toolbox.mjs check mojicode-converter` をリポジトリ直下で実行します。通常は実装・必要なテスト作成・文書更新・コミットまでです。ローカルzip作成とGitHub公開は、それぞれ指示時に [共通の開発・リリース手順](../../docs/development.md) に従います。
 
 ### ファイル配置
 

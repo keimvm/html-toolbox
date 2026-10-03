@@ -9,7 +9,7 @@
 | 技術 | 役割 | 採用理由 |
 | --- | --- | --- |
 | GitHub（private リポジトリ1つ） | 全ツールのソースと履歴の管理 | 既に使っている。1つにまとめることで、版を出す操作と版番号が1つで済む。private のまま、ほかのリポジトリを読むための鍵も要らない |
-| GitHub Releases | 版の記録と zip の置き場 | 画面からリリースを作る操作が、版を出す操作になる。過去の版の zip も残る |
+| GitHub Releases | 版の記録と zip の置き場 | CLI または画面からリリースを作る操作が、版を出す操作になる。過去の版の zip も残る |
 | GitHub Actions（`release` の `published` イベント、Linux ランナー） | リリース時の検査・ビルド・zip 作成・添付 | 手元の PC に何も入れずに、手作業をなくせる。GitHub Free なら private リポジトリで月2,000分まで無料（[公式](https://docs.github.com/en/billing/concepts/product-billing/github-actions)） |
 | 各ツールの既存のビルド環境（pdf-edit では Node.js・pnpm・Vite・vite-plugin-singlefile） | 各ツールを1ファイルの HTML にする | ツールの作り方を変えずに toolbox へ移せる |
 
@@ -32,26 +32,29 @@ ui/                  ← 全ツールと入口ページで共通の配色・部�
 - 画面上部に共通ヘッダー（`.tb-header`）を置き、左上の一角（`.tb-header-start`）に戻るリンクの位置・アイコンとツール名・表示の切り替えを書く。右側（`.tb-header-end`）は各ツールの操作。
 - ビルドの結果は、外部に何も読み込まない1ファイルの HTML になる。
 - 共通ヘッダーの左上の一角の先頭に `<template id="toolbox-home"></template>` を1つ置く。共通の配布加工処理でトップへのリンクに置き換える。
-- 検査とビルドを、決まった方法で呼べる（pdf-edit では `pnpm check` が検査とビルドを兼ねる）。
+- `pnpm test` はビルド不要のソースのテスト、`pnpm test:dist` は生成済みHTMLのテスト、`pnpm build` はテストなしのビルドにする。`pnpm check` は既存の整形・lint等の検査、ソースのテスト、1回のビルド、配布HTMLのテスト、差分の空白検査をまとめる。
 
 ### 開発時の検証
 
+- 通常のエージェント作業は実装・必要なテスト作成・文書更新・差分の読み直し・コミットまで。テスト・lint・型チェック・ビルドは指示時のみ実行し、未実行の確認を報告する。push・マージ・GitHub 公開も指示時のみ行う。
 - Check は main への push、PR、手動実行で動く。PR と作業ブランチへの push による二重実行を避ける。
 - 通常は Git の差分から、変更した登録済みツールだけを Linux・macOS・Windows で検証する。直下と各ツールの README・AGENTS.md・docs だけの変更ではツールのビルドを省略する。ツール一覧・共通スクリプト・ワークフローなどの変更と手動実行は全ツールを検証する。
 - 差分は push では直前のコミットとの比較、PR ではベースとの分岐点からの比較を使う。改名・削除も対象とし、比較失敗を「変更なし」にはしない。
 - 通常 CI とリリースは `.github/workflows/tool.yml` を共用する。依存取得 → `pnpm check` → 単一 HTML の確認・収集まで同じ手順を実行し、リリース時だけ収集した HTML を artifact に保存する。[GitHub の再利用可能なワークフロー](https://docs.github.com/ja/actions/how-tos/reuse-automations/reuse-workflows)を使用する。
-- 一覧の読み込み時に packageManager・scripts.check・ロックファイル・Node.js の版指定・アイコン（`src/icon.png`）を検査する。ツールの追加時にワークフローを編集する必要はない。
+- 一覧の読み込み時に packageManager・scripts.test / test:dist / build / check・ロックファイル・Node.js の版指定・アイコン（`src/icon.png`）を検査する。ツールの追加時にワークフローを編集する必要はない。
 - 直下スクリプトは Node.js の標準機能だけを使う。変更対象の選択や手元の一括実行のために、ルートの npm 依存や workspace は導入しない。
-- 手元では `node scripts/toolbox.mjs check [ツール名]` で依存取得から収集まで実行できる。`release <版>` は全ツールを作り直し、zip まで生成する。ローカルの Node.js は自動切り替えしない。
+- 手元では `node scripts/toolbox.mjs test [ツール名]` で共通部分とソースのテストを、`build <版>` でテストなしの全ツールのビルド・収集・zip作成を行う。`check [ツール名]` は共通テストと対象ツールの総合検証・収集、`release <版>` は全ツールの総合検証付きzip作成として維持する。ローカルの Node.js は自動切り替えしない。
 
 ### リリース時の処理
-1. GitHub の画面でリリースが公開されると動く。版番号はそのリリースのタグから取る。
+1. `gh release create <版> --target <公開対象SHA> --title <版> --notes-file <説明ファイル>` または GitHub の画面でリリースが公開されると動く。公開対象は push 済み・Check 成功済みのコミットにする。版番号はそのリリースのタグから取る。
 2. `tools.json` のツールごとに、そのツールの Node.js・pnpm の版で `pnpm install --frozen-lockfile` → 検査 → ビルドを行う。1つでも失敗したら、そこで止めて zip は添付しない。
 3. ビルドされた HTML を `tools/<フォルダ名>.html` として集め、指定位置をトップへの相対リンクに置き換え、画面の隅に版番号を書き足す。
 4. `tools.json` から入口ページ `index.html` を作る。一覧・版番号を HTML の中に直接書き込む。
 5. `toolbox-<版>/` にまとめて `toolbox-<版>.zip` を作り、リリースに添付する。
 
-リリース時は差分にかかわらず全ツールを検証する。過去の CI のビルド成果物を流用せず、リリースのタグからビルドする。これによりタグのソースと配布物の対応を保つ。通常 CI で対象を絞ることと、依存キャッシュ・共通ワークフローの利用で開発時の待ち時間と保守の手間を抑える。
+公開後にワークフローが失敗した場合、リリース自体は存在していてもzipは添付されない。Actionsの成功と添付まで確認して公開完了とする。
+
+リリース時は共通スクリプト・UI と、差分にかかわらず全ツールを検証する。過去の CI のビルド成果物を流用せず、リリースのタグからビルドする。これによりタグのソースと配布物の対応を保つ。通常 CI で対象を絞ることと、依存キャッシュ・共通ワークフローの利用で開発時の待ち時間と保守の手間を抑える。
 
 ## 選定に関わる制約
 - `file://` で開いた HTML からは、ほかのファイルを `fetch` で読めない（Chrome・Edge）。そのため入口ページは実行時に `tools.json` を読むのではなく、ビルド時に一覧を書き込んだ静的な HTML にする。
