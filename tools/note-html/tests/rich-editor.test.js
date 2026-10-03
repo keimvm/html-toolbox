@@ -117,6 +117,54 @@ test('連続するコードの間へ下矢印で本文を挿入し、履歴・�
   assert.equal($('rich-editor').querySelector('p').textContent, '間の本文');
 });
 
+test('下矢印で作った空の段落は何も入力せずに離れると消え、入力・改行した段落は残す', async () => {
+  const source = '```js\nfirst\n```\n\n```python\nsecond\n```';
+  const { app, editor, view, window } = await open(source);
+  const down = () => { selection(view, findText(view, 'first') + 5); press(view, window, 'ArrowDown'); };
+  // jsdomには矢印キーの既定のカーソル移動がないため、次のコードの先頭への移動で代える。
+  const leave = () => selection(view, findText(view, 'second'));
+  down(); leave();
+  assert.equal(view.state.doc.childCount, 2);
+  assert.equal(view.state.selection.$from.parent.textContent, 'second');
+  assert.equal(app.state.draft, source); assert.equal(app.dirty(), false);
+  editor.run('undo'); assert.equal(view.state.doc.childCount, 2); assert.equal(app.state.draft, source);
+  down(); selection(view, findText(view, 'first')); assert.equal(view.state.doc.childCount, 2);
+  down(); typeText(view, '間の本文'); leave();
+  assert.equal(view.state.doc.child(1).textContent, '間の本文');
+  editor.setMarkdown(source); down(); press(view, window, 'Enter'); leave();
+  assert.equal(view.state.doc.childCount, 4);
+});
+
+test('連続するコードの先頭で上矢印を押すと間に本文を作り、入力せずに離れると消える', async () => {
+  const source = '```js\nfirst\n```\n\n```python\nsecond\n```';
+  const { app, editor, view, window, $ } = await open(source);
+  const up = () => { selection(view, findText(view, 'second')); press(view, window, 'ArrowUp'); };
+  up();
+  assert.equal(view.state.doc.child(1).type.name, 'paragraph');
+  assert.equal(view.state.selection.$from.parent, view.state.doc.child(1));
+  editor.run('undo'); assert.equal(app.state.draft, source);
+  up(); selection(view, findText(view, 'first') + 5);
+  assert.equal(view.state.doc.childCount, 2); assert.equal(app.state.draft, source);
+  up(); typeText(view, '間の本文'); selection(view, findText(view, 'first'));
+  assert.equal(view.state.doc.child(1).textContent, '間の本文');
+  assert.ok(await app.save()); await app.reload();
+  assert.deepEqual([...$('rich-editor').querySelectorAll('pre')].map(node => node.textContent), ['first', 'second']);
+  assert.equal($('rich-editor').querySelector('p').textContent, '間の本文');
+});
+
+test('上矢印ではコードの途中・既存本文の後ろに段落を増やさず、先頭のコードの前には作れる', async () => {
+  const { editor, view, window } = await open('```\nfirst\n```\n\n```\nsecond\nthird\n```');
+  const before = view.state.doc;
+  selection(view, findText(view, 'third')); press(view, window, 'ArrowUp'); assert.equal(view.state.doc, before);
+  selection(view, findText(view, 'second'), findText(view, 'second') + 2); press(view, window, 'ArrowUp'); assert.equal(view.state.doc, before);
+  editor.setMarkdown('本文\n\n```\ncode\n```');
+  selection(view, findText(view, 'code')); press(view, window, 'ArrowUp'); assert.equal(view.state.doc.childCount, 2);
+  editor.setMarkdown('```\ncode\n```');
+  selection(view, 1); press(view, window, 'ArrowUp');
+  assert.equal(view.state.doc.firstChild.type.name, 'paragraph'); assert.equal(view.state.selection.from, 1);
+  selection(view, findText(view, 'code')); assert.equal(view.state.doc.childCount, 1);
+});
+
 test('下矢印では途中・選択中・既存本文の前に段落を増やさず、引用内の連続コードでも挿入できる', async () => {
   const { editor, view, window } = await open('```\nfirst\n```\n\n```\nsecond\n```');
   const before = view.state.doc;
@@ -130,25 +178,33 @@ test('下矢印では途中・選択中・既存本文の前に段落を増や�
   assert.equal(view.state.selection.$from.parent.type.name, 'paragraph');
 });
 
-test('3個のバッククォートで即座にコードへ変換し、Backspaceで記号に戻せる', async () => {
-  const { app, view, window } = await open('');
-  typeText(view, '``'); assert.equal(view.state.doc.firstChild.type.name, 'paragraph');
-  typeText(view, '`'); assert.equal(view.state.doc.firstChild.type.name, 'code_block'); assert.equal(view.state.doc.textContent, '');
-  press(view, window, 'Backspace'); assert.equal(view.state.doc.firstChild.type.name, 'paragraph'); assert.equal(view.state.doc.textContent, '```');
-  press(view, window, 'Backspace'); typeText(view, '`'); typeText(view, 'const x = 1;');
-  assert.equal(view.state.doc.firstChild.type.name, 'code_block'); assert.match(app.state.draft, /```\nconst x = 1;/);
+test('バッククォート・チルダ3個と言語名をEnterで確定するとコードになり、空のコードはBackspaceで本文へ戻る', async () => {
+  const { app, editor, view, window } = await open('');
+  typeText(view, '~~~ python '); assert.equal(view.state.doc.firstChild.type.name, 'paragraph');
+  press(view, window, 'Enter');
+  assert.equal(view.state.doc.firstChild.type.name, 'code_block'); assert.equal(view.state.doc.firstChild.attrs.params, 'python');
+  assert.equal(view.state.doc.textContent, ''); assert.equal(view.state.selection.$from.parent.type.name, 'code_block');
+  press(view, window, 'Backspace'); assert.equal(view.state.doc.firstChild.type.name, 'paragraph'); assert.equal(view.state.doc.textContent, '');
+  editor.run('undo'); assert.equal(view.state.doc.firstChild.type.name, 'code_block');
+  editor.run('undo'); assert.equal(view.state.doc.firstChild.type.name, 'paragraph'); assert.equal(view.state.doc.textContent, '~~~ python ');
+  editor.setMarkdown(''); typeText(view, '```'); assert.equal(view.state.doc.firstChild.type.name, 'paragraph');
+  typeText(view, 'js'); press(view, window, 'Enter'); typeText(view, 'const x = 1;');
+  assert.equal(view.state.doc.firstChild.attrs.params, 'js'); assert.match(app.state.draft, /```js\nconst x = 1;\n```/);
 });
 
-test('ハイフン3個で区切り線と後続の本文を作り、Backspaceと履歴で戻せる', async () => {
+test('区切り線の記法はEnterで確定し、後続の本文を作って履歴で戻せる', async () => {
   const { editor, view, window, app } = await open('');
-  typeText(view, '---');
+  typeText(view, '---'); assert.equal(view.state.doc.firstChild.type.name, 'paragraph');
+  press(view, window, 'Enter');
   assert.equal(view.state.doc.firstChild.type.name, 'horizontal_rule'); assert.equal(view.state.selection.$from.parent.type.name, 'paragraph');
-  press(view, window, 'Backspace'); assert.equal(view.state.doc.textContent, '---'); assert.equal(view.state.doc.childCount, 1);
-  press(view, window, 'Backspace'); typeText(view, '-');
-  editor.run('undo'); assert.equal(view.state.doc.firstChild.type.name, 'paragraph');
+  editor.run('undo'); assert.equal(view.state.doc.firstChild.type.name, 'paragraph'); assert.equal(view.state.doc.textContent, '---');
   editor.run('redo'); assert.equal(view.state.doc.firstChild.type.name, 'horizontal_rule');
   typeText(view, '続き'); assert.equal(view.state.doc.lastChild.textContent, '続き');
   assert.deepEqual(parseMarkdown(app.state.draft).toJSON(), view.state.doc.toJSON());
+  for (const rule of ['***', '___']) {
+    editor.setMarkdown(''); typeText(view, rule); press(view, window, 'Enter');
+    assert.equal(view.state.doc.firstChild.type.name, 'horizontal_rule', rule);
+  }
 });
 
 test('本文内のコードは閉じるバッククォートで変換し、後続本文に書式を残さない', async () => {
@@ -230,33 +286,33 @@ test('チェック操作とタスク追加がMarkdownに反映され、取り消
   assert.equal(editor.run('task'), true); assert.match(app.state.draft, /- \[ \] 本文/);
   selection(view, findText(view, '本文') + 2);
   view.dom.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-  assert.equal($('rich-editor').querySelectorAll('input:not([hidden])').length, 3);
+  assert.equal($('rich-editor').querySelectorAll('input[type=checkbox]:not([hidden])').length, 3);
 });
 
 test('ToDo記法の入力でチェックボックスを表示し、クリック・次項目・保存・再読み込みに対応する', async () => {
   const { app, view, window, $ } = await open('');
   typeText(view, '- [ ] ');
-  const checkbox = view.dom.querySelector('input:not([hidden])');
+  const checkbox = view.dom.querySelector('input[type=checkbox]:not([hidden])');
   assert.ok(checkbox); assert.equal(checkbox.checked, false);
   typeText(view, '作業'); checkbox.click();
   assert.match(app.state.draft, /- \[x\] 作業/);
   press(view, window, 'Enter'); typeText(view, '次の作業');
-  assert.deepEqual([...view.dom.querySelectorAll('input:not([hidden])')].map(input => input.checked), [true, false]);
+  assert.deepEqual([...view.dom.querySelectorAll('input[type=checkbox]:not([hidden])')].map(input => input.checked), [true, false]);
   assert.ok(await app.save()); await app.reload();
-  assert.deepEqual([...$('rich-editor').querySelectorAll('input:not([hidden])')].map(input => input.checked), [true, false]);
+  assert.deepEqual([...$('rich-editor').querySelectorAll('input[type=checkbox]:not([hidden])')].map(input => input.checked), [true, false]);
   assert.match($('rich-editor').textContent, /次の作業/);
 });
 
 test('ToDoへの変換はBackspace・Undo・Redoで戻せ、空の項目も保存後に残る', async () => {
   const { app, view, window, editor, $ } = await open('');
   typeText(view, '- [ ] '); press(view, window, 'Backspace');
-  assert.equal(view.dom.querySelector('input:not([hidden])'), null);
+  assert.equal(view.dom.querySelector('input[type=checkbox]:not([hidden])'), null);
   assert.equal(view.state.doc.textContent, '[ ] ');
   press(view, window, 'Backspace'); typeText(view, ' ');
-  editor.run('undo'); assert.equal(view.dom.querySelector('input:not([hidden])'), null);
-  editor.run('redo'); assert.ok(view.dom.querySelector('input:not([hidden])'));
+  editor.run('undo'); assert.equal(view.dom.querySelector('input[type=checkbox]:not([hidden])'), null);
+  editor.run('redo'); assert.ok(view.dom.querySelector('input[type=checkbox]:not([hidden])'));
   assert.ok(await app.save()); await app.reload();
-  assert.ok($('rich-editor').querySelector('input:not([hidden])'));
+  assert.ok($('rich-editor').querySelector('input[type=checkbox]:not([hidden])'));
   assert.equal($('rich-editor').querySelector('input').checked, false);
 });
 
@@ -264,16 +320,16 @@ test('完了済み・番号付き・入れ子のToDoを入力でき、本文・�
   const { view, editor } = await open('');
   for (const marker of ['- [x] ', '* [X] ', '1. [x] ']) {
     editor.setMarkdown(''); typeText(view, marker);
-    assert.equal(view.dom.querySelector('input:not([hidden])').checked, true);
+    assert.equal(view.dom.querySelector('input[type=checkbox]:not([hidden])').checked, true);
   }
   editor.setMarkdown('- 親\n  - 子'); selection(view, findText(view, '子')); typeText(view, '[ ] ');
-  assert.equal(view.dom.querySelectorAll('input:not([hidden])').length, 1);
+  assert.equal(view.dom.querySelectorAll('input[type=checkbox]:not([hidden])').length, 1);
   for (const source of ['本文', '```\n本文\n```', '| 列 |\n| --- |\n| 本文 |', '- 項目\n\n  本文']) {
     editor.setMarkdown(source); selection(view, findText(view, '本文')); typeText(view, '[ ] ');
-    assert.equal(view.dom.querySelector('input:not([hidden])'), null, source);
+    assert.equal(view.dom.querySelector('input[type=checkbox]:not([hidden])'), null, source);
   }
   editor.setMarkdown(''); typeText(view, '- \\[ ] ');
-  assert.equal(view.dom.querySelector('input:not([hidden])'), null);
+  assert.equal(view.dom.querySelector('input[type=checkbox]:not([hidden])'), null);
 });
 
 test('表のセル・行列を編集して保存し、先頭行削除後もヘッダーを保つ', async () => {
@@ -430,4 +486,103 @@ test('先に囲んだコードから右矢印で抜け、直後のBackspaceで�
   press(view, window, 'ArrowRight'); typeText(view, ' 本文');
   assert.equal($('rich-editor').querySelector('code').textContent, 'code');
   assert.equal(view.state.doc.firstChild.textContent, 'code 本文');
+});
+
+test('コード内のTabは字下げし、Enterは字下げを引き継ぎ、字下げだけの行のEnterで本文へ戻る', async () => {
+  const { editor, view, window } = await open('```\nif (a) {\n```');
+  const code = () => view.state.doc.firstChild.textContent;
+  selection(view, view.state.doc.content.size - 1);
+  press(view, window, 'Enter'); press(view, window, 'Tab'); typeText(view, 'run();');
+  assert.equal(code(), 'if (a) {\n    run();');
+  press(view, window, 'Enter'); assert.equal(code(), 'if (a) {\n    run();\n    ');
+  press(view, window, 'Tab', { shiftKey: true }); typeText(view, '}');
+  assert.equal(code(), 'if (a) {\n    run();\n}');
+  selection(view, 1, view.state.doc.content.size - 1); press(view, window, 'Tab');
+  assert.equal(code(), '    if (a) {\n        run();\n    }');
+  press(view, window, 'Tab', { shiftKey: true }); assert.equal(code(), 'if (a) {\n    run();\n}');
+  assert.equal(view.state.doc.childCount, 1);
+  editor.setMarkdown('```\n  a\n```'); selection(view, view.state.doc.content.size - 1);
+  press(view, window, 'Enter'); press(view, window, 'Enter');
+  assert.equal(code(), '  a'); assert.equal(view.state.selection.$from.parent.type.name, 'paragraph');
+});
+
+test('閉じ記号の入力で太字・斜体・取り消し線へ変換し、Backspaceで記号に戻せる', async () => {
+  const { editor, view, window, app } = await open('');
+  typeText(view, '本文 **太字** と *斜体* と ~~取消~~ と _下線_ 終わり');
+  assert.equal(view.dom.querySelector('strong').textContent, '太字');
+  assert.deepEqual([...view.dom.querySelectorAll('em')].map(node => node.textContent), ['斜体', '下線']);
+  assert.equal(view.dom.querySelector('s').textContent, '取消');
+  assert.equal(view.state.doc.textContent, '本文 太字 と 斜体 と 取消 と 下線 終わり');
+  assert.match(app.state.draft, /^本文 \*\*太字\*\* と \*斜体\* と ~~取消~~ と \*下線\* 終わり/);
+  editor.setMarkdown(''); typeText(view, '**a**'); press(view, window, 'Backspace');
+  assert.equal(view.state.doc.textContent, '**a**'); assert.equal(view.dom.querySelector('strong'), null);
+  for (const text of ['snake_case_name', '\\*\\*a**', '2 * 3 * 4', '****', '`**a**`']) {
+    editor.setMarkdown(''); typeText(view, text);
+    assert.equal(view.dom.querySelector('strong, em, s'), null, text);
+  }
+  assert.equal(view.dom.querySelector('code').textContent, '**a**');
+});
+
+test('リンク・画像の記法を閉じ括弧で変換し、開けないURLは文字のまま残す', async () => {
+  const { editor, view, app } = await open('');
+  typeText(view, '参照 [資料](https://example.com/a "題") と ![図](.assets/a.png) 続き');
+  const link = view.dom.querySelector('[data-md-link]');
+  assert.equal(link.textContent, '資料'); assert.equal(link.dataset.mdLink, 'https://example.com/a');
+  let image;
+  view.state.doc.descendants(node => { if (node.type.name === 'image') image = node; });
+  assert.equal(image.attrs.src, '.assets/a.png'); assert.equal(image.attrs.alt, '図');
+  assert.match(app.state.draft, /\[資料\]\(https:\/\/example\.com\/a "題"\) と !\[図\]\(\.assets\/a\.png\) 続き/);
+  editor.setMarkdown(''); typeText(view, '[x](javascript:alert) と \\[y](https://example.com)');
+  assert.equal(view.dom.querySelector('[data-md-link]'), null);
+});
+
+test('縦棒で区切った見出し行をEnterで確定すると表になり、最初のセルへ移動する', async () => {
+  const { editor, view, window, app } = await open('');
+  typeText(view, '| 項目 | **状態** |'); press(view, window, 'Enter');
+  assert.deepEqual([...view.dom.querySelectorAll('th')].map(node => node.textContent), ['項目', '状態']);
+  assert.equal(view.dom.querySelector('th strong').textContent, '状態');
+  typeText(view, 'a'); assert.equal(view.dom.querySelector('td').textContent, 'a');
+  assert.match(app.state.draft, /^\| 項目 \| \*\*状態\*\* \|\n\| --- \| --- \|\n\| a \| {2}\|/);
+  editor.setMarkdown(''); typeText(view, '| 列'); press(view, window, 'Enter');
+  assert.equal(view.dom.querySelector('table'), null);
+});
+
+test('Typoraと同じショートカットで見出し・段落・コード・ソース表示を切り替える', async () => {
+  const { app, view, window } = await open('本文');
+  const block = () => view.state.doc.firstChild;
+  selection(view, 1);
+  press(view, window, '2', selectAllKeys); assert.equal(block().type.name, 'heading'); assert.equal(block().attrs.level, 2);
+  press(view, window, '2', selectAllKeys); assert.equal(block().type.name, 'paragraph');
+  press(view, window, '3', selectAllKeys); press(view, window, '0', selectAllKeys); assert.equal(block().type.name, 'paragraph');
+  press(view, window, '1', selectAllKeys); press(view, window, 'Backspace');
+  assert.equal(block().type.name, 'paragraph'); assert.equal(block().textContent, '本文');
+  press(view, window, ...(selectAllKeys.metaKey ? ['c', { metaKey: true, altKey: true }] : ['k', { ctrlKey: true, shiftKey: true }]));
+  assert.equal(block().type.name, 'code_block');
+  view.dom.dispatchEvent(new window.KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true, ...selectAllKeys }));
+  assert.equal(app.state.mode, 'source');
+  window.dispatchEvent(new window.KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true, ...selectAllKeys }));
+  assert.equal(app.state.mode, 'rich');
+});
+
+test('コード右下の言語欄で言語を変更・取り消しでき、Enterでコードへ戻る', async () => {
+  const { editor, view, window, app, $ } = await open('```js\ncode\n```\n');
+  const input = () => $('rich-editor').querySelector('.code-language input');
+  assert.equal(input().value, 'js');
+  input().value = 'py`thon '; input().dispatchEvent(new window.Event('change'));
+  assert.equal(view.state.doc.firstChild.attrs.params, 'python'); assert.match(app.state.draft, /^```python\ncode\n```/);
+  editor.run('undo'); assert.equal(view.state.doc.firstChild.attrs.params, 'js'); assert.equal(input().value, 'js');
+  input().value = 'ts'; input().dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  assert.equal(view.state.doc.firstChild.attrs.params, 'ts'); assert.equal(view.state.selection.$from.parent.type.name, 'code_block');
+  editor.setEditable(false); assert.equal(input().disabled, true);
+});
+
+test('文字だけの貼り付けはMarkdownとして書式にし、Shift付きでは文字のまま貼る', async () => {
+  const { view } = await open('本文');
+  const parse = (text, plain) => view.someProp('clipboardTextParser', parser => parser(text, view.state.selection.$from, plain, view));
+  const blocks = parse('# 見出し\r\n\r\n- **項目**', false).content;
+  assert.deepEqual([blocks.child(0).type.name, blocks.child(1).type.name], ['heading', 'bullet_list']);
+  assert.ok(!parse('# 見出し', true));
+  selection(view, 3); view.dispatch(view.state.tr.replaceSelection(parse('と **太字**', false)));
+  assert.equal(view.state.doc.childCount, 1); assert.equal(view.state.doc.textContent, '本文と 太字');
+  assert.equal(view.dom.querySelector('strong').textContent, '太字');
 });

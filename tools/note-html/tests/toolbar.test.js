@@ -44,7 +44,7 @@ test('書式メニューで本文・リストにチェックボックスを付�
     const wasTask = source.includes('[x]');
     $('format-panel').showPopover(); button.click();
     assert.equal(button.getAttribute('aria-pressed'), String(!wasTask), source);
-    assert.equal($('rich-editor').querySelectorAll('input:not([hidden])').length, wasTask ? 0 : 1, source);
+    assert.equal($('rich-editor').querySelectorAll('input[type=checkbox]:not([hidden])').length, wasTask ? 0 : 1, source);
     assert.equal(editor.view.state.doc.textContent, '本文');
     editor.run('undo'); assert.equal(app.state.draft, source);
     assert.equal(button.getAttribute('aria-pressed'), String(wasTask), source);

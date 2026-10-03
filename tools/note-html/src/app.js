@@ -587,6 +587,8 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
   });
   window.addEventListener('keydown', event => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') { event.preventDefault(); if (!locked() && !document.querySelector('dialog[open]')) void save(); }
+    // Typora と同じく Cmd / Ctrl+/ で Markdownソースと本文を切り替える。
+    if ((event.metaKey || event.ctrlKey) && event.key === '/' && !event.isComposing) { event.preventDefault(); if (!document.querySelector('dialog[open]')) toggleSource(); }
   });
   // 本文への追加は rich-editor.js が受け付ける。それ以外の場所に落としたファイルで画面を離れないようにする。
   const stopFileDrop = watchFileDrop({ window });

@@ -426,6 +426,16 @@ body {
 .rich-document .image-node { display: inline-block; max-width: 100%; vertical-align: middle; white-space: normal; }
 .rich-document .image-node img { display: block; }
 .rich-document .editor-link { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; cursor: text; }
+.rich-document .code-block { position: relative; }
+.rich-document .code-block > pre { padding-bottom: 34px; }
+.rich-document .code-language { position: absolute; right: 8px; bottom: 6px; opacity: 0; transition: opacity .12s; }
+.rich-document .code-block:hover .code-language,
+.rich-document .code-block.is-active .code-language,
+.rich-document .code-block.has-language .code-language,
+.rich-document .code-language:focus-within { opacity: 1; }
+.rich-document .code-language > input { width: 10em; padding: 1px 6px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--muted); font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-align: right; }
+.rich-document .code-language > input:hover:not(:disabled) { border-color: var(--line); }
+.rich-document .code-language > input:focus { border-color: var(--blue); background: var(--paper); color: var(--ink); outline: none; text-align: left; }
 .rich-document .raw-block { white-space: pre-wrap; background: var(--tb-warning-tint); }
 .rich-document .raw-block::before { content: '原文を保持 · 編集は Markdownソースから'; display: block; color: var(--muted); font: 11px sans-serif; margin-bottom: 8px; }
 .link-dialog { width: 440px; }
