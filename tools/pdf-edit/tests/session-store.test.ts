@@ -7,7 +7,7 @@ import {
   type SessionSource,
 } from '../src/session-store';
 import { sessionKey } from '../../../ui/session-key.js';
-import { createSamplePdf } from '../src/sample';
+import { createSamplePdf } from './sample-pdf';
 
 let factory: IDBFactory;
 beforeEach(() => {

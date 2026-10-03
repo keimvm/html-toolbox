@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { beforeAll, afterAll, expect, test, vi } from 'vitest';
 import { PdfRuntime } from '../src/pdf/runtime';
-import { createSamplePdf } from '../src/sample';
+import { createSamplePdf } from './sample-pdf';
 import type { EditorPage } from '../src/editor';
 
 const require = createRequire(import.meta.url);

@@ -8,7 +8,6 @@ import { renderIcons } from './icons';
 import { PdfClient } from './pdf/client';
 import type { Inspection, PageElement } from './pdf/types';
 import type { PdfDocumentObject } from '@embedpdf/models';
-import { createSamplePdf } from './sample';
 import {
   currentPreviewPage,
   isPreviewZoom,
@@ -196,7 +195,7 @@ function updateControls() {
   $('.pc-filename').textContent = filename;
   $('#pc-empty').setAttribute('aria-busy', String(busy));
   $('#pc-workbench').setAttribute('aria-busy', String(busy));
-  for (const action of ['open', 'sample', 'add', 'close-document'])
+  for (const action of ['open', 'add', 'close-document'])
     setDisabled(action, false);
   for (const action of ['save', 'rotate', 'inspect', 'confirm-save'])
     setDisabled(action, empty);
@@ -850,11 +849,6 @@ $('#pdf-calm').addEventListener('click', (event) => {
     case 'open':
     case 'add':
       input.click();
-      break;
-    case 'sample':
-      void task('サンプルPDFを開いています…', () =>
-        openBuffer(createSamplePdf(), 'ワークプレイス計画.pdf'),
-      );
       break;
     case 'close-document':
       void closeDocument();
