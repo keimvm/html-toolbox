@@ -51,7 +51,8 @@ test('遅い設定の読み出しで操作を巻き戻さず、連続変更を�
 });
 
 test('壊れた記録と保存障害でも標準表示・サイズ変更を利用できる', async () => {
-  for (const value of [{ version: 2, fontSize: 16 }, { version: 1, fontSize: 999 }, { version: 1, fontSize: '18' }]) assert.throws(() => readDisplay(value));
+  for (const value of [{ version: 2, fontSize: 16 }, { version: 3, fontSize: 16, uiFont: '' }, { version: 3, fontSize: 16, uiFont: '', uiScale: 75 }, { version: 1, fontSize: 999 }, { version: 1, fontSize: '18' }]) assert.throws(() => readDisplay(value));
+  assert.deepEqual(readDisplay({ version: 2, fontSize: 18, uiFont: 'Meiryo' }), { fontSize: 18, uiFont: 'Meiryo', uiScale: 100 });
   const store = new MemoryLayoutStore({ version: 1, fontSize: 999 });
   const context = await setup(null, { autoOpen: false, displayStore: store });
   assert.equal(context.$('font-size').value, '16');
@@ -68,7 +69,7 @@ test('終了後に戻った文字サイズの記録を画面へ反映しない',
   context.app.dispose(); release(); await tick(); assert.equal(context.$('font-size').value, '16');
 });
 
-test('設定でUIフォントを指定・解除し、旧サイズ設定を移行して本文と履歴を維持する', async () => {
+test('設定でUIフォントとUIフォントサイズを指定・解除し、旧サイズ設定を移行して本文と履歴を維持する', async () => {
   const context = await setup(new MemoryDirectory('root', [new MemoryFile('note.md', '本文')]), { displayStore: new MemoryLayoutStore({ version: 1, fontSize: 20 }) });
   const { app, $, window, displayStore } = context;
   await app.openNote('note.md');
@@ -76,13 +77,17 @@ test('設定でUIフォントを指定・解除し、旧サイズ設定を移行
   editor.view.dispatch(editor.view.state.tr.insertText('追記', 1)); const draft = app.state.draft;
   $('options-toggle').click(); $('settings-open').click(); assert.ok($('settings-dialog').open);
   $('ui-font').value = 'Hiragino Sans'; $('ui-font').dispatchEvent(new window.Event('change'));
+  assert.equal($('ui-font-size').value, '100');
+  $('ui-font-size').value = '120'; $('ui-font-size').dispatchEvent(new window.Event('change'));
+  assert.equal(window.document.documentElement.style.getPropertyValue('--ui-scale'), '1.2');
   change(context, 24);
   $('settings-close').click(); await app.flushDisplay();
-  assert.deepEqual(displayStore.record, { version: 2, fontSize: 24, uiFont: 'Hiragino Sans' });
+  assert.deepEqual(displayStore.record, { version: 3, fontSize: 24, uiFont: 'Hiragino Sans', uiScale: 120 });
   assert.equal(app.richEditor, editor); assert.equal(app.state.draft, draft); assert.ok(app.dirty());
   assert.equal(window.document.activeElement, $('options-toggle'));
   const next = await setup(null, { autoOpen: false, displayStore });
-  assert.equal(next.$('ui-font').value, 'Hiragino Sans'); assert.equal(next.$('font-size').value, '24');
+  assert.equal(next.$('ui-font').value, 'Hiragino Sans'); assert.equal(next.$('font-size').value, '24'); assert.equal(next.$('ui-font-size').value, '120');
+  assert.equal(next.window.document.documentElement.style.getPropertyValue('--ui-scale'), '1.2');
   assert.match(next.window.document.documentElement.style.getPropertyValue('--ui-font-family'), /Hiragino Sans/);
   next.$('ui-font').value = ''; next.$('ui-font').dispatchEvent(new next.window.Event('change'));
   assert.equal(next.window.document.documentElement.style.getPropertyValue('--ui-font-family'), '');

@@ -15,7 +15,7 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
   const document = window.document;
   const $ = id => document.getElementById(id);
   const ui = Object.fromEntries(['open-folder', 'welcome-open', 'reload', 'tree', 'file-name', 'file-path', 'source-mode', 'return-to-note', 'rich-editor', 'format-toolbar', 'format-toggle', 'save', 'save-status', 'notice', 'notice-text', 'notice-action', 'notice-close', 'format-warning', 'welcome', 'welcome-title', 'welcome-text', 'preview', 'editor', 'confirm-dialog', 'confirm-title', 'confirm-text', 'confirm-actions'].map(id => [id, $(id)]));
-  ui.export = $('export'); ui['font-size'] = $('font-size');
+  ui.export = $('export'); ui['font-size'] = $('font-size'); ui['ui-font-size'] = $('ui-font-size');
   const toolbar = createToolbar(window);
   const welcomeDefaults = { title: [...ui['welcome-title'].childNodes].map(node => node.cloneNode(true)), text: [...ui['welcome-text'].childNodes].map(node => node.cloneNode(true)) };
   const supported = Boolean(window.isSecureContext && typeof window.showDirectoryPicker === 'function' && window.FileSystemFileHandle?.prototype.createWritable && window.FileSystemHandle?.prototype.requestPermission);
@@ -71,7 +71,7 @@ export function createApp(window, { sessionStore = createSessionStore(window), l
     ui['format-toggle'].disabled = !current || disabled || state.composing || !richEditor || Boolean(current.format.problem);
     if (disabled || state.mode === 'source' || !current) toolbar.closeAll();
     ui.export.disabled = !current || disabled || state.composing;
-    ui['font-size'].disabled = disabled || state.composing;
+    ui['font-size'].disabled = ui['ui-font-size'].disabled = disabled || state.composing;
     $('settings-open').disabled = disabled || state.composing;
     ui['source-mode'].textContent = state.mode === 'source' ? '本文に戻る' : 'Markdownソース';
     richEditor?.setEditable(Boolean(current && !current.format.problem && !disabled && state.mode === 'rich'));

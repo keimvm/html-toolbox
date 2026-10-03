@@ -20,13 +20,15 @@
   background: var(--bg);
   /* 画面の既定は共通の書体。本文（.markdown）は document.css の書体のまま。 */
   font-family: var(--ui-font-family, var(--tb-font));
+  /* 設定の「UIフォントサイズ」の倍率。本文・ソース（--note-font-size）と案内画面の見出しには掛けない。 */
+  --ui-scale: 1;
 }
 .markdown { font-family: var(--default-font-family); }
 :where(button, textarea, input, select):where(:not(.tb-button, .tb-input)) {
   font: inherit;
 }
 .tb-button {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
 }
 .text-button {
   min-height: 30px;
@@ -34,7 +36,7 @@
   padding: 4px 6px;
   color: var(--muted);
   font-weight: 400;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
 }
 button:focus-visible {
   position: relative;
@@ -133,7 +135,7 @@ body {
   padding: 0 3px 16px;
 }
 .tree-empty {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   color: var(--muted);
   line-height: 1.9;
   margin: 20px 10px;
@@ -146,16 +148,16 @@ body {
 .tree-row {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 6px;
   width: 100%;
-  min-height: 39px;
+  min-height: 28px;
   border: 1px solid transparent;
   border-radius: var(--tb-radius);
   text-align: left;
   justify-content: flex-start;
-  padding: 7px 9px;
-  padding-left: calc(7px + var(--depth,0)*18px);
-  font-size: 14px;
+  padding: 3px 8px;
+  padding-left: calc(7px + var(--depth,0)*16px);
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 400;
 }
 .tree-row .row-name {
@@ -164,7 +166,7 @@ body {
 }
 .tree-row.root-row {
   font-weight: 600;
-  margin-bottom: 7px;
+  margin-bottom: 4px;
 }
 .tree-row[aria-current=page] {
   border-color: color-mix(in srgb, var(--tb-gold) 65%, var(--tb-line));
@@ -184,17 +186,17 @@ body {
   flex: none;
 }
 .tree-hint {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   line-height: 1.7;
   color: var(--muted);
-  margin: 4px 0 9px;
-  padding-left: calc(34px + var(--depth,0)*18px);
+  margin: 2px 0 6px;
+  padding-left: calc(27px + var(--depth,0)*16px);
 }
 .tree-retry {
   border: 0;
   padding: 1px 4px;
   min-height: 25px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   color: var(--blue);
   text-decoration: underline;
 }
@@ -235,7 +237,7 @@ body {
   overflow: hidden;
 }
 .note-location h1 {
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   line-height: 1.5;
   font-weight: 600;
   margin: 0;
@@ -255,7 +257,7 @@ body {
   padding: 5px 12px;
 }
 #save-status {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   white-space: nowrap;
   max-width: 112px;
   overflow: hidden;
@@ -275,7 +277,7 @@ body {
   border: 1px solid color-mix(in srgb, var(--tb-danger) 40%, var(--tb-surface));
   background: var(--tb-danger-tint);
   border-radius: 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 1.7;
 }
 .notice p {
@@ -283,7 +285,7 @@ body {
   margin: 0;
 }
 .notice button {
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   min-height: 30px;
   padding: 4px 8px;
 }
@@ -291,7 +293,7 @@ body {
   margin: 0 28px 12px;
   padding: 12px 14px;
   background: var(--tb-warning-tint);
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   line-height: 1.7;
 }
 .welcome {
@@ -333,7 +335,7 @@ body {
 }
 .welcome p {
   line-height: 1.95;
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
   color: var(--muted);
   margin: 22px 0 26px;
 }
@@ -346,7 +348,7 @@ body {
   padding: 5px 7px;
   min-height: 32px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 400;
 }
 .source-button[aria-pressed=true] { background: var(--tb-tint); color: var(--ink); }
@@ -355,19 +357,19 @@ body {
   padding: 5px 8px;
   gap: 5px;
   border: 0;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   font-weight: 400;
 }
 .note-actions:has(#format-panel:popover-open) #format-toggle,
 .note-actions:has(#options-panel:popover-open) #options-toggle { background: var(--tb-tint); }
 .toolbar-button .menu-chevron { width: 11px; height: 11px; transform: rotate(90deg); }
-#options-toggle { width: 32px; font-size: 24px; line-height: 1; }
+#options-toggle { width: 32px; font-size: calc(24px * var(--ui-scale)); line-height: 1; }
 .toolbar-panel { width: 344px; }
 .options-panel { width: 240px; }
 .options-panel:popover-open { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
 .options-panel .source-button { text-align: left; justify-content: flex-start; min-height: 36px; color: var(--ink); }
 .options-panel .font-size-label { justify-content: space-between; padding: 4px 7px 10px; }
-.menu-path { margin: 6px 0 0; padding: 10px 7px 2px; border-top: 1px solid var(--line); font-size: 11px; line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
+.menu-path { margin: 6px 0 0; padding: 10px 7px 2px; border-top: 1px solid var(--line); font-size: calc(11px * var(--ui-scale)); line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
 .format-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -380,7 +382,7 @@ body {
 .format-toolbar summary {
   min-height: 30px;
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-scale));
   border: 0;
   border-radius: 4px;
   color: var(--ink);
@@ -439,11 +441,11 @@ body {
 .rich-document .raw-block { white-space: pre-wrap; background: var(--tb-warning-tint); }
 .rich-document .raw-block::before { content: '原文を保持 · 編集は Markdownソースから'; display: block; color: var(--muted); font: 11px sans-serif; margin-bottom: 8px; }
 .link-dialog { width: 440px; }
-.link-dialog label { display: block; font-size: 12px; margin-top: 15px; }
-.link-dialog input { display: block; width: 100%; margin-top: 4px; font-size: 14px; }
+.link-dialog label { display: block; font-size: calc(12px * var(--ui-scale)); margin-top: 15px; }
+.link-dialog input { display: block; width: 100%; margin-top: 4px; font-size: calc(14px * var(--ui-scale)); }
 .link-dialog [role=alert] { color: var(--red); }
 .link-dialog .tb-dialog-actions { margin-top: 22px; }
-.link-dialog .tb-dialog-actions button { font-size: 12px; padding: 6px 8px; }
+.link-dialog .tb-dialog-actions button { font-size: calc(12px * var(--ui-scale)); padding: 6px 8px; }
 #editor {
   flex: 1;
   resize: none;
@@ -471,13 +473,13 @@ dialog h2 {
   font-family: var(--tb-font-display);
   font-weight: 500;
   letter-spacing: .03em;
-  font-size: 20px;
+  font-size: calc(20px * var(--ui-scale));
   line-height: 1.5;
   margin: 0 0 14px;
 }
 dialog p,
 dialog ol {
-  font-size: 14px;
+  font-size: calc(14px * var(--ui-scale));
 }
 dialog .tb-dialog-actions.tb-stack button {
   min-height: 42px;
@@ -487,7 +489,7 @@ dialog form {
   margin-top: 20px;
 }
 dialog summary {
-  font-size: 13px;
+  font-size: calc(13px * var(--ui-scale));
   cursor: pointer;
 }
 noscript {
@@ -502,8 +504,8 @@ noscript {
     padding: 12px 30px;
   }
   .tree-row {
-    font-size: 15px;
-    min-height: 43px;
+    font-size: calc(13px * var(--ui-scale));
+    min-height: 30px;
   }
 }
 @media (max-width:1050px) {
@@ -519,7 +521,7 @@ noscript {
 @container note-header (max-width:600px) {
   .note-heading { gap: 4px; }
   .note-actions { gap: 2px; }
-  #save-status { max-width: 60px; font-size: 11px; }
+  #save-status { max-width: 60px; font-size: calc(11px * var(--ui-scale)); }
 }
 @container note-header (max-width:400px) {
   .return-label { display: none; }
@@ -570,8 +572,8 @@ noscript {
   }
 }
 
-.font-size-label { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
-#font-size { padding: 5px; }
+.font-size-label { display: inline-flex; align-items: center; gap: 5px; font-size: calc(12px * var(--ui-scale)); color: var(--muted); }
+#font-size, #ui-font-size { padding: 5px; }
 #print-document { display: none; }
 @media print {
   :root { background: white; }
@@ -583,15 +585,15 @@ noscript {
 .tree-item-row { position: relative; display: flex; align-items: center; }
 .tree-item-row > .tree-row { flex: 1; min-width: 0; padding-right: 30px; }
 .tree-item-row .root-row { margin-bottom: 0; }
-.tree-entry-menu { position: absolute; right: 3px; min-height: 30px; width: 27px; padding: 0; border: 0; font-size: 19px; font-weight: 400; color: var(--muted); }
+.tree-entry-menu { position: absolute; right: 3px; min-height: 24px; width: 27px; padding: 0; border: 0; font-size: calc(19px * var(--ui-scale)); font-weight: 400; color: var(--muted); }
 .tree-item-row:has([aria-current=page]) .tree-entry-menu { color: var(--ink); }
 #entry-menu { width: 340px; }
-#entry-menu h2 { overflow-wrap: anywhere; font-size: 16px; }
+#entry-menu h2 { overflow-wrap: anywhere; font-size: calc(16px * var(--ui-scale)); }
 .entry-menu-actions { display: grid; gap: 5px; }
 .entry-menu-actions button { justify-content: flex-start; border: 0; }
-#entry-name-label, #settings-dialog > label { display: block; font-size: 13px; margin-top: 18px; }
+#entry-name-label, #settings-dialog > label { display: block; font-size: calc(13px * var(--ui-scale)); margin-top: 18px; }
 #entry-name, #ui-font { display: block; width: 100%; padding: 9px; margin-top: 6px; }
 #entry-error { color: var(--red); }
-#ui-font-hint { color: var(--muted); font-size: 12px; line-height: 1.7; }
+#ui-font-hint { color: var(--muted); font-size: calc(12px * var(--ui-scale)); line-height: 1.7; }
 #settings-dialog .font-size-label { display: flex; justify-content: space-between; color: var(--ink); }
 #confirm-text { overflow-wrap: anywhere; }
