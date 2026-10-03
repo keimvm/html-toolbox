@@ -11,6 +11,7 @@
 - `scripts/` は Node.js の標準機能だけで書き、npm の依存を足さない。`scripts/`・`ui/` を変更したら `node --test 'scripts/*.test.mjs' 'ui/*.test.mjs'` を実行する。
 - ツールの追加は `tools.json` とツール内の設定で完結させる。CI・リリースの共通手順は `.github/workflows/tool.yml` に置き、各ワークフローへ複製しない。
 - 変更ツールの確認には `node scripts/toolbox.mjs check <フォルダ名>`、手元の配布物作成には `node scripts/toolbox.mjs release <版>` を使う。`package` はビルド済み HTML の梱包だけなので、最新ソースの検証の代わりにしない。
+- 修正したら、検証が通った後に毎回、変更をコミットし、`node scripts/toolbox.mjs release <今日の日付>`（例：`2026.10.03`）で手元の配布物を作り直す。同じ日に作り直しても `.2` などの枝番を付けず、同じ版で上書きする。push・マージ・GitHub のリリース公開は、指示があるまで行わない。
 - 配布物はネット接続なし・`file://` で動く必要がある。CDN・外部サイトの読み込みを入れない。
 - zip の中の名前は英数字と `-` `.` だけにする。
 - 要件の「今は扱わない」（カテゴリ分け、検索、更新履歴、自動更新など）を実装しない。
