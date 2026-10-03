@@ -1,5 +1,12 @@
 # 実装・検証記録
 
+## Windows の Ctrl+Shift+K / Ctrl+Shift+I（2026年10月3日）
+
+GitHub の Check（Ubuntu・Windows）で、Typora と同じショートカットのテストが失敗していた。prosemirror-keymap は Shift 付きの文字キーに合う割り当てがないと Shift なしでも探すため、先に並ぶキーマップの `Mod-k`（リンク）と `Mod-i`（斜体）が、Windows の Ctrl+Shift+K（コードブロック）と Ctrl+Shift+I（画像の挿入）より先に反応していた。Typora のショートカットのキーマップを先に置くようにした。Mac の割り当ては変えていない。
+
+- `navigator.platform` を Linux に置き換えた Node.js で `tests/rich-editor.test.js` を実行し、失敗の再現と修正後の成功を確認した。macOS のままでも同じファイルが成功した。
+- 全ツールのテスト・ビルド、実ブラウザーでの Windows のキー操作は未確認。
+
 ## ファイルツリーの表示を詰める（2026年10月3日）
 
 ファイルツリーの標準の文字サイズを13pxから12px（幅1500px以上は14pxから13px）にさらに小さくし、行を詰めた。行の最小の高さを39pxから28px（幅1500px以上は43pxから30px）、上下の余白を7pxから3px、アイコンと名前の間を9pxから6px、階層ごとの字下げを18pxから16pxにした。行の右端の「⋯」とルート行の下の余白、読み込み中の表示もこれに合わせた。幅680px以下の行の最小の高さは従来の34pxのままとした。指で操作する端末（`pointer: coarse`）でも幅680pxを超える場合は28pxになる。

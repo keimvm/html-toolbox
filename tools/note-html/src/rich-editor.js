@@ -612,7 +612,8 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
         markInput(/(^|[^*])\*\*([^*\s](?:[^*]*[^*\s])?)\*\*$/, 'strong', 2), markInput(/(^|[^_\p{L}\p{N}])__([^_\s](?:[^_]*[^_\s])?)__$/u, 'strong', 2),
         markInput(/(^|[^*])\*([^*\s](?:[^*]*[^*\s])?)\*$/, 'em', 1), markInput(/(^|[^_\p{L}\p{N}])_([^_\s](?:[^_]*[^_\s])?)_$/u, 'em', 1),
         markInput(/(^|[^~])~~([^~\s](?:[^~]*[^~\s])?)~~$/, 'strike', 2)] }),
-      history(), keymap({ 'Mod-z': undo, 'Shift-Mod-z': redo, 'Mod-y': redo, 'Mod-b': commands.strong, 'Mod-i': commands.em, 'Mod-`': commands.code,
+      // prosemirror-keymap は Shift 付きの文字キーに合う割り当てがないと Shift なしでも探すため、Ctrl+Shift+K が先に Mod-k（リンク）にならないよう Typora のショートカットを先に置く。
+      history(), keymap(shortcuts), keymap({ 'Mod-z': undo, 'Shift-Mod-z': redo, 'Mod-y': redo, 'Mod-b': commands.strong, 'Mod-i': commands.em, 'Mod-`': commands.code,
         'Mod-a': selectCode, ...(mac ? { 'Ctrl-a': codeLineSide(-1), 'Ctrl-e': codeLineSide(1) } : {}),
         'Mod-k': () => { openLinkDialog(); return true; }, Backspace: chainCommands(undoInputRule, backspaceBlock),
         Enter: chainCommands(tableNext, fenceEnter, ruleEnter, tableEnter, exitCodeOnEmptyLine, codeNewline, (state, dispatch) => splitListItem(schema.nodes.list_item, { checked: ancestor(state, 'list_item')?.node.attrs.checked == null ? null : false })(state, dispatch)),
@@ -620,7 +621,7 @@ export function createRichEditor({ window, container, toolbar, source, root, pat
         ArrowRight: exitInlineCode,
         Tab: chainCommands(indentCode(false), tableNext, sinkListItem(schema.nodes.list_item)), 'Shift-Tab': chainCommands(indentCode(true), (state, dispatch) => inTable(state) && goToNextCell(-1)(state, dispatch), liftListItem(schema.nodes.list_item)),
         'Shift-Enter': chainCommands(exitCode, hardBreak), 'Mod-Enter': exitCode,
-      }), keymap(shortcuts), keymap(baseKeymap), gapCursor(), dropCursor(), tableEditing(),
+      }), keymap(baseKeymap), gapCursor(), dropCursor(), tableEditing(),
       new Plugin({ key: pendingParagraph,
         state: {
           init: () => null,
