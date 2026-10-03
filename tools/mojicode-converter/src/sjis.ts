@@ -15,15 +15,6 @@ function isNecSelectedIbm(code: number): boolean {
   return code >= 0xed40 && code <= 0xeefc;
 }
 
-/** 機種依存文字・外字の範囲。標準の JIS X 0208 にない領域。 */
-export function vendorArea(code: number): string | undefined {
-  if (code >= 0x8740 && code <= 0x879c) return 'NEC特殊文字';
-  if (isNecSelectedIbm(code)) return 'NEC選定IBM拡張文字';
-  if (code >= 0xfa40 && code <= 0xfc4b) return 'IBM拡張文字';
-  if (code >= 0xf040 && code <= 0xf9fc) return '外字';
-  return undefined;
-}
-
 /** 1バイトの文字。WHATWG の Shift_JIS と同じく、00〜80 はそのまま、A1〜DF は半角カタカナ。 */
 function singleByte(byte: number): number | undefined {
   if (byte <= 0x80) return byte;

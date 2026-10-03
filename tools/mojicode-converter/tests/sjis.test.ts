@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { ShiftJisTable, vendorArea } from '../src/sjis';
+import { ShiftJisTable } from '../src/sjis';
 import { readBestFit932, readCp932 } from './cp932';
 
 // Node.js の TextDecoder（ICU）で表を作る。配布物ではブラウザーの TextDecoder を使う。
@@ -142,12 +142,4 @@ describe('文字 → コード', () => {
     expect(table.codesOf(0x2170)).toEqual([0xeeef, 0xfa40]);
     expect(table.decode(0xeeef)).toBe(0x2170);
   });
-});
-
-test('機種依存文字・外字の区分', () => {
-  expect(vendorArea(0x8740)).toBe('NEC特殊文字');
-  expect(vendorArea(0xed40)).toBe('NEC選定IBM拡張文字');
-  expect(vendorArea(0xfbfc)).toBe('IBM拡張文字');
-  expect(vendorArea(0xf040)).toBe('外字');
-  expect(vendorArea(0x82a0)).toBeUndefined();
 });

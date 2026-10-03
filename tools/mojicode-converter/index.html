@@ -96,66 +96,33 @@
         </div>
       </section>
 
-      <div class="mc-derived" id="mc-derived">
-        <div class="mc-columns">
-          <section class="mc-panel" aria-labelledby="mc-preview-title">
-            <div class="mc-panel-head">
-              <h2 id="mc-preview-title">大きく表示</h2>
-            </div>
-            <div class="mc-font">
-              <label for="mc-font">フォント</label>
-              <input
-                id="mc-font"
-                class="tb-input"
-                list="mc-font-list"
-                placeholder="標準（フォント名を入力）"
-                spellcheck="false"
-                autocomplete="off"
-                aria-describedby="mc-font-status"
-              />
-              <datalist id="mc-font-list"></datalist>
-              <button type="button" class="tb-button" id="mc-font-load" hidden>
-                PCのフォントを一覧にする
-              </button>
-            </div>
-            <p class="mc-status" id="mc-font-status"></p>
-            <div class="mc-preview" id="mc-preview" lang="ja"></div>
-          </section>
-
-          <section class="mc-panel" aria-labelledby="mc-notation-title">
-            <div class="mc-panel-head">
-              <h2 id="mc-notation-title">表記の形</h2>
-              <span class="mc-mode">表示のみ</span>
-            </div>
-            <div class="mc-notations" id="mc-notations"></div>
-          </section>
+      <section
+        class="mc-panel"
+        id="mc-derived"
+        aria-labelledby="mc-preview-title"
+      >
+        <div class="mc-panel-head">
+          <h2 id="mc-preview-title">大きく表示</h2>
         </div>
-
-        <section class="mc-panel" aria-labelledby="mc-list-title">
-          <div class="mc-panel-head">
-            <h2 id="mc-list-title">1文字ずつの一覧</h2>
-            <span class="mc-count" id="mc-count"></span>
-          </div>
-          <div class="mc-table-wrap">
-            <table class="mc-table">
-              <thead>
-                <tr>
-                  <th scope="col">文字</th>
-                  <th scope="col">Unicode</th>
-                  <th scope="col">UTF-8</th>
-                  <th scope="col">UTF-16</th>
-                  <th scope="col">Shift_JIS</th>
-                  <th scope="col">素性</th>
-                </tr>
-              </thead>
-              <tbody id="mc-rows"></tbody>
-            </table>
-          </div>
-          <p class="mc-empty" id="mc-empty">
-            文字を入れると、ここに1文字ずつ並びます。
-          </p>
-        </section>
-      </div>
+        <div class="mc-font">
+          <label for="mc-font">フォント</label>
+          <input
+            id="mc-font"
+            class="tb-input"
+            list="mc-font-list"
+            placeholder="標準（フォント名を入力）"
+            spellcheck="false"
+            autocomplete="off"
+            aria-describedby="mc-font-status"
+          />
+          <datalist id="mc-font-list"></datalist>
+          <button type="button" class="tb-button" id="mc-font-load" hidden>
+            PCのフォントを一覧にする
+          </button>
+        </div>
+        <p class="mc-status" id="mc-font-status"></p>
+        <div class="mc-preview" id="mc-preview" lang="ja"></div>
+      </section>
 
       <p class="mc-note">
         入力した文字はこのPC内で計算し、外部へ送信しません。

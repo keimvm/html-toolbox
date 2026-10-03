@@ -7,8 +7,6 @@ import {
   parseField,
   parseUtf16,
 } from '../src/codec';
-import { notations } from '../src/notation';
-import { traitsOf } from '../src/props';
 import { ShiftJisTable } from '../src/sjis';
 
 const sjis = new ShiftJisTable();
@@ -160,93 +158,5 @@ describe('各欄 → 文字', () => {
       ok: true,
       value: '﻿A',
     });
-  });
-});
-
-describe('素性', () => {
-  test('種類・全角半角・機種依存文字', () => {
-    const traits = (char: string) => traitsOf(char.codePointAt(0)!, sjis);
-    expect(traits('あ')).toEqual({
-      kind: 'ひらがな',
-      width: '全角',
-      sjis: 0x82a0,
-      sjisOthers: [],
-    });
-    expect(traits('ｱ')).toMatchObject({
-      kind: 'カタカナ',
-      width: '半角',
-      sjis: 0xb1,
-    });
-    expect(traits('ー')).toMatchObject({
-      kind: 'かな共通の記号',
-      width: '全角',
-    });
-    expect(traits('①')).toMatchObject({
-      kind: '数を表す記号',
-      width: '全角',
-      vendor: 'NEC特殊文字',
-      sjisOthers: [],
-    });
-    expect(traits('髙')).toMatchObject({
-      kind: '漢字',
-      vendor: 'IBM拡張文字',
-      sjisOthers: [0xeee0],
-    });
-    expect(traits('≒')).toMatchObject({
-      kind: '記号',
-      sjis: 0x81e0,
-      sjisOthers: [0x8790],
-    });
-    expect(traits('≒').vendor).toBeUndefined();
-    expect(traits('𠮷')).toMatchObject({
-      kind: '漢字',
-      width: '全角',
-      sjis: undefined,
-    });
-    expect(traits('😀')).toMatchObject({
-      kind: '絵文字',
-      width: '全角',
-      sjis: undefined,
-    });
-    expect(traits('é')).toMatchObject({
-      kind: '英字',
-      width: '半角',
-      sjis: undefined,
-    });
-    expect(traits('Ａ')).toMatchObject({ kind: '英字', width: '全角' });
-    expect(traits('1')).toMatchObject({ kind: '数字', width: '半角' });
-    expect(traits('')).toMatchObject({
-      kind: '私用領域',
-      vendor: '外字',
-      sjis: 0xf040,
-    });
-    expect(traits('\n')).toMatchObject({ kind: '制御文字', width: undefined });
-    expect(traits('　')).toMatchObject({ kind: '空白', width: '全角' });
-    expect(traits('́')).toMatchObject({ kind: '結合文字', width: undefined });
-    expect(traits('️')).toMatchObject({ kind: '異体字セレクター' });
-    expect(traits('‍')).toMatchObject({ kind: '書式文字' });
-  });
-});
-
-test('表記の形', () => {
-  const values = (text: string) =>
-    Object.fromEntries(
-      notations(text, sjis).map(({ label, value }) => [label, value]),
-    );
-  expect(values('あ')).toEqual({
-    'プログラム（\\u）': '\\u3042',
-    'プログラム（\\u{}）': '\\u{3042}',
-    'URL（UTF-8）': '%E3%81%82',
-    'URL（Shift_JIS）': '%82%A0',
-    'HTML（10進）': '&#12354;',
-    'HTML（16進）': '&#x3042;',
-  });
-  expect(values('a 𠮷')).toEqual({
-    'プログラム（\\u）': '\\u0061\\u0020\\uD842\\uDFB7',
-    'プログラム（\\u{}）': '\\u{61}\\u{20}\\u{20BB7}',
-    'URL（UTF-8）': 'a%20%F0%A0%AE%B7',
-    'URL（Shift_JIS）': undefined,
-    'HTML（10進）': '&#97;&#32;&#134071;',
-    'HTML（16進）': '&#x61;&#x20;&#x20BB7;',
   });
 });

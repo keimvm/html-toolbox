@@ -21,7 +21,7 @@ zip の中から直接開かず、解凍してから使ってください。`ind
 | --- | --- |
 | [PDF編集](tools/pdf-edit/README.md#使い方) | PDF のページの削除・並べ替え・回転・結合、画像や文字の取り出し |
 | [ローカルノート](tools/note-html/README.md#使い方) | PC のフォルダにある Markdown の閲覧・編集・保存、画像やファイルの添付 |
-| [文字コード変換](tools/mojicode-converter/README.md#使い方) | 文字と文字コードの値（Unicode の番号・UTF-8・UTF-16・Shift_JIS）の相互変換、文字の素性・表記の形の確認 |
+| [文字コード変換](tools/mojicode-converter/README.md#使い方) | 文字と文字コードの値（Unicode の番号・UTF-8・UTF-16・Shift_JIS）の相互変換、フォントを切り替えて文字の形を確認 |
 | [プロンプト集](tools/prompt-library/README.md#使い方) | よく使う AI チャットのプロンプトの保存・編集、タグでの絞り込み、ボタンひとつでのコピー |
 | [タイピングゲーム](tools/typing-game/README.md#使い方) | 貼り付けた文章を見本にした日本語入力の練習、かかった時間と見本と違う箇所の確認 |
 
