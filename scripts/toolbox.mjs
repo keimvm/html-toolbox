@@ -15,6 +15,8 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 // 入口ページにも各ツールと同じ配色・部品と、配色の切り替えを使う。
 const themePath = new URL('../ui/theme.css', import.meta.url);
 const themeTogglePath = new URL('../ui/theme-toggle.js', import.meta.url);
+// 入口ページ専用の、カードの並べ替え・表示の切り替え。
+const indexCardsPath = new URL('./index-cards.js', import.meta.url);
 const toolboxIconPath = new URL('../ui/toolbox-icon.png', import.meta.url);
 
 const DIR_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*$/;
@@ -136,22 +138,28 @@ export function iconDataUrl(png) {
 
 /**
  * tools の各要素は tools.json の内容に、icon（iconDataUrl の結果）を加えたもの。
- * theme は ui/theme.css、themeToggle は ui/theme-toggle.js の内容。
+ * theme は ui/theme.css、themeToggle は ui/theme-toggle.js、indexCards は scripts/index-cards.js の内容。
  * favicon は ui/toolbox-icon.png の data URL。
  */
-export function renderIndex(tools, version, { theme, themeToggle, favicon }) {
+export function renderIndex(tools, version, { theme, themeToggle, indexCards, favicon }) {
   const v = escapeHtml(version);
   const items = tools
-    .map(
-      (tool) => `      <li>
+    .map((tool) => {
+      const name = escapeHtml(tool.name);
+      return `      <li data-dir="${escapeHtml(tool.dir)}">
         <a class="card" href="tools/${escapeHtml(tool.dir)}.html">
           <img class="icon" src="${escapeHtml(tool.icon)}" alt="">
-          <span class="name">${escapeHtml(tool.name)}</span>
+          <span class="name">${name}</span>
           <span class="description">${escapeHtml(tool.description)}</span>
           <span class="open" aria-hidden="true">開く</span>
         </a>
-      </li>`,
-    )
+        <div class="controls">
+          <label class="show"><input type="checkbox" checked aria-label="${name}を表示">表示</label>
+          <button type="button" class="tb-button tb-secondary" data-move="-1" aria-label="${name}を前へ移動">前へ</button>
+          <button type="button" class="tb-button tb-secondary" data-move="1" aria-label="${name}を後へ移動">後へ</button>
+        </div>
+      </li>`;
+    })
     .join('\n');
   return `<!doctype html>
 <html lang="ja">
@@ -199,15 +207,21 @@ ${theme}
         font-variant-numeric: tabular-nums;
       }
       .version strong { color: var(--tb-ink); font-weight: 600; }
+      .toolbar { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 12px; margin-top: 40px; }
+      .hint { margin: 0 auto 0 0; color: var(--tb-muted); font-size: 13px; }
+      .toolbar .tb-button { font-size: 13px; }
+      /* 共通ボタンの display が hidden 属性より優先されるため、改めて隠す。 */
+      .toolbar [hidden] { display: none; }
       ul {
         list-style: none;
-        margin: 40px 0 0;
+        margin: 16px 0 0;
         padding: 0;
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
         gap: 20px;
       }
-      li { display: flex; }
+      li { position: relative; display: flex; }
+      li[hidden] { display: none; }
       .card {
         flex: 1;
         display: flex;
@@ -252,6 +266,26 @@ ${theme}
         transition: width var(--tb-transition);
       }
       .card:hover .open::after { width: 30px; }
+      /* 並べ替え・表示の編集中は、カードを開かずに「開く」の位置へ操作を出す。 */
+      .controls { display: none; }
+      [data-editing] li { cursor: grab; }
+      [data-editing] .card { border-style: dashed; }
+      [data-editing] .open { visibility: hidden; }
+      [data-editing] .controls {
+        position: absolute;
+        right: 20px;
+        bottom: 16px;
+        left: 28px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .controls .tb-button { --tb-control-height: 32px; padding-block: 4px; font-size: 13px; }
+      .show { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; font-size: 13px; cursor: pointer; }
+      .show input { width: 16px; height: 16px; margin: 0; accent-color: var(--tb-accent); }
+      [data-hidden] .card > * { opacity: .4; }
+      [data-dragging] { opacity: .5; }
+      .empty { margin: 24px 0 0; color: var(--tb-muted); font-size: 14px; }
       @media (prefers-reduced-motion: reduce) {
         .card, .open::after { transition: none; }
         .card:hover { translate: none; }
@@ -260,6 +294,16 @@ ${theme}
     <script type="module">
 ${themeToggle}
 setupThemeToggle(document.getElementById('theme-toggle'));
+    </script>
+    <script type="module">
+${indexCards}
+setupCards({
+  list: document.getElementById('cards'),
+  edit: document.getElementById('cards-edit'),
+  reset: document.getElementById('cards-reset'),
+  hint: document.getElementById('cards-hint'),
+  empty: document.getElementById('cards-empty'),
+});
     </script>
   </head>
   <body>
@@ -274,9 +318,15 @@ setupThemeToggle(document.getElementById('theme-toggle'));
           <button type="button" id="theme-toggle" class="tb-button tb-icon-button tb-theme-toggle"></button>
         </div>
       </header>
-      <ul>
+      <div class="toolbar">
+        <p id="cards-hint" class="hint" hidden>カードをドラッグするか「前へ」「後へ」で並べ替えます。「表示」を外したツールは一覧に出ません。</p>
+        <button type="button" id="cards-reset" class="tb-button" hidden>元の並びに戻す</button>
+        <button type="button" id="cards-edit" class="tb-button tb-secondary">並べ替え・表示</button>
+      </div>
+      <ul id="cards">
 ${items}
       </ul>
+      <p id="cards-empty" class="empty" hidden>表示するツールがありません。「並べ替え・表示」から選んでください。</p>
     </main>
   </body>
 </html>
@@ -328,13 +378,14 @@ export async function packageRelease(version, rootDir = root) {
     const icon = await readFile(join(rootDir, 'tools', dir, 'src', 'icon.png'));
     cards.push({ ...tool, icon: iconDataUrl(icon) });
   }
-  const [theme, themeToggle, toolboxIcon] = await Promise.all([
+  const [theme, themeToggle, indexCards, toolboxIcon] = await Promise.all([
     readFile(themePath, 'utf8'),
     readFile(themeTogglePath, 'utf8'),
+    readFile(indexCardsPath, 'utf8'),
     readFile(toolboxIconPath),
   ]);
   await writeFile(join(target, 'index.html'), renderIndex(cards, version, {
-    theme, themeToggle, favicon: iconDataUrl(toolboxIcon),
+    theme, themeToggle, indexCards, favicon: iconDataUrl(toolboxIcon),
   }));
 
   // -X でOS固有の拡張属性を入れない。中の名前は英数字だけなので文字コードの問題は起きない。
