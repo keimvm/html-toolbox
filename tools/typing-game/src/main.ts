@@ -1,7 +1,14 @@
 import '../../../ui/theme.css';
 import './style.css';
 import { setupToolHeader } from '../../../ui/header.js';
-import { countChars, graphemes, isBlank, judge, type Judgement } from './judge';
+import {
+  countChars,
+  createLocator,
+  graphemes,
+  isBlank,
+  judge,
+  type Judgement,
+} from './judge';
 import { formatClock, formatSpoken } from './time';
 
 function $<T extends Element = HTMLElement>(selector: string): T {
@@ -54,8 +61,10 @@ $('#tg-modifier').textContent = /Mac|iPhone|iPad/u.test(navigator.userAgent)
 let state: State = 'setup';
 /** 打っている見本（前後の改行・空白を除いたもの）。 */
 let sampleText = '';
-/** 見本の文字（改行・空白を除く）の要素。確定した数だけ先頭から色を変える。 */
+/** 見本の文字（改行・空白を除く）の要素。確定した入力が見本のどこまで進んだかに合わせ、先頭から色を変える。 */
 let chars: HTMLElement[] = [];
+/** 確定した入力から、見本のどこまで進んだかを求める。 */
+let locate: (input: string) => number = () => 0;
 /** 色を変えた文字の数。 */
 let done = 0;
 let composing = false;
@@ -174,6 +183,7 @@ function renderSample(text: string) {
   }
   sampleView.replaceChildren(fragment);
   sampleView.scrollTop = 0;
+  locate = createLocator(text);
   done = 0;
   chars[0]?.classList.add('is-next');
   renderProgress();
@@ -284,7 +294,7 @@ function keepInView() {
   }
 }
 
-/** 確定した文字の数まで見本の色を変える。まとめて確定した文字は、少しずつずらして波のように変える。 */
+/** 見本の next 文字目まで色を変える。まとめて確定した文字は、少しずつずらして波のように変える。 */
 function setDone(next: number) {
   if (next === done) return;
   chars[done]?.classList.remove('is-next');
@@ -316,10 +326,10 @@ function setDone(next: number) {
   }
 }
 
-/** 変換中の文字は数えない。確定のたびにまとめて進む。 */
+/** 変換中の文字は数えない。確定のたびに、余分に打った文字・抜かした文字の分を合わせてまとめて進む。 */
 function updateProgress() {
   if (state !== 'typing') return;
-  setDone(Math.min(countChars(typed.value), chars.length));
+  setDone(Math.min(locate(typed.value), chars.length));
 }
 
 typed.addEventListener('compositionstart', () => {

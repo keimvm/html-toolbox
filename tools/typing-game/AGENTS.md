@@ -2,7 +2,7 @@
 
 最初に [README](README.md)、[企画書](docs/requirements.md)、[要件](docs/software-requirements.md)、[技術構成](docs/software-stack.md)、[検証記録](docs/verification.md)、リポジトリ共通の [開発・リリース手順](../../docs/development.md) を読む。
 
-- 打っている間は判定しない。見本の進み具合は確定した入力の文字数（改行・空白を除く、`countChars()`）だけで決め、違う箇所を色で示さない。差分の計算は終了時の1回だけ（`judge()`）。
+- 打っている間は違う箇所を判定・表示しない。見本の進み具合は、確定のたびに入力の末尾が見本のどこに当たるかだけを差分で求めて決める（`createLocator()`、改行・空白を除く）。違う箇所を色で示さない。違う箇所の判定は終了時の1回だけ（`judge()`）。進み具合の振る舞いを変えたら `tests/judge.test.ts` に例を足す。
 - 変換中かどうかは `compositionstart`・`compositionend` と `isComposing`（`keyCode` 229 を含む）で見る。変換中の入力では進めず、変換中の Esc を終了にしない。この条件を緩める変更は、Windows の Edge（Microsoft IME）と Mac の Chrome の実機で確かめる。
 - 判定は改行・空白を除き、NFKC でそろえてから jsdiff の `diffChars` で取る。結果は打ったまま（正規化前）の文字で示し、自前の変換表・差分の処理を足さない。判定の振る舞いを変えたら `tests/judge.test.ts` に例を足す。
 - 貼った文章・打った文章・結果は保存しない（localStorage・IndexedDB などに入れない）。外部へも送らない。

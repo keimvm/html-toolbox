@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { countChars, graphemes, judge } from '../src/judge';
+import { countChars, createLocator, graphemes, judge } from '../src/judge';
 
 describe('countChars', () => {
   test('改行・空白（全角・半角・タブ）は数えない', () => {
@@ -115,5 +115,63 @@ describe('judge', () => {
     const sample = 'あいうえおかきくけこ'.repeat(500);
     const input = 'アイウエオカキクケコ'.repeat(500);
     expect(await judge(sample, input, { timeout: 1 })).toBeUndefined();
+  });
+});
+
+describe('createLocator', () => {
+  const headline =
+    '選挙控えるトランプ米政権、軽油で欧州に圧力　日本は国内精製で距離';
+
+  test('合っていれば、確定した文字数だけ進む（改行・空白は数えない）', () => {
+    const locate = createLocator('今日は\nいい 天気');
+    expect(locate('')).toBe(0);
+    expect(locate('今日は')).toBe(3);
+    expect(locate('今日はいい　天')).toBe(6);
+    expect(locate('今日はいい天気')).toBe(7);
+  });
+
+  test('余分に打った文字の分は進まない', () => {
+    const locate = createLocator(headline);
+    // 「を」が余分。次に打つ見本の文字は「精」。
+    expect(
+      locate('選挙を控えるトランプ米政権、経由で欧州に圧力　日本は国内'),
+    ).toBe(26);
+    expect(locate('選挙を')).toBe(3);
+    expect(locate('選挙を控')).toBe(3);
+  });
+
+  test('抜かした文字の分は先へ進む', () => {
+    const locate = createLocator('今日はいい天気です');
+    expect(locate('今日いい天気')).toBe(7);
+  });
+
+  test('打ち間違えた文字も、見本の文字と同じ数だけ進む', () => {
+    const locate = createLocator('今日はいい天気');
+    expect(locate('今日はいい転')).toBe(6);
+    expect(locate('今日はいい転気')).toBe(7);
+    expect(locate('きょう')).toBe(3);
+  });
+
+  test('打ち間違えた1文字が、ずっと先の同じ文字に一致しても飛ばない', () => {
+    const locate = createLocator('あいうえおかきくけこの');
+    expect(locate('あいの')).toBe(3);
+  });
+
+  test('全角・半角の違い、NFKC で文字数が変わる文字は合っているものとする', () => {
+    expect(createLocator('2026年ABCです')('２０２６年ＡＢＣ')).toBe(8);
+    expect(createLocator('平成元年です')('㍻元年')).toBe(4);
+    expect(createLocator('㍻元年です')('平成')).toBe(1);
+  });
+
+  test('見本の最後を越えて打っても、見本の文字数で止まる', () => {
+    expect(createLocator('あいう')('あいうえお')).toBe(3);
+  });
+
+  test('計算しきれないときは、確定した文字数で進める', () => {
+    const sample = 'あいうえ'.repeat(100);
+    const input = 'あXいう'.repeat(50);
+    // 計算しきれば、余分な「X」の分だけ確定した文字数より手前になる。
+    expect(createLocator(sample)(input)).toBeLessThan(200);
+    expect(createLocator(sample, { timeout: 0 })(input)).toBe(200);
   });
 });

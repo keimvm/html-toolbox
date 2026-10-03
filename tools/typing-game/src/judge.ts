@@ -1,4 +1,5 @@
-// 見本と入力の照らし合わせ。打ち終えた後に1回だけ行う。
+// 見本と入力の照らし合わせ。違う箇所の判定は打ち終えた後に1回だけ行い、
+// 打っている間は確定のたびに、入力の末尾が見本のどこに当たるかだけを求める。
 // 改行・空白を除き、NFKC で全角・半角をそろえてから jsdiff の diffChars で文字単位の差分を取り、
 // 結果は打ったままの文字（正規化前）に戻して示す。
 import { diffChars, type Change } from 'diff';
@@ -17,7 +18,7 @@ export function isBlank(grapheme: string): boolean {
   return BLANK.test(grapheme);
 }
 
-/** 進み具合に使う文字数。改行・空白は数えない。 */
+/** 文字数。改行・空白は数えない。 */
 export function countChars(text: string): number {
   let count = 0;
   for (const grapheme of graphemes(text)) if (!isBlank(grapheme)) count++;
@@ -148,4 +149,65 @@ export function judge(
         resolve(changes && compose(expected, actual, changes)),
     });
   });
+}
+
+/** 見本の、入力の文字数より先まで照らし合わせる文字数。大きく飛ばした箇所はこの範囲でだけ追いつく。 */
+const LOOKAHEAD = 200;
+
+/**
+ * 打っている間の見本の進み具合を求める関数を作る。返す関数は、確定した入力を受け取り、
+ * 見本の先頭から何文字目（改行・空白を除く）まで進んだかを返す。
+ * 余分に打った文字・抜かした文字があっても、見本と一致した箇所に合わせて位置を戻す。
+ * 一致した箇所より後に打った文字は、見本の文字と同じ数だけ進んだものとする（打ち間違いも進む）。
+ */
+export function createLocator(
+  sample: string,
+  { timeout = 50 }: { timeout?: number } = {},
+): (input: string) => number {
+  const expected = normalize(sample);
+  /** 見本の元の文字の、改行・空白を除いた何文字目か。 */
+  const rank: number[] = [];
+  let total = 0;
+  for (const unit of expected.units) rank.push(isBlank(unit) ? total : total++);
+  /** 見本の正規化した文字の何文字目まで進んだかを、元の文字の数に戻す。 */
+  const toChars = (position: number) =>
+    position <= 0
+      ? 0
+      : position >= expected.source.length
+        ? total
+        : rank[expected.source[position - 1]!]! + 1;
+
+  const sampleChars = [...expected.text];
+  return (input) => {
+    const actual = normalize(input).text;
+    const length = [...actual].length;
+    if (!length) return 0;
+    const window = sampleChars.slice(0, length + LOOKAHEAD).join('');
+    const changes = diffChars(window, actual, { timeout });
+    // 計算しきれないときは、確定した文字数で進める。
+    if (!changes) return Math.min(countChars(input), total);
+    // 位置を合わせる目印にした一致箇所の、見本側と入力側の終わり（正規化した文字の数）。
+    let sampleAt = 0;
+    let inputAt = 0;
+    let s = 0;
+    let t = 0;
+    for (const change of changes) {
+      if (change.added) {
+        t += change.count;
+      } else if (change.removed) {
+        s += change.count;
+      } else {
+        // 打った文字より多く見本を飛ばした先の一致は、飛ばした数より長いときだけ目印にする。
+        // 打ち間違えた「の」が、ずっと先の「の」に一致して見本が飛ぶのを防ぐ。
+        const skipped = s - sampleAt - (t - inputAt);
+        s += change.count;
+        t += change.count;
+        if (change.count > skipped) {
+          sampleAt = s;
+          inputAt = t;
+        }
+      }
+    }
+    return toChars(sampleAt + (length - inputAt));
+  };
 }
