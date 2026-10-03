@@ -119,13 +119,10 @@ function rememberSession() {
 }
 
 async function restoreSession() {
-  await task('前回のPDFを確認しています…', async () => {
+  await task(async () => {
     try {
       const saved = await session.load();
-      if (!saved) {
-        $('#pc-notice').hidden = true;
-        return;
-      }
+      if (!saved) return;
       for (const source of saved.sources) {
         const doc = await pdf().call('open', {
           id: source.id,
@@ -151,7 +148,6 @@ async function restoreSession() {
       render();
       recoveryReady = true;
       recoveryStatus('saved');
-      notify('前回のPDFと編集状態を復元しました。');
     } catch (error) {
       for (const id of sources.keys())
         await pdf()
@@ -181,7 +177,7 @@ function updateControls() {
   $('#pc-workbench').hidden = empty;
   $('#pc-empty').hidden = !empty;
   $('.pc-file').hidden = empty;
-  $('[data-action="close-document"]').hidden = empty;
+  $('.pc-toolbar').hidden = empty;
   $('[data-action="add"]').hidden = empty;
   $('[data-action="save"]').hidden = empty;
   $('#pc-file-count').textContent = `${editor.pages.length}ページ`;
@@ -209,11 +205,11 @@ function updateControls() {
     .forEach((button) => (button.disabled = busy));
   updateZoomControls();
 }
-async function task(message: string, operation: () => Promise<void>) {
+async function task(operation: () => Promise<void>) {
   if (busy) return;
   busy = true;
   updateControls();
-  notify(message);
+  $('#pc-notice').hidden = true;
   try {
     await operation();
   } catch (error) {
@@ -710,12 +706,9 @@ async function openBuffer(content: ArrayBuffer, name: string) {
     filename = name;
   }
   render();
-  notify(
-    `${name} の${pages.length}ページを${sources.size > 1 ? '末尾に追加しました' : '読み込みました'}。`,
-  );
 }
 async function openFiles(files: File[]) {
-  await task('PDFを読み込んでいます…', async () => {
+  await task(async () => {
     for (const file of files) {
       if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') {
         notify(`${file.name} はPDFではありません。`);
@@ -755,7 +748,7 @@ async function save() {
   }
   const type = format();
   saveDialog.close();
-  await task('保存するファイルを作っています…', async () => {
+  await task(async () => {
     let blob: Blob;
     if (type === 'PDF')
       blob = new Blob([await pdf().call('export', { pages: editor.pages })], {
@@ -770,7 +763,6 @@ async function save() {
     const outputName = `${cleaned.replace(/\.(pdf|png|jpe?g)$/i, '')}.${type.toLowerCase()}`;
     downloadBlob(blob, outputName);
     // ダウンロードの完了・キャンセルは確認できないため、変更状態を保つ。
-    notify(`${outputName} のダウンロードを開始しました。`);
   });
 }
 async function closeDocument() {
@@ -779,7 +771,7 @@ async function closeDocument() {
     !window.confirm('未保存の変更を破棄して文書を閉じますか？')
   )
     return;
-  await task('文書を閉じています…', async () => {
+  await task(async () => {
     await session.flush();
     if (session.hasData) await session.clear();
     recoveryRevision++;
@@ -802,15 +794,11 @@ async function closeDocument() {
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     imageUrl = undefined;
     $('#pc-inspector-content').replaceChildren();
-    $('#pc-notice').hidden = true;
     render();
   });
 }
 function move(id: string, target: number) {
-  if (editor.move(id, target)) {
-    render();
-    notify(`${target + 1}ページ目に移動しました。`);
-  }
+  if (editor.move(id, target)) render();
 }
 
 $('#pdf-calm').addEventListener('click', (event) => {
@@ -857,16 +845,10 @@ $('#pdf-calm').addEventListener('click', (event) => {
       if (editor.rotate()) render();
       break;
     case 'delete':
-      if (editor.remove()) {
-        render();
-        notify('ページを削除しました。「元に戻す」で戻せます。');
-      }
+      if (editor.remove()) render();
       break;
     case 'undo':
-      if (editor.undo()) {
-        render();
-        notify('直前の操作を元に戻しました。');
-      }
+      if (editor.undo()) render();
       break;
     case 'move-up':
       move(editor.selectedId, editor.selectedIndex - 1);
@@ -904,12 +886,11 @@ $('#pdf-calm').addEventListener('click', (event) => {
           new Blob([inspection.text], { type: 'text/plain;charset=utf-8' }),
           `${baseName()}_${editor.selectedIndex + 1}.txt`,
         );
-        notify('テキストのダウンロードを開始しました。');
       }
       break;
     case 'extract-image':
       if (selectedElement !== undefined)
-        void task('画像を保存しています…', async () => {
+        void task(async () => {
           const blob = await pdf().call('image', {
             page: editor.selected!,
             index: selectedElement!,
@@ -918,7 +899,6 @@ $('#pdf-calm').addEventListener('click', (event) => {
             blob,
             `${baseName()}_${editor.selectedIndex + 1}_画像${selectedElement! + 1}.png`,
           );
-          notify('画像のダウンロードを開始しました。');
         });
       break;
     case 'about':

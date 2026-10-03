@@ -29,22 +29,92 @@
             ></button>
           </div>
           <div class="pc-file" hidden>
-            <span class="pc-filename"></span>
-            <div class="pc-file-meta">
-              <span id="pc-file-count">4ページ</span
-              ><span id="pc-change-status">変更なし</span>
-              <span id="pc-session-status" role="status"></span>
-            </div>
-          </div>
-          <div class="tb-header-end pc-actions">
             <button
               type="button"
               class="tb-button"
               data-action="close-document"
-              hidden
             >
               閉じる
             </button>
+            <div class="pc-file-info">
+              <span class="pc-filename"></span>
+              <div class="pc-file-meta">
+                <span id="pc-file-count">4ページ</span
+                ><span id="pc-change-status">変更なし</span>
+                <span id="pc-session-status" role="status"></span>
+              </div>
+            </div>
+          </div>
+          <div class="pc-toolbar" role="group" aria-label="ページの操作" hidden>
+            <div class="pc-tools">
+              <button type="button" class="tb-button" data-action="rotate">
+                <i data-lucide="rotate-cw" aria-hidden="true"></i>回転
+              </button>
+              <button
+                type="button"
+                class="tb-button pc-delete"
+                data-action="delete"
+              >
+                <i data-lucide="trash-2" aria-hidden="true"></i>削除
+              </button>
+              <span class="pc-separator" aria-hidden="true"></span>
+              <button
+                type="button"
+                class="tb-button tb-icon-button"
+                data-action="undo"
+                aria-label="元に戻す"
+                title="元に戻す"
+                disabled
+              >
+                <i data-lucide="undo-2" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="pc-zoom" role="group" aria-label="プレビューの拡大縮小">
+              <button
+                type="button"
+                class="tb-button tb-icon-button"
+                data-action="zoom-out"
+                aria-label="縮小"
+                title="縮小"
+              >
+                −
+              </button>
+              <select
+                id="pc-zoom"
+                class="tb-input"
+                aria-label="プレビューの倍率"
+              >
+                <option value="fit">幅に合わせる</option>
+                <option value="25">25%</option>
+                <option value="50">50%</option>
+                <option value="75">75%</option>
+                <option value="100" selected>100%</option>
+                <option value="125">125%</option>
+                <option value="150">150%</option>
+                <option value="200">200%</option>
+                <option value="300">300%</option>
+              </select>
+              <button
+                type="button"
+                class="tb-button tb-icon-button"
+                data-action="zoom-in"
+                aria-label="拡大"
+                title="拡大"
+              >
+                ＋
+              </button>
+            </div>
+            <button
+              type="button"
+              class="tb-button pc-inspect-button"
+              data-action="inspect"
+              aria-expanded="false"
+              aria-controls="pc-inspector"
+            >
+              <i data-lucide="scan-text" aria-hidden="true"></i>画像・文字
+            </button>
+          </div>
+          <div class="tb-header-end pc-actions">
             <button
               type="button"
               class="tb-button tb-secondary"
@@ -78,7 +148,6 @@
               ページ <span class="pc-count" id="pc-rail-count">4</span>
             </div>
             <p class="pc-rail-hint">ドラッグで並べ替え</p>
-            <div class="pc-pages" id="pc-pages"></div>
             <div class="pc-move">
               <span>並べ替え</span
               ><button
@@ -99,81 +168,9 @@
                 <i data-lucide="arrow-down" aria-hidden="true"></i>
               </button>
             </div>
+            <div class="pc-pages" id="pc-pages"></div>
           </aside>
           <main class="pc-viewer" aria-label="PDFプレビュー">
-            <div class="pc-toolbar">
-              <div class="pc-tools">
-                <button type="button" class="tb-button" data-action="rotate">
-                  <i data-lucide="rotate-cw" aria-hidden="true"></i>回転
-                </button>
-                <button
-                  type="button"
-                  class="tb-button pc-delete"
-                  data-action="delete"
-                >
-                  <i data-lucide="trash-2" aria-hidden="true"></i>削除
-                </button>
-                <span class="pc-separator" aria-hidden="true"></span>
-                <button
-                  type="button"
-                  class="tb-button tb-icon-button"
-                  data-action="undo"
-                  aria-label="元に戻す"
-                  title="元に戻す"
-                  disabled
-                >
-                  <i data-lucide="undo-2" aria-hidden="true"></i>
-                </button>
-              </div>
-              <div
-                class="pc-zoom"
-                role="group"
-                aria-label="プレビューの拡大縮小"
-              >
-                <button
-                  type="button"
-                  class="tb-button tb-icon-button"
-                  data-action="zoom-out"
-                  aria-label="縮小"
-                  title="縮小"
-                >
-                  −
-                </button>
-                <select
-                  id="pc-zoom"
-                  class="tb-input"
-                  aria-label="プレビューの倍率"
-                >
-                  <option value="fit">幅に合わせる</option>
-                  <option value="25">25%</option>
-                  <option value="50">50%</option>
-                  <option value="75">75%</option>
-                  <option value="100" selected>100%</option>
-                  <option value="125">125%</option>
-                  <option value="150">150%</option>
-                  <option value="200">200%</option>
-                  <option value="300">300%</option>
-                </select>
-                <button
-                  type="button"
-                  class="tb-button tb-icon-button"
-                  data-action="zoom-in"
-                  aria-label="拡大"
-                  title="拡大"
-                >
-                  ＋
-                </button>
-              </div>
-              <button
-                type="button"
-                class="tb-button pc-inspect-button"
-                data-action="inspect"
-                aria-expanded="false"
-                aria-controls="pc-inspector"
-              >
-                <i data-lucide="scan-text" aria-hidden="true"></i>画像・文字
-              </button>
-            </div>
             <div
               class="pc-stage"
               role="region"
@@ -348,9 +345,7 @@
               <i data-lucide="x"></i>
             </button>
           </div>
-          <p>
-            元のファイルは変更せず、保存時に別ファイルを作ります。
-          </p>
+          <p>元のファイルは変更せず、保存時に別ファイルを作ります。</p>
           <p>
             再読み込みに備えて、PDFと編集状態をこのブラウザー内に自動保存します。「閉じる」で復元用データを削除します。ファイルとして残す場合は「PDFを保存」を使ってください。
           </p>
