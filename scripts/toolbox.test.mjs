@@ -103,6 +103,7 @@ test('入口ページにカードの一覧・版番号と共通の配色・切�
   const theme = await readFile(new URL('../ui/theme.css', import.meta.url), 'utf8');
   const themeToggle = await readFile(new URL('../ui/theme-toggle.js', import.meta.url), 'utf8');
   const indexCards = await readFile(new URL('./index-cards.js', import.meta.url), 'utf8');
+  const indexFlow = await readFile(new URL('./index-flow.js', import.meta.url), 'utf8');
   const icon = iconDataUrl(fixtureIcon);
   assert.equal(icon.startsWith('data:image/png;base64,'), true);
   assert.deepEqual(Buffer.from(icon.split(',')[1], 'base64'), fixtureIcon);
@@ -112,7 +113,7 @@ test('入口ページにカードの一覧・版番号と共通の配色・切�
       { dir: 'b.tool', name: 'ツールB', description: '説明B', icon },
     ],
     '2026.09.26.2',
-    { theme, themeToggle, indexCards, favicon: icon },
+    { theme, themeToggle, indexCards, indexFlow, favicon: icon },
   );
   assert.ok(html.includes(theme));
   assert.ok(html.includes(themeToggle));
@@ -120,6 +121,9 @@ test('入口ページにカードの一覧・版番号と共通の配色・切�
   assert.ok(html.includes('<strong>2026.09.26.2</strong>'));
   assert.ok(html.includes('<a class="card" href="tools/a-tool.html">'));
   assert.ok(html.includes(indexCards));
+  assert.ok(html.includes(indexFlow));
+  assert.ok(html.includes('<canvas id="flow" aria-hidden="true"></canvas>'));
+  assert.ok(html.includes('id="flow-toggle"'));
   assert.ok(html.includes('<ul id="cards">'));
   assert.ok(html.includes('<li data-dir="b.tool">'));
   assert.ok(html.includes('aria-label="&lt;ツールA&gt;を前へ移動"'));
@@ -129,7 +133,8 @@ test('入口ページにカードの一覧・版番号と共通の配色・切�
   assert.ok(html.includes('説明 &amp; 注意'));
   assert.ok(html.indexOf('a-tool') < html.indexOf('b.tool'), 'tools.json の順に並ぶ');
   assert.equal(/\b(?:src|href)="(?:https?:)?\/\//.test(html), false);
-  assert.equal(html.match(/<script\b[^>]*>/g).join(), '<script type="module">,<script type="module">');
+  assert.equal(html.match(/<script\b[^>]*>/g).length, 3);
+  assert.equal(new Set(html.match(/<script\b[^>]*>/g)).size, 1, 'どれも外部を読み込まない module');
 });
 
 async function fixture(t) {

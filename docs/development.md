@@ -13,6 +13,7 @@
 | `ui/`                           | 全ツールと入口ページで共通の配色・部品・ヘッダー・ダークモード、D&D・ダウンロードの処理。npm の依存なし |
 | `scripts/toolbox.mjs`           | 一覧の検査、ビルド済み HTML の収集、入口ページ（ツールのカード一覧）の生成、戻るリンク・版番号の追加、zip 作成 |
 | `scripts/index-cards.js`        | 入口ページに埋め込む、カードの並べ替え・表示の切り替え（ブラウザーで動く処理） |
+| `scripts/index-flow.js`         | 入口ページに埋め込む、マウスカーソルの位置で渦を巻く背景の流れ（ブラウザーで動く処理） |
 | `scripts/ci-tools.mjs`          | Git の差分から CI の検証対象を選ぶ |
 | `.github/workflows/check.yml`   | main への push・PR でスクリプトと変更対象のツールを検証（Linux・macOS・Windows） |
 | `.github/workflows/tool.yml`    | 通常 CI・リリース共通の依存取得・検証・ビルド・HTML 収集 |
@@ -105,8 +106,9 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 
 - アイコンは各ツールの `src/icon.png`（128×128、角丸のエバーグリーン地にアイボリーの図柄と真鍮色の差し色）を正とし、ビルドで data URL として埋め込みます（PDF編集は Vite のアセット、ローカルノートは Node.js 標準の `Buffer.toString('base64')`）。favicon は `header.js` が同じ画像から設定するため、HTML に `link rel="icon"` を書きません。生成に使ったプロンプトと画像の処理は [favicon-prompts.md](favicon-prompts.md) に記録しています。
 - 部品は `:where()` で詳細度を 0 にしているため、ツールの CSS で余白などを上書きできます。逆に、ツールの CSS でボタン全体に `color` や `font` を指定すると部品の指定も打ち消すため、`:where(:not(.tb-button))` のように部品を除外してください。
-- 入口ページは `scripts/toolbox.mjs` が `theme.css` と `theme-toggle.js` を埋め込んで作り、版番号の右に切り替えボタンを置きます。ツールは `tools.json` の順にカードで並べ、カードには各ツールの `src/icon.png`（data URL）・表示名・説明を載せます。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
+- 入口ページは `scripts/toolbox.mjs` が `theme.css` と `theme-toggle.js` を埋め込んで作り、版番号の右に背景の流れのボタン、その右に切り替えボタンを置きます。ツールは `tools.json` の順にカードで並べ、カードには各ツールの `src/icon.png`（data URL）・表示名・説明を載せます。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
 - 入口ページ専用の `scripts/index-cards.js`（`setupCards()`）も埋め込みます。「並べ替え・表示」の編集中だけ、各カードに表示のチェックボックスと「前へ」「後へ」を出し、標準のドラッグ＆ドロップでも並べ替えられるようにします。選んだ内容は `localStorage` の `toolbox-cards` に `{ "order": [フォルダ名…], "hidden": [フォルダ名…] }` で残し、`tools.json` と同じ並び・全部表示に戻したら記録を消します。一覧にないフォルダ名は無視し、並べ替えた後に増えたツールは最後に置きます。ツールだけで使わない処理なので `ui/` には置きません。
+- 入口ページ専用の `scripts/index-flow.js`（`setupFlow()`）も埋め込みます。画面全体に敷いた `canvas#flow` に細い線の流れを描き、マウスカーソルの周りでは線が渦を巻いて道を空け、動かした向きへ引きずられ、近くの線が `--tb-gold` で光ります。地の線は `--tb-accent` で、どちらも canvas の `color`・`outline-color` の計算済みの値から読み、切り替えボタンと OS の設定の変更に追従します。`pointer-events: none` で操作を妨げません。版番号の右、表示の切り替えの左にある波のボタン（`#flow-toggle`、`setupFlowToggle()`）で止める・動かすを切り替えられ、状態は `aria-pressed` で伝えます。止めたことは `localStorage` の `toolbox-flow` に `off` で残し、動かしたら記録を消します。止めるときは薄くし終えてから描画を止めます。`prefers-reduced-motion: reduce` では描かず、ボタンも出しません。
 - 入口ページ専用の favicon は `ui/toolbox-icon.png`（128×128、道具箱の図柄）です。`scripts/toolbox.mjs` が既存の `iconDataUrl()` で変換し、`link rel="icon"` に直接埋め込みます。配布物へ画像ファイルを追加せず、オフラインでも表示できます。
 - メニューは `<button popovertarget="対象ID">` と `<div id="対象ID" popover="auto" class="tb-popover">` を組み合わせます。開閉・排他表示・外側クリック・Escape・展開状態の支援技術への通知は [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using)、配置は CSS のアンカー配置に任せます。`hidden` や `aria-expanded` に開閉状態を重複して保持しません。ローカルノートの Tab による閉鎖・操作後の閉鎖は固有処理として残します。
 - TypeScript からは同じ名前の `.d.ts` で型を参照します。Vite の開発サーバーでは、`server.fs.allow` に `../../ui` を加えます（PDF編集の `vite.config.ts`）。

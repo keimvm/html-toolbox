@@ -19,6 +19,8 @@ const themePath = new URL('../ui/theme.css', import.meta.url);
 const themeTogglePath = new URL('../ui/theme-toggle.js', import.meta.url);
 // 入口ページ専用の、カードの並べ替え・表示の切り替え。
 const indexCardsPath = new URL('./index-cards.js', import.meta.url);
+// 入口ページ専用の、マウスカーソルに応じて流れる背景。
+const indexFlowPath = new URL('./index-flow.js', import.meta.url);
 const toolboxIconPath = new URL('../ui/toolbox-icon.png', import.meta.url);
 
 const DIR_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*$/;
@@ -142,10 +144,11 @@ export function iconDataUrl(png) {
 
 /**
  * tools の各要素は tools.json の内容に、icon（iconDataUrl の結果）を加えたもの。
- * theme は ui/theme.css、themeToggle は ui/theme-toggle.js、indexCards は scripts/index-cards.js の内容。
+ * theme は ui/theme.css、themeToggle は ui/theme-toggle.js、indexCards は scripts/index-cards.js、
+ * indexFlow は scripts/index-flow.js の内容。
  * favicon は ui/toolbox-icon.png の data URL。
  */
-export function renderIndex(tools, version, { theme, themeToggle, indexCards, favicon }) {
+export function renderIndex(tools, version, { theme, themeToggle, indexCards, indexFlow, favicon }) {
   const v = escapeHtml(version);
   const items = tools
     .map((tool) => {
@@ -183,7 +186,20 @@ ${theme}
         font: 15px/1.75 var(--tb-font);
         -webkit-font-smoothing: antialiased;
       }
-      main { max-width: 1040px; margin: 0 auto; padding: clamp(40px, 8vw, 88px) 24px 64px; }
+      /* 背景の流れ。線の色は color（主色）と outline-color（差し色）から読む。 */
+      #flow {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        color: var(--tb-accent);
+        outline-color: var(--tb-gold);
+        opacity: 0;
+        transition: opacity .6s ease;
+      }
+      #flow[data-running] { opacity: 1; transition-duration: 1.8s; }
+      main { position: relative; max-width: 1040px; margin: 0 auto; padding: clamp(40px, 8vw, 88px) 24px 64px; }
       header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
       h1 {
         margin: 0;
@@ -211,6 +227,19 @@ ${theme}
         font-variant-numeric: tabular-nums;
       }
       .version strong { color: var(--tb-ink); font-weight: 600; }
+      .meta [hidden] { display: none; }
+      /* 背景の流れを止める・動かすボタン。止めている間は斜線入りの波を出す。 */
+      .flow-toggle { color: var(--tb-muted); }
+      .flow-toggle:hover { color: var(--tb-ink); }
+      .flow-toggle::before {
+        content: '';
+        width: 18px;
+        height: 18px;
+        flex: none;
+        background: currentColor;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M3 7.5c3-2.5 6 2.5 9 0s6-2.5 9 0M3 12c3-2.5 6 2.5 9 0s6-2.5 9 0M3 16.5c3-2.5 6 2.5 9 0s6-2.5 9 0'/%3E%3C/svg%3E") center / contain no-repeat;
+      }
+      .flow-toggle[aria-pressed='false']::before { mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M3 9.5c3-2.5 6 2.5 9 0s6-2.5 9 0M3 14.5c3-2.5 6 2.5 9 0s6-2.5 9 0M4 3l16 18'/%3E%3C/svg%3E"); }
       .toolbar { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 12px; margin-top: 40px; }
       .hint { margin: 0 auto 0 0; color: var(--tb-muted); font-size: 13px; }
       .toolbar .tb-button { font-size: 13px; }
@@ -309,8 +338,16 @@ setupCards({
   empty: document.getElementById('cards-empty'),
 });
     </script>
+    <script type="module">
+${indexFlow}
+setupFlow({
+  canvas: document.getElementById('flow'),
+  toggle: document.getElementById('flow-toggle'),
+});
+    </script>
   </head>
   <body>
+    <canvas id="flow" aria-hidden="true"></canvas>
     <main>
       <header>
         <div>
@@ -319,6 +356,7 @@ setupCards({
         </div>
         <div class="meta">
           <p class="version">版 <strong>${v}</strong></p>
+          <button type="button" id="flow-toggle" class="tb-button tb-icon-button flow-toggle" aria-label="背景の流れ"></button>
           <button type="button" id="theme-toggle" class="tb-button tb-icon-button tb-theme-toggle"></button>
         </div>
       </header>
@@ -382,14 +420,15 @@ export async function packageRelease(version, rootDir = root) {
     const icon = await readFile(join(rootDir, 'tools', dir, 'src', 'icon.png'));
     cards.push({ ...tool, icon: iconDataUrl(icon) });
   }
-  const [theme, themeToggle, indexCards, toolboxIcon] = await Promise.all([
+  const [theme, themeToggle, indexCards, indexFlow, toolboxIcon] = await Promise.all([
     readFile(themePath, 'utf8'),
     readFile(themeTogglePath, 'utf8'),
     readFile(indexCardsPath, 'utf8'),
+    readFile(indexFlowPath, 'utf8'),
     readFile(toolboxIconPath),
   ]);
   await writeFile(join(target, 'index.html'), renderIndex(cards, version, {
-    theme, themeToggle, indexCards, favicon: iconDataUrl(toolboxIcon),
+    theme, themeToggle, indexCards, indexFlow, favicon: iconDataUrl(toolboxIcon),
   }));
 
   // -X でOS固有の拡張属性を入れない。中の名前は英数字だけなので文字コードの問題は起きない。
