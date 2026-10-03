@@ -1,0 +1,475 @@
+/* 画像変換の画面配置。配色・部品は ui/theme.css の --tb-* とクラスを使う。 */
+/* 部品やレイアウトの display 指定より、hidden 属性を優先する。 */
+[hidden] {
+  display: none !important;
+}
+body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+  margin: 0;
+  color: var(--tb-ink);
+  background: var(--tb-bg);
+  font-family: var(--tb-font);
+  font-size: 14px;
+  line-height: 1.6;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h2 {
+  font-size: 18px;
+}
+h3 {
+  font-size: 13px;
+  color: var(--tb-muted);
+  letter-spacing: 0.04em;
+}
+.ic-muted {
+  color: var(--tb-muted);
+}
+.ic-warning {
+  color: var(--tb-warning);
+  font-weight: 600;
+}
+/* 透過の部分が分かるよう、市松模様の上に画像を置く。 */
+:root {
+  --ic-checker: repeating-conic-gradient(
+      var(--tb-tint) 0 25%,
+      var(--tb-surface) 0 50%
+    )
+    0 0 / 16px 16px;
+}
+
+.ic-main {
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 18px 18px 40px;
+}
+.ic-main > * {
+  max-width: 1280px;
+  margin-inline: auto;
+}
+
+/* 画像がないとき。ここにもドロップできる。 */
+.ic-empty {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  max-width: 640px;
+  margin-top: 8vh;
+  padding: 40px 32px;
+  border: 1.5px dashed var(--tb-line);
+  border-radius: var(--tb-radius-large);
+  background: var(--tb-surface);
+  text-align: center;
+}
+.ic-empty h1 {
+  font-family: var(--tb-font-display);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.ic-note {
+  color: var(--tb-muted);
+  font-size: 12px;
+}
+
+.ic-work {
+  display: grid;
+  gap: 14px;
+}
+.ic-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px 24px;
+  padding: 14px 18px;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius-large);
+  background: var(--tb-surface);
+}
+.ic-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.ic-field > span:first-child {
+  color: var(--tb-muted);
+  font-size: 12px;
+}
+.ic-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ic-number {
+  width: 110px;
+}
+.ic-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ic-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+.ic-summary span + span::before {
+  content: '・';
+  color: var(--tb-muted);
+  font-weight: 400;
+}
+.ic-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ic-status:empty {
+  display: none;
+}
+.ic-status {
+  margin-bottom: 14px;
+  color: var(--tb-muted);
+}
+
+/* 画像の一覧。 */
+.ic-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ic-item {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius-large);
+  background: var(--tb-surface);
+}
+.ic-item.ic-over {
+  border-color: var(--tb-warning-line);
+  box-shadow: 0 0 0 1px var(--tb-warning-line);
+}
+.ic-thumb {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--tb-line);
+  background: var(--ic-checker);
+  cursor: zoom-in;
+}
+.ic-thumb:disabled {
+  cursor: default;
+}
+.ic-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.ic-pending .ic-thumb img {
+  opacity: 0.45;
+}
+.ic-item-body {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: 10px 14px 4px;
+  font-size: 12px;
+}
+.ic-item-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ic-item-source {
+  color: var(--tb-muted);
+}
+.ic-pending .ic-item-result {
+  color: var(--tb-muted);
+}
+.ic-over .ic-item-result {
+  color: var(--tb-warning);
+  font-weight: 600;
+}
+.ic-error .ic-item-result {
+  color: var(--tb-danger);
+}
+.ic-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px 10px 14px;
+}
+.ic-remove {
+  margin-left: auto;
+}
+
+/* 個別の画面。画面いっぱいに広げ、左に画像、右に設定を置く。 */
+.ic-detail {
+  width: calc(100vw - 24px);
+  max-width: none;
+  height: calc(100dvh - 24px);
+  max-height: none;
+  padding: 14px 18px 18px;
+}
+.ic-detail[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+}
+.ic-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.ic-detail-head h2 {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ic-position {
+  color: var(--tb-muted);
+  font-size: 12px;
+}
+.ic-detail-nav {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.ic-detail-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  min-height: 0;
+}
+.ic-stage {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+.ic-stage-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.ic-segment {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius);
+  background: var(--tb-subtle);
+}
+.ic-segment .tb-button {
+  min-height: 30px;
+  padding: 4px 12px;
+}
+.ic-segment .tb-button[aria-pressed='true'] {
+  color: var(--tb-on-accent);
+  background: var(--tb-accent);
+}
+.ic-hint {
+  color: var(--tb-muted);
+  font-size: 12px;
+}
+
+.ic-compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-height: 0;
+}
+.ic-pane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius);
+}
+.ic-pane figcaption {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--tb-line);
+  color: var(--tb-muted);
+  background: var(--tb-surface);
+  font-size: 12px;
+}
+.ic-scroll {
+  display: flex;
+  min-height: 0;
+  overflow: auto;
+  background: var(--ic-checker);
+}
+/* はみ出したときも左上から見られるよう、中央寄せは margin で行う。 */
+.ic-view {
+  flex: none;
+  display: block;
+  margin: auto;
+}
+.ic-busy #ic-after {
+  opacity: 0.45;
+}
+
+.ic-edit {
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius);
+  background: var(--ic-checker);
+}
+.ic-edit-frame {
+  position: relative;
+  flex: none;
+  margin: auto;
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+#ic-edit-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* 切り抜きの外側を暗くする。 */
+.ic-crop-box {
+  position: absolute;
+  outline: 2px solid var(--tb-gold);
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.5);
+  pointer-events: none;
+}
+.ic-draft {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px dashed var(--tb-gold);
+  pointer-events: none;
+}
+[data-mode='redact'] .ic-draft {
+  background: rgb(0 0 0 / 0.6);
+}
+
+.ic-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  overflow: auto;
+}
+.ic-stats {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius);
+  background: var(--tb-subtle);
+  font-size: 13px;
+}
+.ic-stats dt {
+  color: var(--tb-muted);
+}
+.ic-stats dd {
+  margin: 0;
+}
+.ic-side-section {
+  display: grid;
+  gap: 10px;
+}
+.ic-side-section input[type='range'] {
+  flex: 1;
+  accent-color: var(--tb-accent);
+}
+.ic-side-section output {
+  min-width: 2.5em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ic-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.ic-side > .tb-primary {
+  margin-top: auto;
+}
+
+/* PDF を小さくする画面。ここにも PDF をドロップできる。 */
+.ic-shrink {
+  width: min(520px, calc(100% - 28px));
+}
+.ic-shrink[open] {
+  display: grid;
+  gap: 14px;
+}
+.ic-shrink-file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 14px;
+  border: 1.5px dashed var(--tb-line);
+  border-radius: var(--tb-radius);
+}
+.ic-shrink-result:empty {
+  display: none;
+}
+.ic-shrink .tb-dialog-actions {
+  margin-top: 4px;
+}
+
+.ic-about {
+  width: min(620px, calc(100% - 28px));
+  font-size: 13px;
+}
+.ic-about p + p {
+  margin-top: 10px;
+}
+.ic-about pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+.ic-about summary {
+  cursor: pointer;
+  padding-block: 10px;
+}
+#ic-pdf p + p {
+  margin-top: 10px;
+}
+
+@media (max-width: 860px) {
+  .ic-detail-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(320px, 1fr) auto;
+    overflow: auto;
+  }
+  .ic-compare {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: minmax(150px, 1fr);
+  }
+  .ic-side {
+    overflow: visible;
+  }
+}

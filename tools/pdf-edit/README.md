@@ -64,15 +64,15 @@ pnpm dev
 
 `test`・`test:dist`・`check`の役割と、リポジトリ直下からのテスト・検証・zip作成は[共通の開発・リリース手順](../../docs/development.md#コマンド)に従います。
 
-| コマンド            | 内容                                                     |
-| ------------------- | -------------------------------------------------------- |
-| `pnpm dev`          | 開発サーバーを起動                                       |
-| `pnpm build`        | 型検査後、`dist/PDF編集.html`を生成                      |
-| `pnpm preview`      | ビルド済みHTMLをHTTPで確認（127.0.0.1:4173）             |
-| `pnpm typecheck`    | ブラウザー用コードと開発用コードを型検査                 |
-| `pnpm lint`         | ESLintで検査。警告も失敗として扱う                       |
-| `pnpm format`       | Prettierで整形                                           |
-| `pnpm format:check` | 整形状態を変更せず検査                                   |
+| コマンド            | 内容                                         |
+| ------------------- | -------------------------------------------- |
+| `pnpm dev`          | 開発サーバーを起動                           |
+| `pnpm build`        | 型検査後、`dist/PDF編集.html`を生成          |
+| `pnpm preview`      | ビルド済みHTMLをHTTPで確認（127.0.0.1:4173） |
+| `pnpm typecheck`    | ブラウザー用コードと開発用コードを型検査     |
+| `pnpm lint`         | ESLintで検査。警告も失敗として扱う           |
+| `pnpm format`       | Prettierで整形                               |
+| `pnpm format:check` | 整形状態を変更せず検査                       |
 
 `dist/`は生成物としてGit管理から除外しています。配布するファイルは`pnpm build`で生成する`dist/PDF編集.html`だけです。起動確認には、このファイルをChromeまたはEdgeで直接開いてください。`preview`で表示できても、`file://`での動作確認の代わりにはなりません。
 

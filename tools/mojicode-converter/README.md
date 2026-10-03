@@ -48,7 +48,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-`pnpm dev` で開発サーバー（http://127.0.0.1:5174/）が開きます。`pnpm build` は型検査のあと `dist/文字コード変換.html` を1ファイルで作ります。Node.js・pnpm の版、`test`・`test:dist`・`check` などのスクリプトの役割、リポジトリ直下からのテスト・検証は [共通の開発・リリース手順](../../docs/development.md#コマンド) に従います。
+`pnpm dev` で開発サーバー（<http://127.0.0.1:5174/>）が開きます。`pnpm build` は型検査のあと `dist/文字コード変換.html` を1ファイルで作ります。Node.js・pnpm の版、`test`・`test:dist`・`check` などのスクリプトの役割、リポジトリ直下からのテスト・検証は [共通の開発・リリース手順](../../docs/development.md#コマンド) に従います。
 
 ### ファイル配置
 
