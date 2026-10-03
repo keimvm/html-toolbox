@@ -273,10 +273,14 @@
             </figure>
           </div>
           <div class="ic-edit" id="ic-edit" hidden>
-            <div class="ic-edit-frame" id="ic-edit-frame">
+            <div class="ic-edit-frame" id="ic-edit-frame" tabindex="-1">
               <canvas id="ic-edit-canvas"></canvas>
-              <div class="ic-crop-box" id="ic-crop-box" hidden></div>
-              <div class="ic-draft" id="ic-draft" hidden></div>
+              <div class="ic-crop-box" id="ic-crop-box" hidden>
+                <span class="ic-box-label"></span>
+              </div>
+              <div class="ic-draft" id="ic-draft" hidden>
+                <span class="ic-box-label"></span>
+              </div>
             </div>
           </div>
         </div>

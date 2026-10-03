@@ -5,13 +5,17 @@ import {
   editedSize,
   fitLongSide,
   fitPixels,
+  formatRatio,
+  moveRect,
   noEdits,
   pixelRect,
+  resizeRect,
   rotateRect,
   rotatedSize,
   sourcePoint,
   turn,
   unrotateRect,
+  type Rect,
   type Size,
 } from './geometry';
 import { isPending, saveItem, schedule, state, type Item } from './items';
@@ -32,7 +36,7 @@ type Zoom = 'fit' | 1 | 2;
 const HINTS: Record<Mode, string> = {
   compare:
     '左が元の画像（切り抜き・回転・塗りつぶしの前）、右が保存する画像です。100%・200% ではどちらもスクロールでき、同じ場所を表示します。',
-  crop: '画像の上をドラッグして、残す範囲を囲みます。囲み直すと範囲が変わります。',
+  crop: '画像の上をドラッグして、残す範囲を囲みます。囲み直すと範囲が変わります。矢印キーで範囲を 1 px ずつ動かし、Shift＋矢印キーで幅・高さを 1 px ずつ変えます。',
   redact:
     'ドラッグで囲んだ範囲を黒く塗りつぶします。保存する画像には、塗りつぶした部分の元の画素は残りません。',
 };
@@ -58,7 +62,9 @@ const edit = $('#ic-edit');
 const frame = $('#ic-edit-frame');
 const editCanvas = $<HTMLCanvasElement>('#ic-edit-canvas');
 const cropBox = $('#ic-crop-box');
+const cropLabel = $('#ic-crop-box .ic-box-label');
 const draft = $('#ic-draft');
+const draftLabel = $('#ic-draft .ic-box-label');
 const stats = $('#ic-stats');
 const formatSelect = $<HTMLSelectElement>('#ic-item-format');
 const longInput = $<HTMLInputElement>('#ic-item-long');
@@ -241,10 +247,47 @@ function renderEditStage() {
   );
   frame.style.width = `${css.width}px`;
   frame.style.height = `${css.height}px`;
-  const crop = current.edits.crop;
+  placeCrop();
+}
+
+/** 切り抜きの範囲を、大きさと縦横比を添えて置く。 */
+function placeCrop() {
+  const source = sourceSize();
+  const crop = current?.edits.crop;
   cropBox.hidden = !crop;
-  if (crop)
-    place(cropBox, rotateRect(crop, source, current.edits.rotation), full);
+  if (!current || !source || !crop) return;
+  const rotation = current.edits.rotation;
+  const shown = rotateRect(crop, source, rotation);
+  const full = rotatedSize(source, rotation);
+  place(cropBox, shown, full);
+  showSize(cropLabel, shown, shown, full);
+}
+
+/**
+ * 囲んだ範囲の大きさと縦横比（回転した後の向き）を、範囲の外に表示する。
+ * 上に置き、入らなければ下に、上下とも入らなければ範囲の内側に置く。
+ * 右にはみ出すときは、範囲の右端に揃える。
+ */
+function showSize(
+  label: HTMLElement,
+  size: Size | null,
+  rect: Rect,
+  full: Size,
+) {
+  label.textContent = size
+    ? `${size.width} × ${size.height} px・${formatRatio(size)}`
+    : '';
+  if (!size || !label.offsetHeight) return;
+  const scale = frame.clientHeight / full.height;
+  const room = label.offsetHeight + 8;
+  label.dataset.side =
+    rect.y * scale >= room
+      ? 'above'
+      : frame.clientHeight - (rect.y + rect.height) * scale >= room
+        ? 'below'
+        : 'inside';
+  label.dataset.align =
+    rect.x * scale + label.offsetWidth > frame.clientWidth ? 'end' : 'start';
 }
 
 /** 回転した画像の座標の長方形を、枠に対する割合で置く。 */
@@ -440,22 +483,84 @@ function pointOf(event: PointerEvent): [number, number] {
   ];
 }
 
-function finishDrag(event: PointerEvent) {
-  const source = sourceSize();
-  if (!dragStart || !current || !source) return;
-  const rect = between(dragStart, pointOf(event));
-  dragStart = null;
-  draft.hidden = true;
-  const area = pixelRect(
-    unrotateRect(rect, source, current.edits.rotation),
+/** 回転した画像の上で囲んだ範囲を、元の画像の画素の範囲にする。小さすぎる範囲は null。 */
+function areaOf(rect: Rect): Rect | null {
+  const source = sourceSize()!;
+  return pixelRect(
+    unrotateRect(rect, source, current!.edits.rotation),
     source,
     4,
   );
+}
+
+function showDraft(event: PointerEvent) {
+  const source = sourceSize();
+  if (!dragStart || !current || !source) return;
+  const rect = between(dragStart, pointOf(event));
+  const area = areaOf(rect);
+  draft.hidden = false;
+  place(draft, rect, rotatedSize(source, current.edits.rotation));
+  showSize(
+    draftLabel,
+    area && rotatedSize(area, current.edits.rotation),
+    rect,
+    rotatedSize(source, current.edits.rotation),
+  );
+  // 囲み直している間は、今の切り抜きの範囲を隠して、新しい範囲の大きさだけを見せる。
+  if (mode === 'crop') cropBox.hidden = true;
+}
+
+function endDrag() {
+  dragStart = null;
+  draft.hidden = true;
+  cropBox.hidden = !current?.edits.crop;
+}
+
+function finishDrag(event: PointerEvent) {
+  if (!dragStart || !current || !bitmap) return;
+  const area = areaOf(between(dragStart, pointOf(event)));
+  endDrag();
   if (!area) return;
   if (mode === 'crop') current.edits.crop = area;
   else current.edits.redactions.push(area);
   changed(current);
   renderEditStage();
+}
+
+const ARROWS: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+};
+
+/** 矢印キーで切り抜きの範囲を 1 px ずつ動かす。Shift を押しながらなら幅・高さを変える。 */
+function nudgeCrop(event: KeyboardEvent) {
+  const step = ARROWS[event.key];
+  const source = sourceSize();
+  const crop = current?.edits.crop;
+  if (!step || mode !== 'crop' || !current || !crop || !source || dragStart)
+    return;
+  if (event.altKey || event.ctrlKey || event.metaKey) return;
+  // 設定の入力欄・つまみでは、矢印キー本来の操作を優先する。
+  if ((event.target as Element).closest('input, select, textarea')) return;
+  event.preventDefault();
+  const rotation = current.edits.rotation;
+  const full = rotatedSize(source, rotation);
+  const shown = rotateRect(crop, source, rotation);
+  const next = event.shiftKey
+    ? resizeRect(shown, full, ...step)
+    : moveRect(shown, full, ...step);
+  if (
+    next.x === shown.x &&
+    next.y === shown.y &&
+    next.width === shown.width &&
+    next.height === shown.height
+  )
+    return;
+  current.edits.crop = unrotateRect(next, source, rotation);
+  changed(current);
+  placeCrop();
 }
 
 function updateOverrides(update: (item: Item) => void) {
@@ -554,24 +659,15 @@ export function setupDetail(next: Hooks) {
   frame.addEventListener('pointerdown', (event) => {
     if (mode === 'compare' || !current || !bitmap || event.button !== 0) return;
     event.preventDefault();
+    // 囲んだあとの矢印キーが、設定の入力欄ではなく範囲に効くようにする。
+    frame.focus({ preventScroll: true });
     frame.setPointerCapture(event.pointerId);
     dragStart = pointOf(event);
   });
-  frame.addEventListener('pointermove', (event) => {
-    const source = sourceSize();
-    if (!dragStart || !current || !source) return;
-    draft.hidden = false;
-    place(
-      draft,
-      between(dragStart, pointOf(event)),
-      rotatedSize(source, current.edits.rotation),
-    );
-  });
+  frame.addEventListener('pointermove', showDraft);
   frame.addEventListener('pointerup', finishDrag);
-  frame.addEventListener('pointercancel', () => {
-    dragStart = null;
-    draft.hidden = true;
-  });
+  frame.addEventListener('pointercancel', endDrag);
+  dialog.addEventListener('keydown', nudgeCrop);
 
   // 拡大したときは、元と変換後で同じ場所を表示する。
   for (const [from, to] of [

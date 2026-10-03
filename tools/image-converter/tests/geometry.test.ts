@@ -4,7 +4,10 @@ import {
   editedSize,
   fitLongSide,
   fitPixels,
+  formatRatio,
+  moveRect,
   pixelRect,
+  resizeRect,
   rotatePoint,
   rotateRect,
   sourcePoint,
@@ -129,4 +132,40 @@ test('表示用に画素数を上限まで減らす', () => {
   expect(fitted.width * fitted.height).toBeLessThanOrEqual(12_000_000);
   expect(fitted.width / fitted.height).toBeCloseTo(4 / 3, 2);
   expect(fitPixels(size, 12_000_000)).toEqual(size);
+});
+
+test('矢印キーで範囲を動かすと、画像の端で止まる', () => {
+  const rect = { x: 5, y: 10, width: 20, height: 8 };
+  expect(moveRect(rect, size, 1, 0)).toEqual({ ...rect, x: 6 });
+  expect(moveRect(rect, size, 0, -1)).toEqual({ ...rect, y: 9 });
+  expect(moveRect({ ...rect, x: 0 }, size, -1, 0)).toEqual({ ...rect, x: 0 });
+  expect(moveRect({ ...rect, x: 20 }, size, 1, 0)).toEqual({ ...rect, x: 20 });
+  expect(moveRect({ ...rect, y: 22 }, size, 0, 1)).toEqual({ ...rect, y: 22 });
+});
+
+test('矢印キーで幅・高さを変えると、左上は動かず、1 px 以上・画像の中に収まる', () => {
+  const rect = { x: 5, y: 10, width: 20, height: 8 };
+  expect(resizeRect(rect, size, 1, 0)).toEqual({ ...rect, width: 21 });
+  expect(resizeRect(rect, size, 0, -1)).toEqual({ ...rect, height: 7 });
+  expect(resizeRect({ ...rect, width: 1 }, size, -1, 0)).toEqual({
+    ...rect,
+    width: 1,
+  });
+  expect(resizeRect({ ...rect, width: 35 }, size, 1, 0)).toEqual({
+    ...rect,
+    width: 35,
+  });
+  expect(resizeRect({ ...rect, height: 20 }, size, 0, 1)).toEqual({
+    ...rect,
+    height: 20,
+  });
+});
+
+test('縦横比は、正方形と小さな整数の比をそのまま、それ以外を小数で表す', () => {
+  expect(formatRatio({ width: 800, height: 800 })).toBe('1:1 正方形');
+  expect(formatRatio({ width: 1920, height: 1080 })).toBe('16:9');
+  expect(formatRatio({ width: 600, height: 800 })).toBe('3:4');
+  // 1 px だけ違う範囲は正方形と書かず、比も 1:1 にしない。
+  expect(formatRatio({ width: 801, height: 800 })).toBe('約 1.00:1');
+  expect(formatRatio({ width: 1000, height: 1501 })).toBe('約 1:1.50');
 });

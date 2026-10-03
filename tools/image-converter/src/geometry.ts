@@ -146,3 +146,49 @@ export function fitPixels(size: Size, maxPixels: number): Size {
     height: Math.max(1, Math.floor(size.height * scale)),
   };
 }
+
+/** 長方形を bounds の中で動かす。端に着いたら止める。 */
+export function moveRect(
+  rect: Rect,
+  bounds: Size,
+  dx: number,
+  dy: number,
+): Rect {
+  const clamp = (value: number, max: number) =>
+    Math.min(Math.max(0, value), max);
+  return {
+    ...rect,
+    x: clamp(rect.x + dx, bounds.width - rect.width),
+    y: clamp(rect.y + dy, bounds.height - rect.height),
+  };
+}
+
+/** 左上を動かさずに幅・高さを変える。1 px 以上、bounds の中に収める。 */
+export function resizeRect(
+  rect: Rect,
+  bounds: Size,
+  dw: number,
+  dh: number,
+): Rect {
+  return {
+    ...rect,
+    width: Math.min(Math.max(1, rect.width + dw), bounds.width - rect.x),
+    height: Math.min(Math.max(1, rect.height + dh), bounds.height - rect.y),
+  };
+}
+
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+
+/**
+ * 縦横比の表示。割り切れて小さな整数になる比（16:9 など）はそのまま、
+ * それ以外は短い辺を 1 とした小数で「約」を付ける。
+ */
+export function formatRatio({ width, height }: Size): string {
+  if (width === height) return '1:1 正方形';
+  const divisor = gcd(width, height);
+  const [w, h] = [width / divisor, height / divisor];
+  if (Math.max(w, h) <= 32) return `${w}:${h}`;
+  return width > height
+    ? `約 ${(width / height).toFixed(2)}:1`
+    : `約 1:${(height / width).toFixed(2)}`;
+}
