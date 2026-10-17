@@ -3,10 +3,10 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useErrorBoundary, useLayoutEffect, useRef } from 'preact/hooks';
 import { AskHost, Button, Toasts } from '../ui/components';
 import { Icon } from '../ui/icons';
-import { tools } from '../tools';
 import { About } from './About';
 import { Chooser } from './Chooser';
 import { ToolContext, versionLabel } from './frame';
+import { allTools } from './registry';
 import { Home } from './Home';
 import toolboxIcon from './toolbox-icon.png';
 import type { ToolDefinition } from './tool';
@@ -52,7 +52,7 @@ export function App() {
   const current = route.value;
   const first = useRef(true);
   const activeTool =
-    current.kind === 'tool' ? tools.find((tool) => tool.id === current.id) : undefined;
+    current.kind === 'tool' ? allTools().find((tool) => tool.id === current.id) : undefined;
   const status = activeTool ? instances.value.get(activeTool.id)?.status.value : undefined;
 
   // タブの題名とアイコン。ツールではそのツールのアイコン、保存していない作業があれば ● を付ける。
@@ -98,7 +98,7 @@ export function App() {
       <div class="home-view" hidden={current.kind !== 'home'}>
         <Home active={current.kind === 'home'} />
       </div>
-      {tools.map((tool) => {
+      {allTools().map((tool) => {
         const instance = instances.value.get(tool.id);
         if (!instance) return null;
         const active = current.kind === 'tool' && current.id === tool.id;

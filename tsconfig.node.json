@@ -23,6 +23,7 @@
     "vite/**/*.ts",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
+    "src/**/*.test-support.ts",
     "tests/**/*.ts"
   ]
 }

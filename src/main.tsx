@@ -4,6 +4,11 @@ import './app/app.css';
 import { render } from 'preact';
 import { App } from './app/App';
 import { applyTheme } from './lib/theme';
+import { registerTools } from './app/registry';
+import { startWorkspace } from './app/workspace';
+import { tools } from './tools';
 
 applyTheme();
+registerTools(tools);
+startWorkspace();
 render(<App />, document.getElementById('app')!);

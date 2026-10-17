@@ -7,7 +7,7 @@ import type { JSX } from 'preact';
 import { theme, toggleTheme } from '../lib/theme';
 import { IconButton } from '../ui/components';
 import { Icon } from '../ui/icons';
-import { tools } from '../tools';
+import { allTools } from './registry';
 import type { ToolDefinition } from './tool';
 import { goHome, instances, openTool } from './workspace';
 
@@ -64,7 +64,7 @@ function Switcher({ tool }: { tool: ToolDefinition }) {
         style={{ positionAnchor: anchor, positionArea: 'bottom span-right' } as JSX.CSSProperties}
       >
         <div class="tb-menu-label">ツールを切り替える</div>
-        {tools.map((other) => {
+        {allTools().map((other) => {
           const status = instances.value.get(other.id)?.status.value;
           const current = other.id === tool.id;
           return (

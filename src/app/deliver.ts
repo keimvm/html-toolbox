@@ -1,7 +1,7 @@
 // ホームに置いた・貼り付けたもの、ほかのツールから渡したものを、受け取れるツールへ届ける。
 // 受け取れるのが1つなら、そのツールを開いて渡す。2つ以上なら選んでもらう。
 import { signal } from '@preact/signals';
-import { tools, toolById } from '../tools';
+import { allTools, toolById } from './registry';
 import { toast } from '../ui/components';
 import type { DragHint, Incoming, Intent, ToolDefinition } from './tool';
 import { openTool } from './workspace';
@@ -15,7 +15,7 @@ export interface Option {
 export const choosing = signal<{ input: Incoming; options: Option[]; title: string } | null>(null);
 
 export function optionsFor(input: Incoming, only?: string): Option[] {
-  return tools
+  return allTools()
     .filter((tool) => !only || tool.id === only)
     .flatMap((tool) =>
       tool.intents.filter((intent) => intent.accepts(input)).map((intent) => ({ tool, intent })),

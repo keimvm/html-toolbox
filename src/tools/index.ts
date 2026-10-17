@@ -8,6 +8,11 @@ import { pdfEdit } from './pdf-edit';
 import { promptLibrary } from './prompt-library';
 import { typingGame } from './typing-game';
 
-export const tools: readonly ToolDefinition[] = [promptLibrary, imageConverter, pdfEdit, noteHtml, mojicodeConverter, typingGame];
-
-export const toolById = (id: string) => tools.find((tool) => tool.id === id);
+export const tools: readonly ToolDefinition[] = [
+  promptLibrary,
+  imageConverter,
+  pdfEdit,
+  noteHtml,
+  mojicodeConverter,
+  typingGame,
+];

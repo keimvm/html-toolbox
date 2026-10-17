@@ -8,17 +8,18 @@ import { isMac, prefersReducedMotion } from '../lib/platform';
 import { Button, IconButton } from '../ui/components';
 import { Icon } from '../ui/icons';
 import { useDropZone } from '../ui/drop';
-import { tools } from '../tools';
 import { aboutOpen } from './About';
 import { createCards } from './cards';
+import { allTools } from './registry';
 import { deliver, mayAccept } from './deliver';
 import { createFlow, flowEnabled } from './flow';
 import { ThemeToggle, versionLabel } from './frame';
 import type { DragHint, Incoming } from './tool';
 import { instances, openTool, routeRendered } from './workspace';
 
-const ids = tools.map((tool) => tool.id);
-const cards = createCards(ids);
+let shared: ReturnType<typeof createCards> | undefined;
+/** ホームのタイルの並び。ツールを登録した後（最初の表示のとき）に作る。 */
+const useCards = () => (shared ??= createCards(allTools().map((tool) => tool.id)));
 
 function dragHint(event: DragEvent): DragHint {
   const items = Array.from(event.dataTransfer?.items ?? []).filter((item) => item.kind === 'file');
@@ -30,6 +31,8 @@ const editable = (target: EventTarget | null) =>
   (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 
 export function Home({ active }: { active: boolean }) {
+  const cards = useCards();
+  const tools = allTools();
   const editing = useSignal(false);
   const hint = useSignal<DragHint | null>(null);
   const over = useSignal<string | null>(null);
