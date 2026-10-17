@@ -1,5 +1,6 @@
 name: Check
 
+# main への push・PR で、整形・lint・テスト・ビルド・配布物のテストを Linux・macOS・Windows で実行する。
 on:
   push:
     branches: [main]
@@ -14,54 +15,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  scripts:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      tools: ${{ steps.list.outputs.tools }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-      - run: node --test 'scripts/*.test.mjs' 'ui/*.test.mjs'
-      - id: list
-        name: 変更したツールを選ぶ
-        run: node scripts/ci-tools.mjs
-
-  tool:
-    needs: scripts
-    if: needs.scripts.outputs.tools != '[]'
+  check:
     strategy:
       fail-fast: false
       matrix:
-        tool: ${{ fromJSON(needs.scripts.outputs.tools) }}
         os: [ubuntu-latest, macos-latest, windows-latest]
-    name: ${{ matrix.tool }} (${{ matrix.os }})
-    uses: ./.github/workflows/tool.yml
-    with:
-      tool: ${{ matrix.tool }}
-      os: ${{ matrix.os }}
+    name: check (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: 依存取得・整形・lint・テスト・ビルド・配布物のテスト
+        run: node scripts/toolbox.mjs check
 
-  # ツールが増減しても、ブランチ保護で必須にするチェック名は変わらない。
+  # ブランチ保護で必須にするチェック名。OS の組み合わせが変わっても変わらない。
   result:
     name: Check result
-    needs: [scripts, tool]
+    needs: check
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: 検証結果を確認
         env:
-          SCRIPTS_RESULT: ${{ needs.scripts.result }}
-          TOOL_RESULT: ${{ needs.tool.result }}
-          TOOLS: ${{ needs.scripts.outputs.tools }}
-        run: |
-          test "$SCRIPTS_RESULT" = success
-          if [ "$TOOLS" = '[]' ]; then
-            test "$TOOL_RESULT" = skipped
-          else
-            test "$TOOL_RESULT" = success
-          fi
+          RESULT: ${{ needs.check.result }}
+        run: test "$RESULT" = success

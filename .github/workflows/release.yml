@@ -1,7 +1,7 @@
 name: Release
 
-# GitHub の画面または gh release create でリリースを公開すると、tools.json のツールを検査・ビルドし、
-# toolbox-<版>.zip をそのリリースに添付する。版番号はリリースのタグから取る。
+# GitHub の画面または gh release create でリリースを公開すると、全体を検証してから版を付けてビルドし、
+# toolbox-<版>.zip をそのリリースに添付する。版番号はリリースのタグから取る。検証かビルドが失敗したら添付しない。
 on:
   release:
     types: [published]
@@ -17,53 +17,23 @@ env:
   VERSION: ${{ github.event.release.tag_name }}
 
 jobs:
-  prepare:
+  release:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      tools: ${{ steps.list.outputs.tools }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-      - name: 版番号が日付形式か確認
-        run: node scripts/toolbox.mjs check-version "$VERSION"
-      - run: node --test 'scripts/*.test.mjs' 'ui/*.test.mjs'
-      - id: list
-        run: echo "tools=$(node scripts/toolbox.mjs list)" >> "$GITHUB_OUTPUT"
-
-  build:
-    needs: prepare
-    strategy:
-      fail-fast: true
-      matrix:
-        tool: ${{ fromJSON(needs.prepare.outputs.tools) }}
-    name: build ${{ matrix.tool }}
-    uses: ./.github/workflows/tool.yml
-    with:
-      tool: ${{ matrix.tool }}
-      upload: true
-
-  package:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: tool-*
-          path: build
-          merge-multiple: true
-      - name: zipを作る
-        run: node scripts/toolbox.mjs package "$VERSION"
-      - name: zipをリリースに添付
+          cache: pnpm
+      - name: 版番号が日付形式か確認
+        run: node scripts/toolbox.mjs check-version "$VERSION"
+      - name: 検証・版を付けたビルド・zip の作成
+        run: node scripts/toolbox.mjs release "$VERSION"
+      - name: zip をリリースに添付
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

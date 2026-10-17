@@ -1,5 +1,9 @@
+node_modules/
+dist/
 build/
 out/
-node_modules/
+output/
+coverage/
+local-samples/
 .DS_Store
 .codegraph

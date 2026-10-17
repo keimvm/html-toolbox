@@ -1,9 +1,0 @@
-engineStrict: true
-minimumReleaseAgeExclude:
-  - '@playwright/cli@0.1.21'
-  - '@types/node@24.13.6'
-  - eslint@10.11.0
-  - playwright-core@1.64.0-alpha-1789764292000
-  - playwright@1.64.0-alpha-1789764292000
-saveExact: true
-strictPeerDependencies: true

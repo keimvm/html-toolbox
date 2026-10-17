@@ -1,0 +1,8 @@
+engineStrict: true
+saveExact: true
+strictPeerDependencies: true
+minimumReleaseAgeExclude:
+  - '@types/node@24.13.6'
+  - eslint@10.11.0
+allowBuilds:
+  esbuild: true

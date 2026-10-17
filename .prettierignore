@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+out/
+coverage/
+output/
+tools/
+pnpm-lock.yaml
+local-samples/
+*.md
+src/tools/*/fixtures/
+src/tools/*/designs/

@@ -1,1 +1,9 @@
 * text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.wasm binary
+# 文字コード変換のテスト用の対応表は、入手したままのバイト列で保つ（bestfit932.txt は CRLF・Shift_JIS のコメントを含む）。
+src/tools/mojicode-converter/fixtures/*.TXT -text
+src/tools/mojicode-converter/fixtures/*.txt -text

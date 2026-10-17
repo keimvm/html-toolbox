@@ -1,6 +1,0 @@
-node_modules/
-dist/
-coverage/
-output/
-pnpm-lock.yaml
-tests/fixtures/
