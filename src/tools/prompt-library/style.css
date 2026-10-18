@@ -113,6 +113,13 @@
 .pl-count {
   font-variant-numeric: tabular-nums;
 }
+.pl-keys,
+.pl-arrange-open {
+  margin-left: auto;
+}
+.pl-keys + .pl-arrange-open {
+  margin-left: 0;
+}
 .pl-keys {
   color: var(--tb-faint);
 }
@@ -204,18 +211,24 @@
 .pl-card:hover .pl-key {
   opacity: 1;
 }
-/* 本文は先頭の数行だけを見せる。全文は編集画面で見る。 */
+/* 概要を薄字で見せる。概要がなければ本文の先頭の数行をさらに薄く見せる。全文は編集画面で見る。 */
+.pl-card-summary,
 .pl-card-body {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
-  line-clamp: 5;
-  color: var(--tb-muted);
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   font-size: 13px;
   line-height: 1.75;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.pl-card-summary {
+  color: var(--tb-muted);
+}
+.pl-card-body {
+  color: var(--tb-faint);
 }
 .pl-card-tags {
   display: flex;
@@ -259,6 +272,112 @@
   background: var(--tb-success);
 }
 
+/* ── 並び替え・表示の切り替え ── */
+.pl-arrange-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 18px 0 10px;
+  padding: 10px 14px;
+  border-radius: var(--tb-radius);
+  background: var(--tb-gold-tint);
+}
+.pl-arrange-note {
+  flex: 1 1 320px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.pl-arrange-actions {
+  display: flex;
+  gap: 6px;
+}
+.pl-rows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pl-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px 6px 10px;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius);
+  background: var(--tb-surface);
+  cursor: grab;
+}
+.pl-row:hover,
+.pl-row:focus-within {
+  border-color: var(--tb-line-strong);
+}
+.pl-row[data-hidden] .pl-row-text {
+  opacity: 0.5;
+}
+/* ドラッグ中は、落とす位置（行の上か下）に真鍮色の線を引く。 */
+.pl-row[data-drop]::after {
+  content: '';
+  position: absolute;
+  inset-inline: 6px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--tb-gold);
+}
+.pl-row[data-drop='before']::after {
+  top: -5px;
+}
+.pl-row[data-drop='after']::after {
+  bottom: -5px;
+}
+.pl-row-grip {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--tb-faint);
+}
+.pl-row-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.pl-row-title,
+.pl-row-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pl-row-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.pl-row-summary {
+  color: var(--tb-muted);
+  font-size: 12.5px;
+}
+.pl-row-visibility {
+  min-width: 6.5em;
+}
+.pl-row-visibility[aria-pressed='true'] {
+  border-color: transparent;
+  background: none;
+}
+.pl-row-visibility[aria-pressed='false'] {
+  color: var(--tb-faint);
+}
+@media (max-width: 520px) {
+  .pl-row-summary {
+    display: none;
+  }
+  .pl-row-visibility {
+    min-width: 0;
+  }
+}
+
 /* ── 編集画面 ── */
 .tb-dialog.pl-editor {
   width: min(680px, calc(100% - 28px));
@@ -274,6 +393,9 @@
 .pl-body {
   min-height: 14em;
   max-height: 52dvh;
+}
+.pl-summary {
+  resize: vertical;
 }
 .pl-tag-choices {
   margin-top: -6px;

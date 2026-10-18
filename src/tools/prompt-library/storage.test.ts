@@ -67,8 +67,10 @@ const library = (titles: string[]): Library => ({
   prompts: titles.map((title, i) => ({
     id: String(i + 1),
     title,
+    summary: '',
     body: `${title}の本文`,
     tags: [],
+    hidden: false,
   })),
 });
 

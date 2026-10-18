@@ -15,7 +15,7 @@ toolbox は、PC の中で完結する便利ツール集です。受け取った
 
 | ツール | できること |
 | --- | --- |
-| [プロンプト集](src/tools/prompt-library/README.md#使い方) | よく使う AI チャットのプロンプトを PC のフォルダに保存し、タグで絞り込んで、ボタンか数字キーでコピー |
+| [プロンプト集](src/tools/prompt-library/README.md#使い方) | よく使う AI チャットのプロンプトを PC のフォルダに保存し、タグで絞り込んで、ボタンか数字キーでコピー。並び替え・非表示、JSON でのエクスポート・インポートも可 |
 | [画像変換](src/tools/image-converter/README.md#使い方) | 写真やスクリーンショットのリサイズ・圧縮・形式変換（JPEG・PNG）、容量の上限に合わせた画質の自動調整、切り抜き・回転・塗りつぶし、画像と PDF の相互変換、重い PDF の縮小 |
 | [PDF編集](src/tools/pdf-edit/README.md#使い方) | PDF のページの削除・並べ替え・回転・結合、画像や文字の取り出し、ページの中の要素（画像・図形・文字）の削除 |
 | [ローカルノート](src/tools/note-html/README.md#使い方) | PC のフォルダにある Markdown の閲覧・編集・保存、画像やファイルの添付、HTML・PDF への書き出し |
