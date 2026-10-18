@@ -1,6 +1,6 @@
 name: Release
 
-# GitHub の画面または gh release create でリリースを公開すると、全体を検証してから版を付けてビルドし、
+# GitHub の画面または gh release create でリリースを公開すると、3 OS で全体を検証してから版を付けてビルドし、
 # toolbox-<版>.zip をそのリリースに添付する。版番号はリリースのタグから取る。検証かビルドが失敗したら添付しない。
 on:
   release:
@@ -17,7 +17,11 @@ env:
   VERSION: ${{ github.event.release.tag_name }}
 
 jobs:
+  check:
+    uses: ./.github/workflows/check.yml
+
   release:
+    needs: check
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

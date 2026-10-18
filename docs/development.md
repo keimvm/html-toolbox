@@ -23,7 +23,7 @@ toolbox は、全ツールを1つの HTML に入れた1つのアプリです。�
 | `scripts/toolbox.mjs` | テスト・ビルド・総合検証・zip の作成（Node.js の標準機能だけ） |
 | `scripts/cdp.mjs` | `file://` の画面を確かめるための、Chrome を操作する小さな道具（自動テストには含めない） |
 | `tests/dist/` | ビルドした配布物のテスト |
-| `.github/workflows/` | `check.yml`（main への push・PR で3 OS の総合検証）、`release.yml`（リリースの公開で検証・ビルドし zip を添付） |
+| `.github/workflows/` | `check.yml`（3 OS の総合検証。リリースの公開時と手動実行のみ）、`release.yml`（リリースの公開で Check を呼んでから検証・ビルドし zip を添付） |
 
 `tools/` には、作り直す前の構成で作った検証画像などが Git 管理外で残っている場合があります。使いません。
 
@@ -148,16 +148,18 @@ await b.close();
 
 | 契機 | 内容 |
 | --- | --- |
-| main への push・PR、Check の「Run workflow」 | Linux・macOS・Windows で総合検証（`node scripts/toolbox.mjs check`） |
-| リリースの公開 | Linux で版番号を検査し、総合検証・版を付けたビルド・zip 作成のあと、リリースに `toolbox-<版>.zip` を添付 |
+| Check の「Run workflow」（手動） | Linux・macOS・Windows で総合検証（`node scripts/toolbox.mjs check`） |
+| リリースの公開 | Check と同じ3 OS の総合検証が成功したあと、Linux で版番号を検査し、総合検証・版を付けたビルド・zip 作成を行い、リリースに `toolbox-<版>.zip` を添付 |
 
-ブランチ保護を設定する場合、必須チェックは固定名の **Check result** を指定します。pnpm は `pnpm/action-setup` が `packageManager` の版を、Node.js は `.node-version` を使います。Rust は GitHub のランナーにある rustup が、クレートの `rust-toolchain.toml` の版と target を入れます（GitHub 上では未確認）。
+push・PR では CI を動かしません。公開前に GitHub 上で確かめたいときは、Check を手動で実行します。push・PR で Check が動かないため、ブランチ保護の必須チェックには Check を指定しません。
+
+pnpm は `pnpm/action-setup` が `packageManager` の版を、Node.js は `.node-version` を使います。Rust は GitHub のランナーにある rustup が、クレートの `rust-toolchain.toml` の版と target を入れます（GitHub 上では未確認）。
 
 ## GitHub に版を公開する
 
 公開の指示を受けてから実行します。ローカルの `build`・`release` では公開しません。
 
-1. push・マージの指示に従って対象の変更を GitHub の main に反映し、そのコミットの Check が成功していることを確認する。公開操作には push・マージを組み込まない。
+1. push・マージの指示に従って対象の変更を GitHub の main に反映する。公開操作には push・マージを組み込まない。
 2. 公開対象の push 済みコミットの完全な SHA、日付形式の版、日本語のリリース説明ファイルを指定する。
 
    ```sh
@@ -169,7 +171,7 @@ await b.close();
 
 GitHub の版は `2026.10.03` のような日付形式にします。同日の追加公開には `2026.10.03.2` のように枝番を付け、未使用のタグで公開します。既存タグを指定した場合は `--target` ではそのタグの参照先を変えられないため、別コミットの公開に既存タグを流用しません。
 
-公開を契機に、タグのソースで総合検証・ビルドを行い、zip を添付します。リリースの作成と zip の添付は別の処理です。版番号・検証・ビルドが不正ならリリース自体は存在していても、zip は添付されません。コマンドの成功だけで完了扱いにせず、Actions と添付結果まで確認してください。修正後は新しい版で公開します。
+公開を契機に、タグのソースで3 OS の総合検証を行い、成功したら Linux で検証・ビルドを行い、zip を添付します。リリースの作成と zip の添付は別の処理です。版番号・検証・ビルドが不正ならリリース自体は存在していても、zip は添付されません。コマンドの成功だけで完了扱いにせず、Actions と添付結果まで確認してください。修正後は新しい版で公開します。
 
 ## ツールを追加する
 

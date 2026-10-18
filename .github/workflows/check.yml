@@ -1,10 +1,9 @@
 name: Check
 
-# main への push・PR で、整形・lint・テスト・ビルド・配布物のテストを Linux・macOS・Windows で実行する。
+# 整形・lint・テスト・ビルド・配布物のテストを Linux・macOS・Windows で実行する。
+# push・PR では動かさず、リリースの公開時（release.yml から呼ぶ）と手動の「Run workflow」だけで実行する。
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -33,7 +32,7 @@ jobs:
       - name: 依存取得・整形・lint・テスト・ビルド・配布物のテスト
         run: node scripts/toolbox.mjs check
 
-  # ブランチ保護で必須にするチェック名。OS の組み合わせが変わっても変わらない。
+  # OS の組み合わせが変わっても変わらない、検証全体の結果。
   result:
     name: Check result
     needs: check
