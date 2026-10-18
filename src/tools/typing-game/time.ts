@@ -17,9 +17,7 @@ const pad = (value: number) => String(value).padStart(2, '0');
 /** 「0:07」「12:34.5」「1:02:03.4」の形。tenths で0.1秒の桁を付ける。切り捨てる。 */
 export function formatClock(ms: number, { tenths = false } = {}): string {
   const { hours, minutes, seconds, tenth } = parts(ms, tenths);
-  const clock = hours
-    ? `${hours}:${pad(minutes)}:${pad(seconds)}`
-    : `${minutes}:${pad(seconds)}`;
+  const clock = hours ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
   return tenth === undefined ? clock : `${clock}.${tenth}`;
 }
 

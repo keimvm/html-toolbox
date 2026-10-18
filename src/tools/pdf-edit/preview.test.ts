@@ -1,10 +1,5 @@
 import { expect, test } from 'vitest';
-import {
-  currentPreviewPage,
-  previewWidth,
-  stepZoom,
-  isPreviewZoom,
-} from './preview';
+import { currentPreviewPage, previewWidth, stepZoom, isPreviewZoom } from './preview';
 import { Editor } from './editor';
 
 const viewport = { top: 100, bottom: 700 };
@@ -25,8 +20,7 @@ test('拡大縮小は上下限を守り、幅合わせ相当の倍率からも�
   expect(stepZoom(10, -1)).toBe(25);
   expect(isPreviewZoom('fit')).toBe(true);
   expect(isPreviewZoom(200)).toBe(true);
-  for (const value of [NaN, 0, 400, '100', null])
-    expect(isPreviewZoom(value)).toBe(false);
+  for (const value of [NaN, 0, 400, '100', null]) expect(isPreviewZoom(value)).toBe(false);
 });
 
 test('長いページの途中では同じページを選び、上端を通過したら次へ進む', () => {
@@ -86,12 +80,8 @@ test('短い最終ページも、スクロールの末尾で選べる', () => {
 
 test('空の文書や非表示の領域ではページを選ばない', () => {
   expect(currentPreviewPage([], viewport, true)).toBe(-1);
-  expect(
-    currentPreviewPage([{ top: 0, bottom: 500 }], { top: 0, bottom: 0 }, true),
-  ).toBe(-1);
-  expect(currentPreviewPage([{ top: 124, bottom: 680 }], viewport, true)).toBe(
-    0,
-  );
+  expect(currentPreviewPage([{ top: 0, bottom: 500 }], { top: 0, bottom: 0 }, true)).toBe(-1);
+  expect(currentPreviewPage([{ top: 124, bottom: 680 }], viewport, true)).toBe(0);
 });
 
 test('スクロールによる選択は編集履歴を増やさず、表示中のページを編集する', () => {

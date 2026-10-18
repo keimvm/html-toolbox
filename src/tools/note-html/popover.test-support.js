@@ -5,9 +5,14 @@ export function installPopover(window) {
     const event = new window.Event('beforetoggle');
     Object.defineProperty(event, 'newState', { value: newState });
     panel.dispatchEvent(event);
-    if (newState === 'open') open.add(panel); else open.delete(panel);
+    if (newState === 'open') open.add(panel);
+    else open.delete(panel);
   }
-  window.HTMLElement.prototype.showPopover = function () { toggle(this, 'open'); };
-  window.HTMLElement.prototype.hidePopover = function () { if (open.has(this)) toggle(this, 'closed'); };
-  return { isOpen: panel => open.has(panel) };
+  window.HTMLElement.prototype.showPopover = function () {
+    toggle(this, 'open');
+  };
+  window.HTMLElement.prototype.hidePopover = function () {
+    if (open.has(this)) toggle(this, 'closed');
+  };
+  return { isOpen: (panel) => open.has(panel) };
 }

@@ -28,11 +28,7 @@ describe('コード → 文字', () => {
   test('Microsoft の CP932.TXT の全コードと一致し、ほかに読めるのは 0x80 と外字だけ', () => {
     const mismatches = [...expected]
       .filter(([code, codePoint]) => table.decode(code) !== codePoint)
-      .map(([code, codePoint]) => [
-        hex(code),
-        hex(codePoint),
-        hex(table.decode(code)),
-      ]);
+      .map(([code, codePoint]) => [hex(code), hex(codePoint), hex(table.decode(code))]);
     expect(mismatches).toEqual([]);
     expect(table.codes().filter((code) => !expected.has(code))).toEqual([]);
     expect(cp932.size).toBe(7915);
@@ -48,9 +44,7 @@ describe('コード → 文字', () => {
         !(codePoint >= 0xf8f0 && codePoint <= 0xf8f3),
     );
     expect(differences).toEqual([]);
-    expect([...expected.keys()].filter((code) => !multiByte.has(code))).toEqual(
-      [],
-    );
+    expect([...expected.keys()].filter((code) => !multiByte.has(code))).toEqual([]);
   });
 
   test('読めない並びとその位置を示す', () => {
@@ -80,16 +74,11 @@ describe('コード → 文字', () => {
 describe('文字 → コード', () => {
   test('Windows の WCTABLE のうち往復できる対応と、代表の選び方まで一致する', () => {
     const roundTrip = [...wideChar].filter(
-      ([codePoint, code]) =>
-        multiByte.get(code) === codePoint && expected.has(code),
+      ([codePoint, code]) => multiByte.get(code) === codePoint && expected.has(code),
     );
     const mismatches = roundTrip
       .filter(([codePoint, code]) => table.encode(codePoint) !== code)
-      .map(([codePoint, code]) => [
-        hex(codePoint),
-        hex(code),
-        hex(table.encode(codePoint)),
-      ]);
+      .map(([codePoint, code]) => [hex(codePoint), hex(code), hex(table.encode(codePoint))]);
     expect(mismatches).toEqual([]);
     // 読める文字は全て、往復できる対応として WCTABLE にある。
     const encodable = new Set([...expected.values()]);
@@ -129,10 +118,7 @@ describe('文字 → コード', () => {
       ['😀', undefined],
     ];
     for (const [char, code] of cases) {
-      expect([char, hex(table.encode(char.codePointAt(0)!))]).toEqual([
-        char,
-        hex(code),
-      ]);
+      expect([char, hex(table.encode(char.codePointAt(0)!))]).toEqual([char, hex(code)]);
     }
   });
 

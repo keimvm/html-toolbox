@@ -60,8 +60,7 @@ export function parseLongSide(value: string): number | null {
   return number;
 }
 
-export const extension = (format: Format) =>
-  format === 'jpeg' ? 'jpg' : 'png';
+export const extension = (format: Format) => (format === 'jpeg' ? 'jpg' : 'png');
 
 export const mimeType = (format: Format): 'image/jpeg' | 'image/png' =>
   format === 'jpeg' ? 'image/jpeg' : 'image/png';

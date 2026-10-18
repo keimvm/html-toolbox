@@ -14,7 +14,7 @@ import { copyText } from '../../lib/clipboard';
 import { downloadBlob, safeFileName } from '../../lib/download';
 import { isPdf, pickFiles } from '../../lib/files';
 import { baseName, formatBytes, number } from '../../lib/format';
-import { hasMod, modKey } from '../../lib/platform';
+import { hasMod, isEditable, modKey } from '../../lib/platform';
 import {
   ask,
   Button,
@@ -66,9 +66,6 @@ const KIND_LABELS: Record<PageElement['kind'], string> = {
   other: 'その他',
 };
 
-const editable = (target: EventTarget | null) =>
-  target instanceof HTMLElement &&
-  (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 const refOf = ({ sourceId, sourceIndex, rotation }: EditorPage): PageRef => ({
   sourceId,
   sourceIndex,
@@ -193,10 +190,8 @@ function create() {
         const saved = await session.load();
         if (!saved) return;
         for (const source of saved.sources) {
-          const doc = await pdfEngine().call('open', {
-            id: source.id,
-            content: await source.data.arrayBuffer(),
-          });
+          const content = await source.data.arrayBuffer();
+          const doc = await pdfEngine().call('open', { id: source.id, content }, [content]);
           sources.set(source.id, { doc, name: source.name, data: source.data });
         }
         const state = saved.state.editor;
@@ -237,8 +232,10 @@ function create() {
 
   async function openBuffer(content: ArrayBuffer, name: string) {
     const id = crypto.randomUUID();
-    const doc = await pdfEngine().call('open', { id, content: content.slice(0) });
-    sources.set(id, { doc, name, data: new Blob([content], { type: 'application/pdf' }) });
+    // Blob が中身を写し取るため、元の配列は複製せずに Worker へ転送する（大きな PDF の複製を増やさない）。
+    const data = new Blob([content], { type: 'application/pdf' });
+    const doc = await pdfEngine().call('open', { id, content }, [content]);
+    sources.set(id, { doc, name, data });
     const added: EditorPage[] = doc.pages.map((page) => ({
       id: `${id}-${page.index}`,
       sourceId: id,
@@ -332,7 +329,9 @@ function create() {
     select(page.id);
     if (focused)
       queueMicrotask(() =>
-        document.querySelector<HTMLElement>(`[data-page="${page.id}"]`)?.focus({ preventScroll: true }),
+        document
+          .querySelector<HTMLElement>(`[data-page="${page.id}"]`)
+          ?.focus({ preventScroll: true }),
       );
   }
 
@@ -485,7 +484,7 @@ function create() {
   // ── キーボード ──
 
   document.addEventListener('keydown', (event) => {
-    if (!active || busy.value || document.querySelector('dialog[open]') || editable(event.target))
+    if (!active || busy.value || document.querySelector('dialog[open]') || isEditable(event.target))
       return;
     if (!editor.pages.length) return;
     if (hasMod(event) && event.key.toLowerCase() === 'z' && !event.shiftKey && !event.altKey) {
@@ -533,7 +532,8 @@ function create() {
       job = pdfEngine()
         .call('render', {
           page: refOf(page),
-          scale: (THUMBNAIL_SIDE * Math.min(devicePixelRatio, 2)) / Math.max(dims.width, dims.height),
+          scale:
+            (THUMBNAIL_SIDE * Math.min(devicePixelRatio, 2)) / Math.max(dims.width, dims.height),
         })
         .then((blob) => {
           const url = URL.createObjectURL(blob);
@@ -1041,11 +1041,13 @@ function create() {
         <div class="pe-panel-actions">
           <Button
             icon="copy"
-            onClick={async () =>
-              toast((await copyText(text)) ? '文字をコピーしました。' : 'コピーできませんでした。', {
-                tone: 'success',
-              })
-            }
+            onClick={async () => {
+              if (await copyText(text)) toast('文字をコピーしました。', { tone: 'success' });
+              else
+                toast('コピーできませんでした。欄を選択してコピーしてください。', {
+                  tone: 'error',
+                });
+            }}
           >
             コピー
           </Button>
@@ -1180,7 +1182,10 @@ function create() {
           <ul class="pe-elements">
             {elements.map((element) => (
               <li key={element.index}>
-                <label class="pe-element" data-chosen={chosen.value.has(element.index) ? '' : undefined}>
+                <label
+                  class="pe-element"
+                  data-chosen={chosen.value.has(element.index) ? '' : undefined}
+                >
                   <input
                     type="checkbox"
                     checked={chosen.value.has(element.index)}
@@ -1329,11 +1334,16 @@ function create() {
         editor.pages.length ? 'ここにドロップして末尾に加える' : 'ここにドロップして開く',
       onDrop: (dropped) => {
         if (dropped.files.length) void openFiles(dropped.files);
-        else if (dropped.hasFolder) toast('フォルダは開けません。PDFファイルをドロップしてください。');
+        else if (dropped.hasFolder)
+          toast('フォルダは開けません。PDFファイルをドロップしてください。');
       },
     });
     const body: JSX.Element = count ? (
-      <div class="pe-workbench" data-inspecting={inspecting.value ? '' : undefined} aria-busy={busy.value}>
+      <div
+        class="pe-workbench"
+        data-inspecting={inspecting.value ? '' : undefined}
+        aria-busy={busy.value}
+      >
         <Rail />
         <div class="pe-main">
           <Toolbar />
@@ -1360,7 +1370,9 @@ function create() {
         note="ドロップでも開けます。元の PDF は変更しません。"
       >
         <p>
-          ページの削除・並べ替え・回転、ほかの PDF の結合ができます。ページの画像や文字を取り出したり、ページの中の要素（画像・図形・文字）を取り除いたりもできます。保存すると、新しい PDF をダウンロードします。
+          ページの削除・並べ替え・回転、ほかの PDF
+          の結合ができます。ページの画像や文字を取り出したり、ページの中の要素（画像・図形・文字）を取り除いたりもできます。保存すると、新しい
+          PDF をダウンロードします。
         </p>
       </EmptyState>
     );
@@ -1370,7 +1382,12 @@ function create() {
         actions={
           count > 0 && (
             <>
-              <Button icon="plus" class="pe-add" disabled={busy.value} onClick={() => void chooseFiles()}>
+              <Button
+                icon="plus"
+                class="pe-add"
+                disabled={busy.value}
+                onClick={() => void chooseFiles()}
+              >
                 PDFを追加
               </Button>
               <Button variant="primary" icon="download" disabled={busy.value} onClick={openSave}>

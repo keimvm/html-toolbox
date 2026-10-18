@@ -3,23 +3,29 @@
 // file:// の Chrome・Edge は保存領域を共有するため、版（解凍先のフォルダ）をまたいで同じ値になる。
 import { signal, type Signal } from '@preact/signals';
 
+/**
+ * localStorage に書けなかった値。容量不足などで書き込みだけが失敗すると localStorage には古い値が残るため、
+ * 読むときはこちらを先に使う。
+ */
 const memory = new Map<string, string | null>();
 
 export function readStored(key: string): string | null {
+  if (memory.has(key)) return memory.get(key) ?? null;
   try {
     return localStorage.getItem(key);
   } catch {
-    return memory.get(key) ?? null;
+    return null;
   }
 }
 
 export function writeStored(key: string, value: string | null) {
-  memory.set(key, value);
   try {
     if (value === null) localStorage.removeItem(key);
     else localStorage.setItem(key, value);
+    memory.delete(key);
   } catch {
     // 保存できなくても、この画面の中では切り替える。
+    memory.set(key, value);
   }
 }
 
@@ -34,7 +40,10 @@ export function storedSignal<T>(
 ): Signal<T> & { set(value: T): void } {
   const state = signal(parse(readStored(key)));
   addEventListener('storage', (event) => {
-    if (event.key === key || event.key === null) state.value = parse(readStored(key));
+    if (event.key !== key && event.key !== null) return;
+    // 別のタブが保存した値に合わせる。
+    memory.delete(key);
+    state.value = parse(readStored(key));
   });
   return Object.assign(state, {
     set(value: T) {

@@ -417,7 +417,10 @@ export function createDetail(store: Items, { onSave }: { onSave: (item: Item) =>
     const result = item.result;
     if (isPending(item) || !result) rows.push(['変換後', '計算しています…']);
     else {
-      rows.push(['変換後', `${result.width} × ${result.height} px・${formatBytes(result.blob.size)}`]);
+      rows.push([
+        '変換後',
+        `${result.width} × ${result.height} px・${formatBytes(result.blob.size)}`,
+      ]);
       rows.push([
         '形式',
         result.quality === null
@@ -440,7 +443,8 @@ export function createDetail(store: Items, { onSave }: { onSave: (item: Item) =>
     const settings = effective(global, item.overrides);
     const png = settings.format === 'png';
     const auto = item.overrides.quality === undefined;
-    const quality = qualityDraft.value ?? item.overrides.quality ?? item.result?.quality ?? MAX_QUALITY;
+    const quality =
+      qualityDraft.value ?? item.overrides.quality ?? item.result?.quality ?? MAX_QUALITY;
     const pending = isPending(item);
     return (
       <aside class="ic-side tb-scroll">
@@ -467,7 +471,9 @@ export function createDetail(store: Items, { onSave }: { onSave: (item: Item) =>
                 });
               }}
             >
-              <option value="">全体の設定に従う（{global.format === 'jpeg' ? 'JPEG' : 'PNG'}）</option>
+              <option value="">
+                全体の設定に従う（{global.format === 'jpeg' ? 'JPEG' : 'PNG'}）
+              </option>
               <option value="jpeg">JPEG</option>
               <option value="png">PNG</option>
             </select>
@@ -496,7 +502,8 @@ export function createDetail(store: Items, { onSave }: { onSave: (item: Item) =>
               px
             </span>
             <small class="ic-muted">
-              空にすると全体の設定（{global.longSide ? `${global.longSide} px` : '元のまま'}）に従います。
+              空にすると全体の設定（{global.longSide ? `${global.longSide} px` : '元のまま'}
+              ）に従います。
             </small>
           </label>
           <div class="ic-field">

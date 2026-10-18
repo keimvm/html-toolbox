@@ -31,7 +31,9 @@ function create() {
   const font = signal('');
   const fonts = signal<Set<string> | null>(null);
   const fontMessage = signal(
-    canListFonts() ? '' : 'このブラウザーではフォントの一覧を使えません。フォント名を入力して切り替えてください。',
+    canListFonts()
+      ? ''
+      : 'このブラウザーではフォントの一覧を使えません。フォント名を入力して切り替えてください。',
   );
   const status = computed(() => {
     const chars = codePoints(text.value);
@@ -56,7 +58,8 @@ function create() {
       fonts.value = new Set(families);
       fontMessage.value = `${families.length}個のフォントを一覧にしました。フォント欄から選べます。`;
     } catch {
-      fontMessage.value = 'フォントの一覧を読み込めませんでした。フォント名を入力して切り替えてください。';
+      fontMessage.value =
+        'フォントの一覧を読み込めませんでした。フォント名を入力して切り替えてください。';
     }
   }
 
@@ -115,7 +118,8 @@ function create() {
                         onInput={(event) => edit(field, (event.target as HTMLInputElement).value)}
                         // 書き終えたら、読めた値を決まった書き方にそろえる。
                         onChange={() => {
-                          if (editing.value?.field === field && !editing.value.error) editing.value = null;
+                          if (editing.value?.field === field && !editing.value.error)
+                            editing.value = null;
                         }}
                       />
                       <IconButton
@@ -123,8 +127,12 @@ function create() {
                         label={`${label}の値をコピー`}
                         disabled={!value || (own && Boolean(current.error))}
                         onClick={async () => {
-                          if (await copyText(value)) toast(`${label}の値をコピーしました。`, { tone: 'success' });
-                          else toast('コピーできませんでした。欄を選択してコピーしてください。', { tone: 'error' });
+                          if (await copyText(value))
+                            toast(`${label}の値をコピーしました。`, { tone: 'success' });
+                          else
+                            toast('コピーできませんでした。欄を選択してコピーしてください。', {
+                              tone: 'error',
+                            });
                         }}
                       />
                     </div>
@@ -141,7 +149,11 @@ function create() {
             </div>
           </section>
 
-          <section class="mc-panel mc-view" aria-labelledby="mc-view-title" data-stale={stale ? '' : undefined}>
+          <section
+            class="mc-panel mc-view"
+            aria-labelledby="mc-view-title"
+            data-stale={stale ? '' : undefined}
+          >
             <div class="mc-view-head">
               <h2 id="mc-view-title" class="mc-title">
                 大きく表示
@@ -154,7 +166,9 @@ function create() {
                   id="mc-font"
                   class="tb-input"
                   list="mc-font-list"
-                  placeholder={fonts.value ? '標準（一覧から選ぶか入力）' : '標準（フォント名を入力）'}
+                  placeholder={
+                    fonts.value ? '標準（一覧から選ぶか入力）' : '標準（フォント名を入力）'
+                  }
                   spellcheck={false}
                   autocomplete="off"
                   aria-describedby="mc-font-status"
@@ -217,7 +231,9 @@ export const mojicodeConverter: ToolDefinition = {
       detail: '文字コード変換：Unicode・UTF-8・UTF-16・Shift_JIS の値',
       icon: 'type',
       accepts: (input) =>
-        input.kind === 'text' && input.text.trim() !== '' && codePoints(input.text).length <= MAX_INSPECT,
+        input.kind === 'text' &&
+        input.text.trim() !== '' &&
+        codePoints(input.text).length <= MAX_INSPECT,
     },
   ],
   create,

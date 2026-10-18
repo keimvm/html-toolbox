@@ -110,19 +110,12 @@ export function sortPrompts(prompts: readonly Prompt[]): Prompt[] {
 
 /** 使われているタグを、名前順に重複なく並べる。 */
 export function usedTags(prompts: readonly Prompt[]): string[] {
-  return [...new Set(prompts.flatMap((prompt) => prompt.tags))].sort(
-    collator.compare,
-  );
+  return [...new Set(prompts.flatMap((prompt) => prompt.tags))].sort(collator.compare);
 }
 
 /** 選んだタグをすべて含むプロンプトだけを返す（AND）。何も選ばなければ全件。 */
-export function filterByTags(
-  prompts: readonly Prompt[],
-  selected: ReadonlySet<string>,
-): Prompt[] {
-  return prompts.filter((prompt) =>
-    [...selected].every((tag) => prompt.tags.includes(tag)),
-  );
+export function filterByTags(prompts: readonly Prompt[], selected: ReadonlySet<string>): Prompt[] {
+  return prompts.filter((prompt) => [...selected].every((tag) => prompt.tags.includes(tag)));
 }
 
 /** 入力を保存できる形に整える。タイトルと本文が空なら理由を返す。 */
@@ -134,11 +127,7 @@ export function normalizeInput(input: PromptInput): PromptInput | string {
   return { title, body, tags: input.tags };
 }
 
-export function addPrompt(
-  library: Library,
-  input: PromptInput,
-  id: string,
-): Library {
+export function addPrompt(library: Library, input: PromptInput, id: string): Library {
   return { ...library, prompts: [...library.prompts, { id, ...input }] };
 }
 
@@ -151,9 +140,7 @@ export function updatePrompt(
   if (!library.prompts.some((prompt) => prompt.id === id)) return undefined;
   return {
     ...library,
-    prompts: library.prompts.map((prompt) =>
-      prompt.id === id ? { id, ...input } : prompt,
-    ),
+    prompts: library.prompts.map((prompt) => (prompt.id === id ? { id, ...input } : prompt)),
   };
 }
 

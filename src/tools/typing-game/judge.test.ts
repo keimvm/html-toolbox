@@ -119,8 +119,7 @@ describe('judge', () => {
 });
 
 describe('createLocator', () => {
-  const headline =
-    '選挙控えるトランプ米政権、軽油で欧州に圧力　日本は国内精製で距離';
+  const headline = '選挙控えるトランプ米政権、軽油で欧州に圧力　日本は国内精製で距離';
 
   test('合っていれば、確定した文字数だけ進む（改行・空白は数えない）', () => {
     const locate = createLocator('今日は\nいい 天気');
@@ -133,9 +132,7 @@ describe('createLocator', () => {
   test('余分に打った文字の分は進まない', () => {
     const locate = createLocator(headline);
     // 「を」が余分。次に打つ見本の文字は「精」。
-    expect(
-      locate('選挙を控えるトランプ米政権、経由で欧州に圧力　日本は国内'),
-    ).toBe(26);
+    expect(locate('選挙を控えるトランプ米政権、経由で欧州に圧力　日本は国内')).toBe(26);
     expect(locate('選挙を')).toBe(3);
     expect(locate('選挙を控')).toBe(3);
   });

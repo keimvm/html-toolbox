@@ -74,24 +74,13 @@ describe('各欄 → 文字', () => {
       ok: true,
       value: 'あい𠮷',
     });
-    for (const input of [
-      'E3 81 82',
-      'e38182',
-      '%E3%81%82',
-      '0xE3 0x81 0x82',
-      '\\xE3\\x81\\x82',
-    ]) {
+    for (const input of ['E3 81 82', 'e38182', '%E3%81%82', '0xE3 0x81 0x82', '\\xE3\\x81\\x82']) {
       expect(parseField('utf8', input, sjis)).toEqual({
         ok: true,
         value: 'あ',
       });
     }
-    for (const input of [
-      'D842 DFB7',
-      'D842DFB7',
-      '\\uD842\\uDFB7',
-      '0xD842 0xDFB7',
-    ]) {
+    for (const input of ['D842 DFB7', 'D842DFB7', '\\uD842\\uDFB7', '0xD842 0xDFB7']) {
       expect(parseField('utf16', input, sjis)).toEqual({
         ok: true,
         value: '𠮷',
@@ -112,8 +101,7 @@ describe('各欄 → 文字', () => {
   test('形式の誤りを示す', () => {
     expect(parseBytes('E3 8')).toEqual({
       ok: false,
-      error:
-        '「8」は読めません。16進数を2桁ずつ（例：E3 81 82）書いてください。',
+      error: '「8」は読めません。16進数を2桁ずつ（例：E3 81 82）書いてください。',
     });
     expect(parseBytes('GG')).toMatchObject({ ok: false });
     expect(parseCodePoints('U+D800')).toEqual({
@@ -128,13 +116,11 @@ describe('各欄 → 文字', () => {
     expect(parseUtf16('304')).toMatchObject({ ok: false });
     expect(parseUtf16('3042 D842')).toEqual({
       ok: false,
-      error:
-        '2つ目の D842（上位サロゲート）の後に、下位サロゲート（DC00〜DFFF）が必要です。',
+      error: '2つ目の D842（上位サロゲート）の後に、下位サロゲート（DC00〜DFFF）が必要です。',
     });
     expect(parseUtf16('DFB7')).toEqual({
       ok: false,
-      error:
-        '1つ目の DFB7（下位サロゲート）の前に、上位サロゲートがありません。',
+      error: '1つ目の DFB7（下位サロゲート）の前に、上位サロゲートがありません。',
     });
   });
 

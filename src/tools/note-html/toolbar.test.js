@@ -14,7 +14,8 @@ test('書式メニューから空のチェックボックスを追加し、入�
   assert.equal(button.getAttribute('aria-label'), 'チェックボックス');
   assert.equal(button.getAttribute('aria-pressed'), 'false');
   assert.equal(button.disabled, false);
-  $('format-panel').showPopover(); button.click();
+  $('format-panel').showPopover();
+  button.click();
   assert.equal(popovers.isOpen($('format-panel')), false);
   assert.equal(button.getAttribute('aria-pressed'), 'true');
   assert.ok($('rich-editor').querySelector('input[type=checkbox]:not([hidden])'));
@@ -24,12 +25,14 @@ test('書式メニューから空のチェックボックスを追加し、入�
   assert.equal(button.getAttribute('aria-pressed'), 'false');
   editor.run('redo');
   assert.equal(button.getAttribute('aria-pressed'), 'true');
-  assert.ok(await app.save()); await app.reload();
+  assert.ok(await app.save());
+  await app.reload();
   assert.ok($('rich-editor').querySelector('input[type=checkbox]:not([hidden])'));
   app.richEditor.view.dispatch(app.richEditor.view.state.tr.insertText('確認する'));
   $('rich-editor').querySelector('input[type=checkbox]').click();
   assert.match(app.state.draft, /- \[x\] 確認する/);
-  assert.ok(await app.save()); await app.reload();
+  assert.ok(await app.save());
+  await app.reload();
   assert.equal($('rich-editor').querySelector('input[type=checkbox]').checked, true);
   assert.match($('rich-editor').textContent, /確認する/);
 });
@@ -42,11 +45,17 @@ test('書式メニューで本文・リストにチェックボックスを付�
     const editor = app.richEditor;
     const button = $('format-toolbar').querySelector('[data-command=task]');
     const wasTask = source.includes('[x]');
-    $('format-panel').showPopover(); button.click();
+    $('format-panel').showPopover();
+    button.click();
     assert.equal(button.getAttribute('aria-pressed'), String(!wasTask), source);
-    assert.equal($('rich-editor').querySelectorAll('input[type=checkbox]:not([hidden])').length, wasTask ? 0 : 1, source);
+    assert.equal(
+      $('rich-editor').querySelectorAll('input[type=checkbox]:not([hidden])').length,
+      wasTask ? 0 : 1,
+      source,
+    );
     assert.equal(editor.view.state.doc.textContent, '本文');
-    editor.run('undo'); assert.equal(app.state.draft, source);
+    editor.run('undo');
+    assert.equal(app.state.draft, source);
     assert.equal(button.getAttribute('aria-pressed'), String(wasTask), source);
     if (wasTask) assert.equal($('rich-editor').querySelector('input').checked, true);
     assert.equal(file.writes, 0);
@@ -67,21 +76,26 @@ test('書式メニューの開閉・書式変更で選択と未保存本文と�
   $('format-panel').hidePopover();
   assert.equal(app.richEditor, editor);
   assert.equal(app.state.draft, draft);
-  assert.equal(view.state.selection.from, 1); assert.equal(view.state.selection.to, 4);
+  assert.equal(view.state.selection.from, 1);
+  assert.equal(view.state.selection.to, 4);
   $('format-panel').showPopover();
   $('format-toolbar').querySelector('[data-command=strong]').click();
   assert.match(app.state.draft, /\*\*選択し\*\*/);
   assert.equal(popovers.isOpen($('format-panel')), false);
-  editor.run('undo'); assert.equal(app.state.draft, draft);
-  editor.run('redo'); assert.match(app.state.draft, /\*\*選択し\*\*/);
+  editor.run('undo');
+  assert.equal(app.state.draft, draft);
+  editor.run('redo');
+  assert.match(app.state.draft, /\*\*選択し\*\*/);
   assert.equal(file.writes, 0);
-  $('options-panel').showPopover(); $('source-mode').click();
+  $('options-panel').showPopover();
+  $('source-mode').click();
   assert.equal(app.state.mode, 'source');
   assert.equal(popovers.isOpen($('options-panel')), false);
   assert.equal($('return-to-note').hidden, false);
   const changed = app.state.draft;
   $('return-to-note').click();
-  assert.equal(app.state.mode, 'rich'); assert.equal(app.state.draft, changed);
+  assert.equal(app.state.mode, 'rich');
+  assert.equal(app.state.draft, changed);
   assert.ok(app.dirty());
 });
 
@@ -89,15 +103,18 @@ test('操作後・フォーカス移動・編集不可への切替で閉じ、�
   const file = new MemoryFile('note.md', '本文\n');
   const { app, $, window, popovers } = await setup(new MemoryDirectory('root', [file]));
   await app.openNote(file.name);
-  $('options-panel').showPopover(); $('settings-open').focus();
+  $('options-panel').showPopover();
+  $('settings-open').focus();
   assert.equal(popovers.isOpen($('options-panel')), true);
   $('sidebar-toggle').focus();
   assert.equal(popovers.isOpen($('options-panel')), false);
   assert.equal(window.document.activeElement, $('sidebar-toggle'));
   $('format-panel').showPopover();
-  const details = $('format-panel').querySelector('details'); details.open = true;
+  const details = $('format-panel').querySelector('details');
+  details.open = true;
   $('source-mode').click();
   assert.equal(popovers.isOpen($('format-panel')), false);
   assert.equal(details.open, false);
-  assert.equal(app.state.draft, '本文\n'); assert.equal(file.writes, 0);
+  assert.equal(app.state.draft, '本文\n');
+  assert.equal(file.writes, 0);
 });

@@ -62,8 +62,7 @@ test('開いた時点から変更があるかを判定し、回転を一周す�
 });
 test('範囲外や同じ位置への移動は履歴も変更状態も増やさない', () => {
   const editor = open();
-  for (const index of [-1, 0, 3, 1.5])
-    expect(editor.move('a-0', index)).toBe(false);
+  for (const index of [-1, 0, 3, 1.5]) expect(editor.move('a-0', index)).toBe(false);
   expect(editor.move('missing', 1)).toBe(false);
   expect(editor.canUndo).toBe(false);
   expect(editor.changed).toBe(false);

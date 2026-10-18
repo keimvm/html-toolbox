@@ -35,9 +35,7 @@ export function parseBytes(input: string): Result<number[]> {
   const bytes: number[] = [];
   for (const token of tokens(input)) {
     if (!/^(?:(?:0x|\\x|%)?[0-9a-f]{2})+$/iu.test(token)) {
-      return fail(
-        `「${token}」は読めません。16進数を2桁ずつ（例：E3 81 82）書いてください。`,
-      );
+      return fail(`「${token}」は読めません。16進数を2桁ずつ（例：E3 81 82）書いてください。`);
     }
     for (const [pair] of token.replace(/0x|\\x|%/giu, '').matchAll(/../gu)) {
       bytes.push(Number.parseInt(pair, 16));
@@ -56,18 +54,14 @@ export function parseCodePoints(input: string): Result<number[]> {
   for (const token of tokens(input.replace(/(?=U\+)/giu, ' '))) {
     const match = /^(?:U\+|0x)?([0-9a-f]{1,6})$/iu.exec(token);
     if (!match) {
-      return fail(
-        `「${token}」は Unicode の番号として読めません（例：U+3042）。`,
-      );
+      return fail(`「${token}」は Unicode の番号として読めません（例：U+3042）。`);
     }
     const codePoint = Number.parseInt(match[1]!, 16);
     if (codePoint > 0x10ffff) {
       return fail(`「${token}」は U+10FFFF を超えています。`);
     }
     if (isSurrogate(codePoint)) {
-      return fail(
-        `${formatCodePoint(codePoint)} はサロゲートのため、単独では文字になりません。`,
-      );
+      return fail(`${formatCodePoint(codePoint)} はサロゲートのため、単独では文字になりません。`);
     }
     values.push(codePoint);
   }
@@ -86,9 +80,7 @@ export function decodeUtf8(bytes: readonly number[]): Result<string> {
     try {
       part = decoder.decode(Uint8Array.of(bytes[index]!), { stream: true });
     } catch {
-      return fail(
-        `${start + 1}バイト目（${hexByte(bytes[start]!)}）から UTF-8 として読めません。`,
-      );
+      return fail(`${start + 1}バイト目（${hexByte(bytes[start]!)}）から UTF-8 として読めません。`);
     }
     if (part) {
       text += part;
@@ -110,9 +102,7 @@ export function parseUtf16(input: string): Result<string> {
   const units: number[] = [];
   for (const token of tokens(input)) {
     if (!/^(?:(?:\\u|0x)?[0-9a-f]{4})+$/iu.test(token)) {
-      return fail(
-        `「${token}」は読めません。16進数を4桁ずつ（例：D842 DFB7）書いてください。`,
-      );
+      return fail(`「${token}」は読めません。16進数を4桁ずつ（例：D842 DFB7）書いてください。`);
     }
     for (const [unit] of token.replace(/\\u|0x/giu, '').matchAll(/.{4}/gu)) {
       units.push(Number.parseInt(unit, 16));
@@ -124,15 +114,11 @@ export function parseUtf16(input: string): Result<string> {
     if (unit >= 0xd800 && unit <= 0xdbff) {
       const next = units[index + 1];
       if (next === undefined || next < 0xdc00 || next > 0xdfff) {
-        return fail(
-          `${label}（上位サロゲート）の後に、下位サロゲート（DC00〜DFFF）が必要です。`,
-        );
+        return fail(`${label}（上位サロゲート）の後に、下位サロゲート（DC00〜DFFF）が必要です。`);
       }
       index += 1;
     } else if (unit >= 0xdc00 && unit <= 0xdfff) {
-      return fail(
-        `${label}（下位サロゲート）の前に、上位サロゲートがありません。`,
-      );
+      return fail(`${label}（下位サロゲート）の前に、上位サロゲートがありません。`);
     }
   }
   return { ok: true, value: String.fromCharCode(...units) };
@@ -146,16 +132,11 @@ export function formatUtf16(text: string): string {
 
 /** 1文字の UTF-8。単独のサロゲートは表せない。 */
 export function utf8Of(codePoint: number): Uint8Array | undefined {
-  return isSurrogate(codePoint)
-    ? undefined
-    : utf8Encoder.encode(String.fromCodePoint(codePoint));
+  return isSurrogate(codePoint) ? undefined : utf8Encoder.encode(String.fromCodePoint(codePoint));
 }
 
 /** 表せない文字の一覧を、何文字目かとともに示す。 */
-function describeMissing(
-  missing: { char: string; position: number }[],
-  encoding: string,
-): string {
+function describeMissing(missing: { char: string; position: number }[], encoding: string): string {
   const shown = missing
     .slice(0, 3)
     .map(({ char, position }) => `${char}（${position}文字目）`)
@@ -184,46 +165,29 @@ function encodeEach(
 
 /** 文言に埋め込む文字。単独のサロゲートは番号で示す。 */
 export function displayChar(codePoint: number): string {
-  return isSurrogate(codePoint)
-    ? formatCodePoint(codePoint)
-    : String.fromCodePoint(codePoint);
+  return isSurrogate(codePoint) ? formatCodePoint(codePoint) : String.fromCodePoint(codePoint);
 }
 
-export function shiftJisBytes(
-  sjis: ShiftJisTable,
-  codePoint: number,
-): number[] | undefined {
+export function shiftJisBytes(sjis: ShiftJisTable, codePoint: number): number[] | undefined {
   const code = sjis.encode(codePoint);
   if (code === undefined) return undefined;
   return code > 0xff ? [code >> 8, code & 0xff] : [code];
 }
 
 /** 欄の入力を文字列にする。 */
-export function parseField(
-  field: CodeField,
-  input: string,
-  sjis: ShiftJisTable,
-): Result<string> {
+export function parseField(field: CodeField, input: string, sjis: ShiftJisTable): Result<string> {
   if (field === 'utf16') return parseUtf16(input);
   if (field === 'codepoint') {
     const result = parseCodePoints(input);
-    return result.ok
-      ? { ok: true, value: String.fromCodePoint(...result.value) }
-      : result;
+    return result.ok ? { ok: true, value: String.fromCodePoint(...result.value) } : result;
   }
   const bytes = parseBytes(input);
   if (!bytes.ok) return bytes;
-  return field === 'utf8'
-    ? decodeUtf8(bytes.value)
-    : sjis.decodeBytes(bytes.value);
+  return field === 'utf8' ? decodeUtf8(bytes.value) : sjis.decodeBytes(bytes.value);
 }
 
 /** 文字列を欄に出す値にする。 */
-export function formatField(
-  field: CodeField,
-  text: string,
-  sjis: ShiftJisTable,
-): FieldValue {
+export function formatField(field: CodeField, text: string, sjis: ShiftJisTable): FieldValue {
   switch (field) {
     case 'codepoint':
       return { value: codePoints(text).map(formatCodePoint).join(' ') };
@@ -232,10 +196,6 @@ export function formatField(
     case 'utf8':
       return encodeEach(text, utf8Of, 'UTF-8');
     case 'sjis':
-      return encodeEach(
-        text,
-        (codePoint) => shiftJisBytes(sjis, codePoint),
-        'Shift_JIS',
-      );
+      return encodeEach(text, (codePoint) => shiftJisBytes(sjis, codePoint), 'Shift_JIS');
   }
 }

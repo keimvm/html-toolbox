@@ -41,8 +41,7 @@ function data() {
   ];
   return { state, sources };
 }
-const store = (key = 'file:///PDF編集.html') =>
-  new SessionStore(key, () => factory);
+const store = (key = 'file:///PDF編集.html') => new SessionStore(key, () => factory);
 
 test('PDFのバイト列・編集履歴・倍率を保存し、別インスタンスから復元する', async () => {
   const original = data();
@@ -84,14 +83,12 @@ test('PDF本体は編集状態を更新するたびには書き直さない', as
     await session.save(state, sources);
     expect(
       put.mock.contexts.filter(
-        (context) =>
-          context instanceof IDBObjectStore && context.name === 'sources',
+        (context) => context instanceof IDBObjectStore && context.name === 'sources',
       ),
     ).toHaveLength(1);
     expect(
       put.mock.contexts.filter(
-        (context) =>
-          context instanceof IDBObjectStore && context.name === 'sessions',
+        (context) => context instanceof IDBObjectStore && context.name === 'sessions',
       ),
     ).toHaveLength(2);
   } finally {
@@ -130,13 +127,13 @@ test('保存失敗で前の記録を失わず、以後の保存も再試行で�
   const { state, sources } = data();
   await session.save(state, sources);
   const originalPut = IDBObjectStore.prototype.put;
-  const put = vi
-    .spyOn(IDBObjectStore.prototype, 'put')
-    .mockImplementation(function (this: IDBObjectStore, ...args) {
-      if (this.name === 'sessions')
-        throw new DOMException('容量不足', 'QuotaExceededError');
-      return originalPut.apply(this, args);
-    });
+  const put = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(function (
+    this: IDBObjectStore,
+    ...args
+  ) {
+    if (this.name === 'sessions') throw new DOMException('容量不足', 'QuotaExceededError');
+    return originalPut.apply(this, args);
+  });
   state.zoom = 300;
   try {
     await expect(session.save(state, sources)).rejects.toThrow('容量不足');
@@ -159,6 +156,28 @@ test('保存領域を利用できない場合は成功扱いしない', async ()
   expect(session.hasData).toBe(false);
 });
 
+test('ほかの画面に開くのを止められた接続を使い回さず、遅れて開いた接続は閉じる', async () => {
+  const request: {
+    onblocked?: () => void;
+    onsuccess?: () => void;
+    result?: { close: () => void };
+  } = {};
+  let opened = 0;
+  const session = new SessionStore('blocked', () =>
+    opened++ === 0 ? ({ open: () => request } as unknown as IDBFactory) : factory,
+  );
+  const loading = session.load();
+  request.onblocked!();
+  await expect(loading).rejects.toThrow('別の画面');
+  const late = { close: vi.fn() };
+  request.result = late;
+  request.onsuccess!();
+  expect(late.close).toHaveBeenCalled();
+  const { state, sources } = data();
+  await session.save(state, sources);
+  expect((await new SessionStore('blocked', () => factory).load())?.state).toEqual(state);
+});
+
 test('別の画面が記録を削除した後の保存でもPDF本体を欠落させない', async () => {
   const session = store();
   const { state, sources } = data();
@@ -176,10 +195,7 @@ test('別の画面が記録を削除した後の保存でもPDF本体を欠落�
 test('対応外の復元形式や欠けたPDFを検出する', async () => {
   const session = store();
   const { state, sources } = data();
-  await session.save(
-    { ...state, version: 2 } as unknown as SessionState,
-    sources,
-  );
+  await session.save({ ...state, version: 2 } as unknown as SessionState, sources);
   await expect(store().load()).rejects.toThrow('復元用のデータが壊れています');
   await session.save({ ...state, sourceIds: ['missing'] }, sources);
   await expect(store().load()).rejects.toThrow('復元に必要なPDF');

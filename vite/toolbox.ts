@@ -102,7 +102,11 @@ function dependencyPackages(root: string) {
   return packages;
 }
 
-const escapeText = (text: string) => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
+/**
+ * script 要素の中身は文字参照を解かないため、文字列を JSON にして置く。
+ * `<` を JSON のエスケープ（\u003c）にし、中身に `</script` や `<!--` が現れないようにする。
+ */
+const scriptJson = (value: unknown) => JSON.stringify(value).replaceAll('<', '\\u003c');
 
 export function toolbox({ root }: { root: string }): Plugin[] {
   let command: 'build' | 'serve' = 'serve';
@@ -155,7 +159,8 @@ export function payloadSource(name) {
       if (id === resolved(LICENSE_MODULE)) {
         if (command === 'build')
           return `export function licenses() {
-  return document.getElementById('tb-licenses')?.textContent ?? '';
+  const element = document.getElementById('tb-licenses');
+  return element ? JSON.parse(element.textContent) : '';
 }`;
         const text = renderLicenses(dependencyPackages(root));
         return `export function licenses() { return ${JSON.stringify(text)}; }`;
@@ -179,7 +184,7 @@ export function payloadSource(name) {
         const data = gzipSync(readFileSync(join(dir, file)), { level: 9 });
         return `<script type="application/octet-stream" id="tb-payload-${name}" data-encoding="gzip-base64">${data.toString('base64')}</script>`;
       });
-      const licenses = `<script type="text/plain" id="tb-licenses">${escapeText(renderLicenses(bundled))}</script>`;
+      const licenses = `<script type="application/json" id="tb-licenses">${scriptJson(renderLicenses(bundled))}</script>`;
 
       let source = html.source;
       // 本体の script を、画面の要素の後・重いデータの前で実行する普通の script にする。

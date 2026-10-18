@@ -2,6 +2,7 @@
 // 変換は一度に1枚ずつ、個別の画面で開いている画像を先に行う。設定・編集を変えたら version を上げ、古い変換は途中で捨てる。
 import { batch, signal } from '@preact/signals';
 import { downloadBlob } from '../../lib/download';
+import { errorText } from '../../lib/files';
 import { convert, decode, type Converted } from './convert';
 import { noEdits, type Edits, type Size } from './geometry';
 import {
@@ -90,8 +91,9 @@ export function createItems() {
         item.saved = false;
       }
     } catch (error) {
-      if (error instanceof Stale) return;
-      item.error = `変換できません。${error instanceof Error ? error.message : ''}`;
+      // 設定・編集を変えた後の失敗は、古い版のもの。新しい版の変換を待たせたままにしない。
+      if (error instanceof Stale || item.version !== version) return;
+      item.error = `変換できません。${errorText(error)}`;
     } finally {
       bitmap?.close();
     }
@@ -169,7 +171,8 @@ export function createItems() {
     },
     clear() {
       batch(() => {
-        for (const item of items.value) if (item.thumbnailUrl) URL.revokeObjectURL(item.thumbnailUrl);
+        for (const item of items.value)
+          if (item.thumbnailUrl) URL.revokeObjectURL(item.thumbnailUrl);
         items.value = [];
       });
     },

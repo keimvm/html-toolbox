@@ -31,9 +31,7 @@ export function createFolderMemory(window: Pick<Window, 'indexedDB'>) {
   };
 }
 
-export function readFolderRecord(
-  value: unknown,
-): FileSystemDirectoryHandle | undefined {
+export function readFolderRecord(value: unknown): FileSystemDirectoryHandle | undefined {
   if (typeof value !== 'object' || value === null) return undefined;
   const { version, folder } = value as Partial<FolderRecord>;
   if (

@@ -38,17 +38,13 @@ test('時計回りに回した画像の座標と、元の画像の座標を行�
       [12, 7],
       [40, 30],
     ] as [number, number][])
-      expect(
-        unrotatePoint(rotatePoint(point, size, rotation), size, rotation),
-      ).toEqual(point);
+      expect(unrotatePoint(rotatePoint(point, size, rotation), size, rotation)).toEqual(point);
 });
 
 test('回した画像の上で囲んだ範囲を、元の画像の範囲に戻せる', () => {
   const rect = { x: 5, y: 10, width: 20, height: 8 };
   for (const rotation of rotations)
-    expect(
-      unrotateRect(rotateRect(rect, size, rotation), size, rotation),
-    ).toEqual(rect);
+    expect(unrotateRect(rotateRect(rect, size, rotation), size, rotation)).toEqual(rect);
   // 右に90度回すと、元の画像の上端は右端になる。
   expect(rotateRect({ x: 0, y: 0, width: 40, height: 5 }, size, 90)).toEqual({
     x: 25,
@@ -76,9 +72,7 @@ test('範囲は画素の境目まで外側へ広げ、画像の中に収め、�
 
 test('切り抜き・回転した後の大きさ', () => {
   const crop = { x: 0, y: 0, width: 20, height: 10 };
-  expect(editedSize(size, { rotation: 0, crop: null, redactions: [] })).toEqual(
-    size,
-  );
+  expect(editedSize(size, { rotation: 0, crop: null, redactions: [] })).toEqual(size);
   expect(editedSize(size, { rotation: 90, crop, redactions: [] })).toEqual({
     width: 10,
     height: 20,
@@ -88,24 +82,16 @@ test('切り抜き・回転した後の大きさ', () => {
 test('見比べで、切り抜き・回転した画像の点と元の画像の点を行き来できる', () => {
   const crop = { x: 10, y: 5, width: 20, height: 10 };
   // 切り抜いた範囲の左上は、右に90度回すと右上に来る。
-  expect(
-    editedPoint([10, 5], size, { rotation: 90, crop, redactions: [] }),
-  ).toEqual([10, 0]);
-  expect(
-    sourcePoint([10, 0], size, { rotation: 90, crop, redactions: [] }),
-  ).toEqual([10, 5]);
+  expect(editedPoint([10, 5], size, { rotation: 90, crop, redactions: [] })).toEqual([10, 0]);
+  expect(sourcePoint([10, 0], size, { rotation: 90, crop, redactions: [] })).toEqual([10, 5]);
   // 切り抜いた範囲の外の点は、切り抜いた画像の外の座標になる。
-  expect(
-    editedPoint([0, 0], size, { rotation: 0, crop, redactions: [] }),
-  ).toEqual([-10, -5]);
+  expect(editedPoint([0, 0], size, { rotation: 0, crop, redactions: [] })).toEqual([-10, -5]);
   for (const rotation of rotations)
     for (const edits of [
       { rotation, crop, redactions: [] },
       { rotation, crop: null, redactions: [] },
     ])
-      expect(
-        sourcePoint(editedPoint([17, 9], size, edits), size, edits),
-      ).toEqual([17, 9]);
+      expect(sourcePoint(editedPoint([17, 9], size, edits), size, edits)).toEqual([17, 9]);
 });
 
 test('長い辺だけを基準に縮め、拡大はしない', () => {

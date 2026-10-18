@@ -3,9 +3,9 @@
 import { useComputed, useSignal, useSignalEffect } from '@preact/signals';
 import type { JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
-import { hasFiles } from '../lib/files';
-import { isMac, prefersReducedMotion } from '../lib/platform';
-import { Button, IconButton } from '../ui/components';
+import { canUseFolders, hasFiles } from '../lib/files';
+import { isEditable, isMac, prefersReducedMotion } from '../lib/platform';
+import { Button, IconButton, toast } from '../ui/components';
 import { Icon } from '../ui/icons';
 import { useDropZone } from '../ui/drop';
 import { aboutOpen } from './About';
@@ -25,10 +25,6 @@ function dragHint(event: DragEvent): DragHint {
   const items = Array.from(event.dataTransfer?.items ?? []).filter((item) => item.kind === 'file');
   return { types: items.map((item) => item.type), count: items.length };
 }
-
-const editable = (target: EventTarget | null) =>
-  target instanceof HTMLElement &&
-  (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 
 export function Home({ active }: { active: boolean }) {
   const cards = useCards();
@@ -75,11 +71,16 @@ export function Home({ active }: { active: boolean }) {
       let input: Incoming | null = null;
       if (dropped.folder) input = { kind: 'folder', folder: dropped.folder };
       else if (dropped.files.length) input = { kind: 'files', files: dropped.files };
-      if (!input) {
-        deliver({ kind: 'files', files: [] });
-        return;
-      }
-      deliver(input, { only: target });
+      if (input) deliver(input, { only: target });
+      // フォルダのハンドルを得られない（ブラウザーが対応していない、2つ以上置いた）とき。
+      else if (dropped.hasFolder)
+        toast(
+          canUseFolders()
+            ? 'フォルダは1つずつ置いてください。'
+            : 'このブラウザーではフォルダを開けません。Chrome・Edge で開いてください。',
+          { tone: 'error' },
+        );
+      else toast('PDF・画像・テキストのファイルか、フォルダを置いてください。', { tone: 'error' });
     },
   });
 
@@ -108,7 +109,7 @@ export function Home({ active }: { active: boolean }) {
       if (
         !active ||
         editing.value ||
-        editable(event.target) ||
+        isEditable(event.target) ||
         document.querySelector('dialog[open]')
       )
         return;

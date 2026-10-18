@@ -32,11 +32,7 @@ export const rotatedSize = (size: Size, rotation: Rotation): Size =>
   rotation % 180 ? { width: size.height, height: size.width } : { ...size };
 
 /** 元の画像（size）の点を、回転した画像の点にする。 */
-export function rotatePoint(
-  [x, y]: Point,
-  size: Size,
-  rotation: Rotation,
-): Point {
+export function rotatePoint([x, y]: Point, size: Size, rotation: Rotation): Point {
   switch (rotation) {
     case 90:
       return [size.height - y, x];
@@ -50,11 +46,7 @@ export function rotatePoint(
 }
 
 /** 回転した画像の点を、元の画像（size）の点に戻す。 */
-export function unrotatePoint(
-  [x, y]: Point,
-  size: Size,
-  rotation: Rotation,
-): Point {
+export function unrotatePoint([x, y]: Point, size: Size, rotation: Rotation): Point {
   switch (rotation) {
     case 90:
       return [y, size.height - x];
@@ -94,18 +86,12 @@ const corners = (rect: Rect): [Point, Point] => [
 
 export function rotateRect(rect: Rect, size: Size, rotation: Rotation) {
   const [a, b] = corners(rect);
-  return between(
-    rotatePoint(a, size, rotation),
-    rotatePoint(b, size, rotation),
-  );
+  return between(rotatePoint(a, size, rotation), rotatePoint(b, size, rotation));
 }
 
 export function unrotateRect(rect: Rect, size: Size, rotation: Rotation) {
   const [a, b] = corners(rect);
-  return between(
-    unrotatePoint(a, size, rotation),
-    unrotatePoint(b, size, rotation),
-  );
+  return between(unrotatePoint(a, size, rotation), unrotatePoint(b, size, rotation));
 }
 
 /**
@@ -148,14 +134,8 @@ export function fitPixels(size: Size, maxPixels: number): Size {
 }
 
 /** 長方形を bounds の中で動かす。端に着いたら止める。 */
-export function moveRect(
-  rect: Rect,
-  bounds: Size,
-  dx: number,
-  dy: number,
-): Rect {
-  const clamp = (value: number, max: number) =>
-    Math.min(Math.max(0, value), max);
+export function moveRect(rect: Rect, bounds: Size, dx: number, dy: number): Rect {
+  const clamp = (value: number, max: number) => Math.min(Math.max(0, value), max);
   return {
     ...rect,
     x: clamp(rect.x + dx, bounds.width - rect.width),
@@ -164,12 +144,7 @@ export function moveRect(
 }
 
 /** 左上を動かさずに幅・高さを変える。1 px 以上、bounds の中に収める。 */
-export function resizeRect(
-  rect: Rect,
-  bounds: Size,
-  dw: number,
-  dh: number,
-): Rect {
+export function resizeRect(rect: Rect, bounds: Size, dw: number, dh: number): Rect {
   return {
     ...rect,
     width: Math.min(Math.max(1, rect.width + dw), bounds.width - rect.x),

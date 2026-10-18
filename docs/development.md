@@ -87,7 +87,8 @@ pnpm dev
 | `src/ui/theme.css` | 配色・文字・角丸のトークン（`--tb-*`）と部品のクラス（`.tb-button` に `.tb-primary`・`.tb-secondary`・`.tb-danger`・`.tb-icon-button`、`.tb-input`、`.tb-dialog`、`.tb-popover`、`.tb-chip`、`.tb-badge`、`.tb-empty`、`.tb-progress` など）。部品は `:where()` で詳細度を 0 にしているため、ツールの CSS で上書きできる |
 | `src/ui/components.tsx` | `Button`・`IconButton`・`Dialog`（標準の `dialog`）・`Menu`／`MenuItem`（`popover` とアンカー配置）・`Field`・`Segmented`・`EmptyState`。知らせは `toast()`、確認は `ask()`・`confirmAction()`（選択肢の `start` は押した直後に同期で呼ぶため、ブラウザーの許可の要求に使える） |
 | `src/ui/drop.ts` | `useDropZone()` で受け付ける場所を登録する。画面全体で1か所がドラッグを見張り、どの場所にも入らないファイルでブラウザーが画面を離れないようにする。入れ子は内側が優先 |
-| `src/lib/files.ts` | `pickFiles()`（ファイル選択）、`readDrop()`（ドロップの中身。フォルダは File System Access のハンドル）、`droppedFiles()`、`canUseFolders()`、`isPdf()`・`isImage()`・`isTextFile()` |
+| `src/lib/files.ts` | `pickFiles()`（ファイル選択）、`readDrop()`（ドロップの中身。フォルダは File System Access のハンドル）、`droppedFiles()`、`canUseFolders()`、`isPdf()`・`isImage()`・`isTextFile()`、`errorName()`・`errorText()`（例外の名前・文言） |
+| `src/lib/platform.ts` | `isMac`・`modKey`・`hasMod()`（⌘ と Ctrl の違い）、`isEditable()`（キー操作・貼り付けの対象が入力欄・編集領域か）、`prefersReducedMotion` |
 | `src/lib/download.ts` | `downloadBlob(blob, ファイル名, { signal })`。blob URL とリンクでダウンロードさせ、60秒後か中断で解放する。`safeFileName()` |
 | `src/lib/idb.ts` | `createRecordStore(window, { database, store, key })`。IndexedDB の1つのキーに値を1つ置く。停止・ブロック・中断では待ち続けず拒否する |
 | `src/lib/storage.ts`・`theme.ts` | `localStorage` の読み書き（保存できない環境でも画面の中では覚える）と配色（`toolbox-theme`） |

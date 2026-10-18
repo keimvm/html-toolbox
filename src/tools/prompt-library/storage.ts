@@ -7,15 +7,9 @@ import {
 } from './library';
 
 /** テストで模擬できるよう、使う File System Access API だけを型にする。 */
-export type FileHandle = Pick<
-  FileSystemFileHandle,
-  'getFile' | 'createWritable'
->;
+export type FileHandle = Pick<FileSystemFileHandle, 'getFile' | 'createWritable'>;
 export type FolderHandle = Pick<FileSystemDirectoryHandle, 'name'> & {
-  getFileHandle(
-    name: string,
-    options?: FileSystemGetFileOptions,
-  ): Promise<FileHandle>;
+  getFileHandle(name: string, options?: FileSystemGetFileOptions): Promise<FileHandle>;
 };
 
 export async function readLibrary(file: FileHandle): Promise<Library> {
@@ -26,10 +20,7 @@ export async function readLibrary(file: FileHandle): Promise<Library> {
  * 保存ファイルを丸ごと書き込む。createWritable() は一時ファイルに書き、close() で置き換えるため、
  * 途中で失敗しても元の内容は残る。
  */
-export async function writeLibrary(
-  file: FileHandle,
-  library: Library,
-): Promise<void> {
+export async function writeLibrary(file: FileHandle, library: Library): Promise<void> {
   const writable = await file.createWritable();
   try {
     await writable.write(serializeLibrary(library));

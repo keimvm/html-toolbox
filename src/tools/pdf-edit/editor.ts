@@ -80,8 +80,7 @@ export class Editor {
   }
 
   restore(state: unknown) {
-    if (!isEditorState(state))
-      throw new Error('復元用の編集状態が壊れています。');
+    if (!isEditorState(state)) throw new Error('復元用の編集状態が壊れています。');
     const copy = structuredClone(state);
     this.pages = copy.pages;
     this.selectedId = copy.selectedId;

@@ -15,14 +15,10 @@ export function canListFonts(win: Window = window): boolean {
 }
 
 /** PC に入っているフォントのファミリー名（重複なし・名前順）。初回は利用者の許可が要る。 */
-export async function listFontFamilies(
-  win: Window = window,
-): Promise<string[]> {
+export async function listFontFamilies(win: Window = window): Promise<string[]> {
   if (!win.queryLocalFonts) throw new Error('フォントの一覧を使えません。');
   const fonts = await win.queryLocalFonts();
-  return [...new Set(fonts.map((font) => font.family))].sort((a, b) =>
-    a.localeCompare(b, 'ja'),
-  );
+  return [...new Set(fonts.map((font) => font.family))].sort((a, b) => a.localeCompare(b, 'ja'));
 }
 
 /** 入力されたフォント名を font-family の値にする。空なら undefined（標準の書体）。 */

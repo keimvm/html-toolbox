@@ -37,9 +37,7 @@ function completed(transaction: IDBTransaction) {
   return new Promise<void>((resolve, reject) => {
     transaction.oncomplete = () => resolve();
     transaction.onabort = () =>
-      reject(
-        transaction.error ?? new Error('復元用データを保存できませんでした。'),
-      );
+      reject(transaction.error ?? new Error('復元用データを保存できませんでした。'));
   });
 }
 
@@ -59,29 +57,42 @@ export class SessionStore {
   ) {}
 
   private open() {
-    return (this.database ??= new Promise<IDBDatabase>((resolve, reject) => {
+    if (this.database) return this.database;
+    /** 失敗した接続を使い回さず、次の保存・読み込みで開き直す。 */
+    const forget = () => {
+      if (this.database === database) this.database = undefined;
+    };
+    let blocked = false;
+    const database = new Promise<IDBDatabase>((resolve, reject) => {
       const request = this.factory().open(SESSION_DATABASE, 1);
       request.onupgradeneeded = () => {
         request.result.createObjectStore('sessions');
-        request.result
-          .createObjectStore('sources')
-          .createIndex('session', 'session');
+        request.result.createObjectStore('sources').createIndex('session', 'session');
       };
       request.onsuccess = () => {
         const db = request.result;
+        // ブロックで諦めた後に開けた接続は使わない。
+        if (blocked) {
+          db.close();
+          return;
+        }
         db.onversionchange = () => {
           db.close();
-          this.database = undefined;
+          forget();
         };
         resolve(db);
       };
       request.onerror = () => {
-        this.database = undefined;
+        forget();
         reject(request.error);
       };
-      request.onblocked = () =>
+      request.onblocked = () => {
+        blocked = true;
+        forget();
         reject(new Error('別の画面が復元用データを使用しています。'));
-    }));
+      };
+    });
+    return (this.database = database);
   }
 
   private enqueue(operation: () => Promise<void>) {
@@ -98,18 +109,13 @@ export class SessionStore {
     const transaction = db.transaction(['sessions', 'sources']);
     const done = completed(transaction);
     const stateRequest = transaction.objectStore('sessions').get(this.key);
-    const sourceRequest = transaction
-      .objectStore('sources')
-      .index('session')
-      .getAll(this.key);
+    const sourceRequest = transaction.objectStore('sources').index('session').getAll(this.key);
     await done;
     const state: unknown = stateRequest.result;
     this.hasData = state !== undefined;
     if (state === undefined) return undefined;
     if (!isSession(state))
-      throw new Error(
-        '復元用のデータが壊れています。PDFを開き直してください。',
-      );
+      throw new Error('復元用のデータが壊れています。PDFを開き直してください。');
     const records = sourceRequest.result as unknown[];
     const sources = state.sourceIds.map((id) => {
       const source = records.find(
@@ -123,10 +129,7 @@ export class SessionStore {
           'data' in entry &&
           entry.data instanceof Blob,
       );
-      if (!source)
-        throw new Error(
-          '復元に必要なPDFが見つかりません。PDFを開き直してください。',
-        );
+      if (!source) throw new Error('復元に必要なPDFが見つかりません。PDFを開き直してください。');
       return source;
     });
     return { state, sources };
@@ -146,8 +149,7 @@ export class SessionStore {
           const existing = store.getKey(key);
           existing.onsuccess = () => {
             // 別の画面で「閉じる」が実行されても、本体のない記録を作らない。
-            if (existing.result === undefined)
-              store.put({ ...source, session: this.key }, key);
+            if (existing.result === undefined) store.put({ ...source, session: this.key }, key);
           };
         }
         transaction.objectStore('sessions').put(snapshot, this.key);
@@ -167,10 +169,7 @@ export class SessionStore {
       const transaction = db.transaction(['sessions', 'sources'], 'readwrite');
       const done = completed(transaction);
       transaction.objectStore('sessions').delete(this.key);
-      const cursor = transaction
-        .objectStore('sources')
-        .index('session')
-        .openCursor(this.key);
+      const cursor = transaction.objectStore('sources').index('session').openCursor(this.key);
       cursor.onsuccess = () => {
         if (!cursor.result) return;
         cursor.result.delete();

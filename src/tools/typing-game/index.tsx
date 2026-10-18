@@ -40,9 +40,11 @@ function create() {
   const complete = signal(false);
   const composing = signal(false);
   const progress = signal({ done: 0, total: 0 });
-  const result = signal<{ elapsed: number; input: string; judgement: Judgement | undefined } | null>(
-    null,
-  );
+  const result = signal<{
+    elapsed: number;
+    input: string;
+    judgement: Judgement | undefined;
+  } | null>(null);
   const announce = signal('');
   let active = false;
 
@@ -430,8 +432,8 @@ function create() {
             class="tg-pane"
             aria-labelledby="tg-sample-title"
             ref={(element) => {
-                  elements.samplePane = element;
-                }}
+              elements.samplePane = element;
+            }}
           >
             <div class="tg-pane-head">
               <h2 id="tg-sample-title">見本</h2>
@@ -464,13 +466,17 @@ function create() {
                 spellcheck={false}
                 autocomplete="off"
                 hidden={current !== 'setup'}
+                // 画面を描く前に受け取った見本（ホームから渡したもの）も、欄に出す。
+                value={source.value}
                 onInput={(event) => (source.value = (event.target as HTMLTextAreaElement).value)}
                 onPaste={() => requestAnimationFrame(acknowledge)}
               />
               <div hidden={current === 'setup'} class="tg-sample-wrap">
-                <Host hostRef={(element) => {
+                <Host
+                  hostRef={(element) => {
                     elements.sample = element;
-                  }} />
+                  }}
+                />
               </div>
             </div>
           </section>
@@ -479,7 +485,11 @@ function create() {
             <div class="tg-pane-head">
               <h2 id="tg-input-title">入力</h2>
               {current === 'typing' && (
-                <p class="tg-esc-hint" id="tg-esc-hint" data-composing={composing.value ? '' : undefined}>
+                <p
+                  class="tg-esc-hint"
+                  id="tg-esc-hint"
+                  data-composing={composing.value ? '' : undefined}
+                >
                   確定後に <kbd>Esc</kbd> で終了
                 </p>
               )}
@@ -494,8 +504,8 @@ function create() {
                     type="button"
                     class="tb-button tb-primary tg-start"
                     ref={(element) => {
-                  elements.start = element;
-                }}
+                      elements.start = element;
+                    }}
                     disabled={sourceTotal === 0}
                     onClick={startCountdown}
                   >
@@ -556,16 +566,16 @@ function create() {
                     r="56"
                     pathLength="1"
                     ref={(element) => {
-                  elements.ring = element;
-                }}
+                      elements.ring = element;
+                    }}
                   />
                 </svg>
                 <span
                   class="tg-count-number"
                   role="status"
                   ref={(element) => {
-                  elements.countNumber = element;
-                }}
+                    elements.countNumber = element;
+                  }}
                 >
                   {countNumber.value}
                 </span>

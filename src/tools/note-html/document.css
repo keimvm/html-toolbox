@@ -5,27 +5,22 @@
  */
 .markdown,
 .export-document {
-  --bg:#faf9f6;
-  --paper:#fff;
-  --ink:#171715;
-  --muted:#696964;
-  --line:#deded8;
-  --red:#bd352b;
-  --blue:#157cbd;
-  --completed-ink:#767670;
-  --soft-bg:#f8f8f5;
-  --code-bg:#f0f0eb;
-  --rule:#babbb2;
-  --quote-line:#afafa5;
-  --quote-ink:#585851;
-  --table-head:#f3f3ee;
+  --bg: #faf9f6;
+  --paper: #fff;
+  --ink: #171715;
+  --muted: #696964;
+  --line: #deded8;
+  --red: #bd352b;
+  --blue: #157cbd;
+  --completed-ink: #767670;
+  --soft-bg: #f8f8f5;
+  --code-bg: #f0f0eb;
+  --rule: #babbb2;
+  --quote-line: #afafa5;
+  --quote-ink: #585851;
+  --table-head: #f3f3ee;
   --default-font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Hiragino Kaku Gothic ProN",
-    "Yu Gothic",
-    Meiryo,
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
   font-family: var(--default-font-family);
   color: var(--ink);
   font-synthesis: none;
@@ -116,7 +111,7 @@ body:has(> .export-document) {
   vertical-align: -3px;
   border: 1.5px solid var(--ink);
   border-radius: 3px;
-  margin: 0 .5em 0 -1.65em;
+  margin: 0 0.5em 0 -1.65em;
   background: var(--paper);
   opacity: 1;
   color: var(--ink);
@@ -125,10 +120,10 @@ body:has(> .export-document) {
   background: var(--ink);
 }
 .markdown .task-item input:checked:after {
-  content: "\2713";
+  content: '\2713';
   display: block;
   color: var(--paper);
-  font-size: .8125em;
+  font-size: 0.8125em;
   line-height: 1.15;
   text-align: center;
 }
@@ -147,18 +142,13 @@ body:has(> .export-document) {
 .markdown code,
 #editor {
   font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Consolas,
-    "Hiragino Kaku Gothic ProN",
-    monospace;
+    ui-monospace, SFMono-Regular, Menlo, Consolas, 'Hiragino Kaku Gothic ProN', monospace;
 }
 .markdown :not(pre) > code {
   background: var(--code-bg);
   border-radius: 4px;
   padding: 2px 5px;
-  font-size: .87em;
+  font-size: 0.87em;
 }
 .markdown pre {
   border: 1px solid var(--line);
@@ -167,7 +157,7 @@ body:has(> .export-document) {
   overflow: auto;
   padding: 18px;
   line-height: 1.7;
-  font-size: .8125em;
+  font-size: 0.8125em;
   white-space: pre;
 }
 .markdown table {
@@ -176,7 +166,7 @@ body:has(> .export-document) {
   overflow: auto;
   border-collapse: collapse;
   margin: 24px 0;
-  font-size: .875em;
+  font-size: 0.875em;
 }
 .markdown th,
 .markdown td {
@@ -195,7 +185,7 @@ body:has(> .export-document) {
 .image-placeholder,
 .unavailable-reference {
   color: var(--muted);
-  font-size: .9em;
+  font-size: 0.9em;
 }
 .image-placeholder {
   display: inline-block;
@@ -209,11 +199,14 @@ body:has(> .export-document) {
   --item-link-color: var(--blue);
   color: var(--item-color);
 }
-.markdown li[data-checked=true] {
+.markdown li[data-checked='true'] {
   --item-color: var(--completed-ink);
   --item-link-color: var(--completed-ink);
 }
-.markdown li a, .markdown li .editor-link { color: var(--item-link-color); }
+.markdown li a,
+.markdown li .editor-link {
+  color: var(--item-link-color);
+}
 .export-document {
   display: block;
   max-width: 980px;
@@ -223,26 +216,71 @@ body:has(> .export-document) {
   min-height: 0;
   color: var(--ink);
 }
-.export-document pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-.export-document .raw-block { white-space: pre-wrap; }
-.export-document table { display: table; table-layout: fixed; width: 100%; }
-.export-document td, .export-document th { min-width: 0; overflow-wrap: anywhere; }
-.export-document th > p, .export-document td > p { margin: 0; }
+.export-document pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.export-document .raw-block {
+  white-space: pre-wrap;
+}
+.export-document table {
+  display: table;
+  table-layout: fixed;
+  width: 100%;
+}
+.export-document td,
+.export-document th {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.export-document th > p,
+.export-document td > p {
+  margin: 0;
+}
 /* 印刷（PDF に保存）だけの用紙。名前付きのページにし、ほかの画面の印刷に効かせない。 */
-.export-document { page: note-export; }
+.export-document {
+  page: note-export;
+}
 @page note-export {
   /* 自動ヘッダー用の余白をなくし、各ページの本文余白はpaddingで確保する。 */
   margin: 0;
   padding: 16mm;
 }
 @media print {
-  .export-document { max-width: none; padding: 0; margin: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  .export-document h1, .export-document h2, .export-document h3,
-  .export-document h4, .export-document h5, .export-document h6 { break-after: avoid; }
-  .export-document tr, .export-document img { break-inside: avoid; }
-  .export-document thead { display: table-header-group; }
-  .export-document img { max-height: 240mm; object-fit: contain; }
-  .export-document p { orphans: 3; widows: 3; }
-  .export-document .task-item input:checked { background: white; }
-  .export-document .task-item input:checked:after { color: var(--ink); }
+  .export-document {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .export-document h1,
+  .export-document h2,
+  .export-document h3,
+  .export-document h4,
+  .export-document h5,
+  .export-document h6 {
+    break-after: avoid;
+  }
+  .export-document tr,
+  .export-document img {
+    break-inside: avoid;
+  }
+  .export-document thead {
+    display: table-header-group;
+  }
+  .export-document img {
+    max-height: 240mm;
+    object-fit: contain;
+  }
+  .export-document p {
+    orphans: 3;
+    widows: 3;
+  }
+  .export-document .task-item input:checked {
+    background: white;
+  }
+  .export-document .task-item input:checked:after {
+    color: var(--ink);
+  }
 }

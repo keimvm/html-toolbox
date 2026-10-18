@@ -7,7 +7,7 @@ import { ToolFrame } from '../../app/frame';
 import type { Incoming, ToolDefinition } from '../../app/tool';
 import { copyText } from '../../lib/clipboard';
 import { canUseFolders, errorName } from '../../lib/files';
-import { hasMod, modKey } from '../../lib/platform';
+import { hasMod, isEditable, modKey } from '../../lib/platform';
 import {
   ask,
   Button,
@@ -113,10 +113,6 @@ async function ensureWritable(folder: FileSystemHandle): Promise<boolean> {
   if ((await folder.queryPermission({ mode: 'readwrite' })) === 'granted') return true;
   return (await folder.requestPermission({ mode: 'readwrite' })) === 'granted';
 }
-
-const editable = (target: EventTarget | null) =>
-  target instanceof HTMLElement &&
-  (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 
 function create() {
   const supported = canUseFolders();
@@ -387,7 +383,7 @@ function create() {
       event.altKey ||
       event.ctrlKey ||
       event.metaKey ||
-      editable(event.target) ||
+      isEditable(event.target) ||
       document.querySelector('dialog[open], :popover-open')
     )
       return;
@@ -441,7 +437,11 @@ function create() {
         actions={
           <>
             {retry && (
-              <Button variant="primary" icon="refresh" onClick={() => void openWithPermission(retry)}>
+              <Button
+                variant="primary"
+                icon="refresh"
+                onClick={() => void openWithPermission(retry)}
+              >
                 {state.retryLabel ?? `「${retry.name}」をもう一度開く`}
               </Button>
             )}
@@ -506,7 +506,9 @@ function create() {
                   type="button"
                   class="pl-card-tag"
                   aria-pressed={chosen.value.has(tag)}
-                  title={chosen.value.has(tag) ? `「${tag}」の絞り込みを外す` : `「${tag}」で絞り込む`}
+                  title={
+                    chosen.value.has(tag) ? `「${tag}」の絞り込みを外す` : `「${tag}」で絞り込む`
+                  }
                   onClick={() => toggleTag(tag)}
                 >
                   {tag}
@@ -680,7 +682,9 @@ function create() {
                 rows={10}
                 spellcheck={false}
                 value={current.body}
-                onInput={(event) => editDraft({ body: (event.target as HTMLTextAreaElement).value })}
+                onInput={(event) =>
+                  editDraft({ body: (event.target as HTMLTextAreaElement).value })
+                }
               />
             </Field>
             <Field label="タグ" hint="空白・カンマ・読点で区切ります。">
@@ -829,7 +833,8 @@ function create() {
 export const promptLibrary: ToolDefinition = {
   id: 'prompt-library',
   name: 'プロンプト集',
-  description: 'よく使うAIチャットのプロンプトをPCのフォルダに保存し、タグで絞り込んでコピーできます。',
+  description:
+    'よく使うAIチャットのプロンプトをPCのフォルダに保存し、タグで絞り込んでコピーできます。',
   icon,
   intents: [
     {

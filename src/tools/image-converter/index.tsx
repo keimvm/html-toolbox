@@ -9,8 +9,9 @@ import { openTool } from '../../app/workspace';
 import { pdfEngine } from '../../engine/pdf/client';
 import type { Rotation, ShrinkOptions } from '../../engine/pdf/types';
 import { downloadBlob } from '../../lib/download';
-import { isImage, isPdf, pickFiles } from '../../lib/files';
+import { errorText, isImage, isPdf, pickFiles } from '../../lib/files';
 import { baseName, formatBytes } from '../../lib/format';
+import { isEditable } from '../../lib/platform';
 import {
   Button,
   confirmAction,
@@ -41,11 +42,7 @@ type Preset = keyof typeof SHRINK_PRESETS;
 const LONG_SIDES = [800, 1280, 1600, 1920, 2560, 3840];
 const COMBINED_NAME = '画像まとめ.pdf';
 
-const message = (error: unknown) => (error instanceof Error ? error.message : '');
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const editable = (target: EventTarget | null) =>
-  target instanceof HTMLElement &&
-  (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
 
 interface Made {
   blob: Blob;
@@ -118,10 +115,12 @@ function create() {
   async function addPdf(file: File) {
     const id = `image-converter-${crypto.randomUUID()}`;
     const label = `「${file.name}」`;
+    const added: Item[] = [];
     notice.value = `${label}を読み込んでいます…`;
     try {
       const engine = pdfEngine();
-      const doc = await engine.call('open', { id, content: await file.arrayBuffer() });
+      const content = await file.arrayBuffer();
+      const doc = await engine.call('open', { id, content }, [content]);
       const count = doc.pages.length;
       try {
         const digits = Math.max(2, String(count).length);
@@ -136,29 +135,35 @@ function create() {
             scale: PAGE_DPI / 72,
           });
           const base = `${baseName(file.name)}-p${String(index + 1).padStart(digits, '0')}`;
-          store.add(blob, `${base}.png`, `${file.name} の ${index + 1} ページ`, base);
+          added.push(store.add(blob, `${base}.png`, `${file.name} の ${index + 1} ページ`, base));
         }
       } finally {
         await engine.call('close', { id }).catch(() => false);
       }
       notice.value = `${label}の ${count} ページを一覧に加えました。`;
     } catch (error) {
-      notice.value = `${label}を開けません。${message(error)}`;
+      notice.value = `${label}を開けません。${errorText(error)}`;
     }
+    return added;
   }
 
   let adding: Promise<void> = Promise.resolve();
+  /** 順番に一覧へ加え、加えた画像を返す。 */
   function addFiles(files: File[]) {
-    adding = adding.then(async () => {
+    const added = adding.then(async () => {
+      const items: Item[] = [];
       for (const file of files) {
-        if (isPdf(file)) await addPdf(file);
+        if (isPdf(file)) items.push(...(await addPdf(file)));
         else {
           notice.value = '';
-          store.add(file, file.name, file.name, `${baseName(file.name)}-変換`);
+          items.push(store.add(file, file.name, file.name, `${baseName(file.name)}-変換`));
         }
       }
+      return items;
     });
-    return adding;
+    // 順番待ちには完了だけを残し、一覧から消した画像を戻り値で保持し続けない。
+    adding = added.then(() => {});
+    return added;
   }
 
   async function chooseFiles() {
@@ -197,14 +202,15 @@ function create() {
 
   // ── PDF にまとめる ──
 
-  async function makePdf() {
+  /** 一覧の画像（only を渡したらその画像だけ）を、一覧の順に1枚1ページの PDF にする。 */
+  async function makePdf(only?: readonly Item[]) {
     combine.value = { busy: true, message: '変換が終わるのを待っています…', result: null };
     const update = (next: Partial<Combine>) => {
       if (combine.value) combine.value = { ...combine.value, ...next };
     };
     try {
       await store.idle();
-      const ready = store.ready();
+      const ready = store.ready().filter((item) => !only || only.includes(item));
       if (!ready.length) {
         update({ busy: false, message: 'PDFにできる画像がありません。' });
         return;
@@ -235,7 +241,11 @@ function create() {
       };
     } catch (error) {
       if (combine.value)
-        combine.value = { busy: false, message: `PDFを作れませんでした。${message(error)}`, result: null };
+        combine.value = {
+          busy: false,
+          message: `PDFを作れませんでした。${errorText(error)}`,
+          result: null,
+        };
     }
   }
 
@@ -256,6 +266,11 @@ function create() {
   // ── PDF を小さくする ──
 
   function openShrink(file?: File) {
+    // 実行中の結果は今の状態に書き足すため、途中で別のファイルに替えない。
+    if (shrink.value?.running) {
+      toast('PDFを小さくしている途中です。終わってから選び直してください。', { tone: 'error' });
+      return;
+    }
     shrink.value = {
       file: null,
       preset: shrink.value?.preset ?? 'standard',
@@ -290,10 +305,12 @@ function create() {
       if (shrink.value) shrink.value = { ...shrink.value, running: false, ...next };
     };
     try {
-      const result = await pdfEngine().call('shrink', {
-        content: await file.arrayBuffer(),
-        options: SHRINK_PRESETS[state.preset],
-      });
+      const content = await file.arrayBuffer();
+      const result = await pdfEngine().call(
+        'shrink',
+        { content, options: SHRINK_PRESETS[state.preset] },
+        [content],
+      );
       const size = result.content.byteLength;
       const sizes = `${formatBytes(file.size)} → ${formatBytes(size)}`;
       if (!result.replaced)
@@ -309,7 +326,7 @@ function create() {
           message: `${sizes}（${Math.round((1 - size / file.size) * 100)}% 減）。画像 ${result.images} 個のうち ${result.replaced} 個を縮めました。文字は選択・検索できるまま残っています。`,
         });
     } catch (error) {
-      finish({ message: `小さくできませんでした。${message(error)}` });
+      finish({ message: `小さくできませんでした。${errorText(error)}` });
     }
   }
 
@@ -333,7 +350,7 @@ function create() {
 
   // 画面を見ている間に貼り付けた画像を、一覧に加える。
   document.addEventListener('paste', (event) => {
-    if (!active || dialogOpen() || editable(event.target)) return;
+    if (!active || dialogOpen() || isEditable(event.target)) return;
     const files = Array.from(event.clipboardData?.files ?? []).filter(
       (file) => isImage(file) || isPdf(file),
     );
@@ -414,7 +431,11 @@ function create() {
           </div>
         </div>
         <div class="ic-item-actions">
-          <Button size="small" disabled={Boolean(item.error)} onClick={() => void detail.open(item)}>
+          <Button
+            size="small"
+            disabled={Boolean(item.error)}
+            onClick={() => void detail.open(item)}
+          >
             確かめる・直す
           </Button>
           <Button size="small" icon="download" disabled={!ready} onClick={() => store.save(item)}>
@@ -462,7 +483,11 @@ function create() {
               value={settings.format}
               onChange={(format) => store.setSettings({ ...store.settings.value, format })}
               options={[
-                { value: 'jpeg', label: 'JPEG', title: '写真向き。容量の上限に合わせて画質を自動で選びます。' },
+                {
+                  value: 'jpeg',
+                  label: 'JPEG',
+                  title: '写真向き。容量の上限に合わせて画質を自動で選びます。',
+                },
                 { value: 'png', label: 'PNG', title: '画面・図向き。画質の段階はありません。' },
               ]}
             />
@@ -519,7 +544,8 @@ function create() {
             </span>
           </label>
           <p class="ic-settings-note">
-            上限は 1 KB = 1,000 バイトで数えます（添付先の数え方より少し小さめに収まります）。空にすると上限なし・元の大きさのままです。
+            上限は 1 KB = 1,000
+            バイトで数えます（添付先の数え方より少し小さめに収まります）。空にすると上限なし・元の大きさのままです。
           </p>
         </form>
         <div class="ic-bar">
@@ -590,7 +616,9 @@ function create() {
                       intent: 'open',
                       input: {
                         kind: 'files',
-                        files: [new File([result.blob], COMBINED_NAME, { type: 'application/pdf' })],
+                        files: [
+                          new File([result.blob], COMBINED_NAME, { type: 'application/pdf' }),
+                        ],
                       },
                     });
                   }}
@@ -688,7 +716,9 @@ function create() {
         {state && (
           <div class="ic-dialog-body" ref={zone}>
             <p class="tb-dialog-text">
-              PDF の中の写真・スキャン画像だけを縮め、JPEG にし直します。文字・図形はそのまま残すので、選択・検索できます。元の PDF は変更しません。
+              PDF の中の写真・スキャン画像だけを縮め、JPEG
+              にし直します。文字・図形はそのまま残すので、選択・検索できます。元の PDF
+              は変更しません。
             </p>
             <div class="ic-shrink-file">
               <Icon name="pdf" />
@@ -701,7 +731,10 @@ function create() {
                 size="small"
                 disabled={state.running}
                 onClick={async () => {
-                  const [file] = await pickFiles({ accept: 'application/pdf,.pdf', multiple: false });
+                  const [file] = await pickFiles({
+                    accept: 'application/pdf,.pdf',
+                    multiple: false,
+                  });
                   setShrinkFile(file);
                 }}
               >
@@ -773,7 +806,12 @@ function create() {
               title="画像の大きさ・容量・形式を変える"
               actions={
                 <>
-                  <Button variant="primary" size="large" icon="plus" onClick={() => void chooseFiles()}>
+                  <Button
+                    variant="primary"
+                    size="large"
+                    icon="plus"
+                    onClick={() => void chooseFiles()}
+                  >
                     画像・PDFを選ぶ
                   </Button>
                   <Button size="large" icon="shrink" onClick={() => openShrink()}>
@@ -784,7 +822,8 @@ function create() {
               note="ドロップ・貼り付けでも加えられます。元のファイルは変更しません。"
             >
               <p>
-                写真やスクリーンショットを、添付できる容量に収めます。変換後の容量と仕上がりを確かめてから保存でき、位置情報などの付加情報は残しません。PDF を選ぶと、各ページを画像として一覧に並べます。
+                写真やスクリーンショットを、添付できる容量に収めます。変換後の容量と仕上がりを確かめてから保存でき、位置情報などの付加情報は残しません。PDF
+                を選ぶと、各ページを画像として一覧に並べます。
               </p>
               {notice.value && <p class="ic-notice">{notice.value}</p>}
             </EmptyState>
@@ -812,8 +851,8 @@ function create() {
         return;
       }
       if (intent === 'combine') {
-        await addFiles(input.files);
-        await makePdf();
+        // 一覧にすでにある画像は入れず、渡された画像だけをまとめる。
+        await makePdf(await addFiles(input.files));
         return;
       }
       void addFiles(input.files);

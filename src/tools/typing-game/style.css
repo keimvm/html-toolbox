@@ -172,8 +172,7 @@ textarea.tg-text:disabled {
   }
 }
 /* 次に打つ文字の下に、真鍮色の線をゆっくり点滅させる。 */
-.tg:is([data-state='countdown'], [data-state='typing'])
-  .tg-ch.is-next::after {
+.tg:is([data-state='countdown'], [data-state='typing']) .tg-ch.is-next::after {
   content: '';
   position: absolute;
   left: 0.04em;
@@ -507,8 +506,7 @@ textarea.tg-text:disabled {
   border-radius: 3px;
   color: var(--tb-danger);
   background: var(--tb-danger-tint);
-  text-decoration: underline wavy
-    color-mix(in srgb, var(--tb-danger) 70%, transparent);
+  text-decoration: underline wavy color-mix(in srgb, var(--tb-danger) 70%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.24em;
   box-decoration-break: clone;
@@ -517,15 +515,13 @@ textarea.tg-text:disabled {
   border-radius: 3px;
   color: var(--tb-muted);
   background: color-mix(in srgb, var(--tb-gold) 13%, transparent);
-  text-decoration: underline dashed
-    color-mix(in srgb, var(--tb-muted) 80%, transparent);
+  text-decoration: underline dashed color-mix(in srgb, var(--tb-muted) 80%, transparent);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.24em;
   box-decoration-break: clone;
 }
 .tg-diff :is(.tg-wrong, .tg-missing) {
-  animation: tg-mark 420ms ease calc(240ms + var(--tg-order, 0) * 45ms)
-    backwards;
+  animation: tg-mark 420ms ease calc(240ms + var(--tg-order, 0) * 45ms) backwards;
 }
 @keyframes tg-mark {
   from {
@@ -553,16 +549,7 @@ textarea.tg-text:disabled {
   height: 12px;
   margin: -6px;
   background: var(--tb-gold);
-  clip-path: polygon(
-    50% 0,
-    61% 39%,
-    100% 50%,
-    61% 61%,
-    50% 100%,
-    39% 61%,
-    0 50%,
-    39% 39%
-  );
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
   pointer-events: none;
   animation: tg-spark 1000ms cubic-bezier(0.15, 0.7, 0.3, 1) var(--d) both;
 }

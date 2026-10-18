@@ -27,9 +27,12 @@ test('個別に変えた設定だけがその画像に効き、上限は全体�
     longSide: 1920,
   };
   expect(effective(global, {})).toEqual({ ...global, quality: null });
-  expect(
-    effective(global, { format: 'png', longSide: 800, quality: 70 }),
-  ).toEqual({ format: 'png', limit: 1_000_000, longSide: 800, quality: 70 });
+  expect(effective(global, { format: 'png', longSide: 800, quality: 70 })).toEqual({
+    format: 'png',
+    limit: 1_000_000,
+    longSide: 800,
+    quality: 70,
+  });
 });
 
 test('容量の表示と、保存名の元になる名前', () => {

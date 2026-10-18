@@ -54,12 +54,7 @@ export function drawEdited(
     context.drawImage(source, -crop.x, -crop.y);
     context.fillStyle = '#000';
     for (const rect of edits.redactions)
-      context.fillRect(
-        rect.x - crop.x,
-        rect.y - crop.y,
-        rect.width,
-        rect.height,
-      );
+      context.fillRect(rect.x - crop.x, rect.y - crop.y, rect.width, rect.height);
     image = layer;
     from = { x: 0, y: 0, width: crop.width, height: crop.height };
   }
@@ -70,9 +65,7 @@ export function drawEdited(
     context.fillRect(0, 0, target.width, target.height);
   }
   const [width, height] =
-    edits.rotation % 180
-      ? [target.height, target.width]
-      : [target.width, target.height];
+    edits.rotation % 180 ? [target.height, target.width] : [target.width, target.height];
   context.translate(target.width / 2, target.height / 2);
   context.rotate((edits.rotation * Math.PI) / 180);
   context.drawImage(

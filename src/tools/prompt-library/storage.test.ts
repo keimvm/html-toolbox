@@ -90,9 +90,7 @@ describe('保存ファイルを開く', () => {
 
   test('読めない保存ファイルは上書きせず例外にする', async () => {
     const file = new MemoryFile('{"format": "other"}');
-    await expect(openLibraryFile(new MemoryFolder(file))).rejects.toThrow(
-      LibraryFormatError,
-    );
+    await expect(openLibraryFile(new MemoryFolder(file))).rejects.toThrow(LibraryFormatError);
     expect(file.text).toBe('{"format": "other"}');
     expect(file.writes).toBe(0);
   });
@@ -132,9 +130,7 @@ describe('保存ファイルへの書き込み', () => {
 
   test('読めなくなった保存ファイルには書き込まない', async () => {
     const file = new MemoryFile('壊れた内容');
-    await expect(changeLibrary(file, (l) => l)).rejects.toThrow(
-      LibraryFormatError,
-    );
+    await expect(changeLibrary(file, (l) => l)).rejects.toThrow(LibraryFormatError);
     expect(file.text).toBe('壊れた内容');
   });
 });

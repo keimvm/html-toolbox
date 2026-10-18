@@ -31,7 +31,8 @@ test('タスクリストのチェックだけを状態として扱い、本文�
 });
 
 test('画像とリンクの元参照およびコードの言語を保存する', () => {
-  const source = '![日本語](../日本語%20画像.png "画像タイトル")\n\n[リンク](../日本語.md#節 "リンクタイトル")\n\n```javascript\nconst a = 1;\n```';
+  const source =
+    '![日本語](../日本語%20画像.png "画像タイトル")\n\n[リンク](../日本語.md#節 "リンクタイトル")\n\n```javascript\nconst a = 1;\n```';
   const text = serializeMarkdown(parseMarkdown(source));
   assert.match(decodeURI(text), /\.\.\/日本語 画像.png/);
   assert.match(decodeURI(text), /日本語.md#節/);

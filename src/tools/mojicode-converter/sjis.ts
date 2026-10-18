@@ -23,9 +23,7 @@ function singleByte(byte: number): number | undefined {
 }
 
 export function formatShiftJisCode(code: number): string {
-  return code > 0xff
-    ? `${hexByte(code >> 8)} ${hexByte(code & 0xff)}`
-    : hexByte(code);
+  return code > 0xff ? `${hexByte(code >> 8)} ${hexByte(code & 0xff)}` : hexByte(code);
 }
 
 export class ShiftJisTable {

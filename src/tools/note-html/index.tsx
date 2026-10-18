@@ -31,6 +31,20 @@ class Static extends Component<{ html: string }> {
 /** 保存・添付・ファイル操作の途中は、閉じると失う。 */
 const BUSY_GUARDS = ['saving', 'adding', 'managing'];
 
+/**
+ * 開いているモーダルを閉じる（隠れた画面のモーダルが、ほかの画面の操作を止めるため）。
+ * 後始末は各ダイアログの cancel の処理（app.js・display.js・rich-editor.js）に任せ、確認は「キャンセル」として扱う。
+ * それでも開いたまま（設定の入力が正しくないなど）なら閉じる。リンクの編集は rich-editor.js が body の直下に置く。
+ */
+function cancelDialogs() {
+  for (const dialog of document.querySelectorAll<HTMLDialogElement>(
+    '.nh dialog[open], dialog.link-dialog[open]',
+  )) {
+    dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+    if (dialog.open) dialog.close();
+  }
+}
+
 function create() {
   const status = signal<ToolStatus>({});
   let app: NoteApp | null = null;
@@ -65,6 +79,9 @@ function create() {
         if (app === created) app = null;
       };
     }, []);
+    useEffect(() => {
+      if (!visible) cancelDialogs();
+    }, [visible]);
     // 置いたフォルダを開く。本文への画像・ファイルの追加は rich-editor.js が先に受け取る。
     const zone = useDropZone<HTMLDivElement>({
       enabled: () => active && canUseFolders() && !document.querySelector('dialog[open]'),

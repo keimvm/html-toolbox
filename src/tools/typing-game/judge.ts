@@ -80,11 +80,7 @@ function inputFirst(changes: readonly Change[]): Change[] {
 }
 
 /** jsdiff の結果（見本→入力）を、入力の元の文字に当てはめる。 */
-function compose(
-  sample: Normalized,
-  input: Normalized,
-  changes: readonly Change[],
-): Judgement {
+function compose(sample: Normalized, input: Normalized, changes: readonly Change[]): Judgement {
   const expected = sample.source;
   const actual = input.source;
   const wrong = new Set<number>();
@@ -145,8 +141,7 @@ export function judge(
   return new Promise((resolve) => {
     diffChars(expected.text, actual.text, {
       timeout,
-      callback: (changes) =>
-        resolve(changes && compose(expected, actual, changes)),
+      callback: (changes) => resolve(changes && compose(expected, actual, changes)),
     });
   });
 }

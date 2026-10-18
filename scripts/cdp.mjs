@@ -1,6 +1,6 @@
 // 開発時の確認用：ヘッドレス Chrome を Chrome DevTools Protocol で操作する最小のドライバー（Node.js 標準のみ）。
 // 配布物を本物の file:// で開き、ネット遮断・CSP の下での動き、コンソールのエラー、外部への通信を確かめる。
-// 自動テスト（pnpm check）には含めない。Playwright は使わない（AGENTS.md）。使い方は docs/rewrite-handoff.md。
+// 自動テスト（pnpm check）には含めない。Playwright は使わない（AGENTS.md）。使い方は docs/development.md の「画面を確かめる」。
 // macOS の Chrome の場所を前提にしている。
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
