@@ -32,9 +32,8 @@ export interface Comparison {
 }
 
 type Group = { same: string } | { removed: string; added: string };
-
-/** 計算を打ち切られても、小さなまとまりは比べられるよう、まとまりごとに残す時間。 */
-const MIN_BLOCK_TIMEOUT = 5;
+/** 差分で得た書記素の数。結合時は足し合わせ、文字列を数え直さない。 */
+type SizedGroup = Group & { beforeCount: number; afterCount: number };
 
 /**
  * 前と後の文章を比べる。差分は同期で計算するため、画面を止める時間の上限として timeout ミリ秒で打ち切る。
@@ -49,7 +48,9 @@ export function compare(
   const deadline = Date.now() + timeout;
   const a = splitLines(before);
   const b = splitLines(after);
-  const runs = diffTokens(a, b, { timeout });
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) return undefined;
+  const runs = diffTokens(a, b, { timeout: remaining });
   if (!runs) return undefined;
 
   const result: Comparison = { blocks: [], changes: 0, rough: false };
@@ -91,52 +92,64 @@ export function compare(
 /** 変わった行のまとまりの中を、文字ごとに比べる。 */
 function refine(before: string, after: string, deadline: number, result: Comparison): Group[] {
   if (!before || !after) return [{ removed: before, added: after }];
-  const a = graphemes(before);
-  const b = graphemes(after);
-  const runs = diffTokens(a, b, {
-    timeout: Math.max(deadline - Date.now(), MIN_BLOCK_TIMEOUT),
-  });
-  if (!runs) {
+  const rough = (): Group[] => {
     result.rough = true;
     return [{ removed: before, added: after }];
-  }
-  const groups: Group[] = [];
+  };
+  if (Date.now() >= deadline) return rough();
+  const a = graphemes(before);
+  const b = graphemes(after);
+  const timeout = deadline - Date.now();
+  if (timeout <= 0) return rough();
+  const runs = diffTokens(a, b, { timeout });
+  if (!runs) return rough();
+  const groups: SizedGroup[] = [];
   let i = 0;
   let j = 0;
   for (const { kind, count } of runs) {
+    if (Date.now() >= deadline) return rough();
     if (kind === 'equal') {
-      groups.push({ same: a.slice(i, (i += count)).join('') });
+      groups.push({ same: a.slice(i, (i += count)).join(''), beforeCount: count, afterCount: count });
       j += count;
       continue;
     }
     let last = groups.at(-1);
-    if (!last || 'same' in last) groups.push((last = { removed: '', added: '' }));
-    if (kind === 'removed') last.removed += a.slice(i, (i += count)).join('');
-    else last.added += b.slice(j, (j += count)).join('');
+    if (!last || 'same' in last)
+      groups.push((last = { removed: '', added: '', beforeCount: 0, afterCount: 0 }));
+    if (kind === 'removed') {
+      last.removed += a.slice(i, (i += count)).join('');
+      last.beforeCount += count;
+    } else {
+      last.added += b.slice(j, (j += count)).join('');
+      last.afterCount += count;
+    }
   }
-  return merge(groups);
+  return merge(groups, deadline) ?? rough();
 }
-
-const size = (text: string) => graphemes(text).length;
-const editSize = (group: { removed: string; added: string }) =>
-  Math.max(size(group.removed), size(group.added));
 
 /**
  * 違いに挟まれた短い一致（両側の違いのどちらより長くないもの）を、違いにまとめる。
  * 書き換えた文の中で「の」「は」だけが一致して細切れに示されるのを防ぐ。
  */
-function merge(groups: Group[]): Group[] {
-  const merged: Group[] = [];
+function merge(groups: SizedGroup[], deadline: number): Group[] | undefined {
+  const merged: SizedGroup[] = [];
   for (const group of groups) {
+    if (Date.now() >= deadline) return undefined;
     merged.push(group);
     while (merged.length >= 3) {
-      const [first, middle, last] = merged.slice(-3) as [Group, Group, Group];
+      const [first, middle, last] = merged.slice(-3) as [SizedGroup, SizedGroup, SizedGroup];
       if ('same' in first || !('same' in middle) || 'same' in last) break;
-      const length = size(middle.same);
-      if (length > editSize(first) || length > editSize(last)) break;
+      const length = middle.beforeCount;
+      if (
+        length > Math.max(first.beforeCount, first.afterCount) ||
+        length > Math.max(last.beforeCount, last.afterCount)
+      )
+        break;
       merged.splice(-3, 3, {
         removed: first.removed + middle.same + last.removed,
         added: first.added + middle.same + last.added,
+        beforeCount: first.beforeCount + length + last.beforeCount,
+        afterCount: first.afterCount + length + last.afterCount,
       });
     }
   }

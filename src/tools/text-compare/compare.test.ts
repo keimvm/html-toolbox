@@ -1,9 +1,9 @@
 import { beforeAll, describe, expect, test, vi } from 'vitest';
-import { loadDiff } from '../../engine/diff';
+import * as diff from '../../engine/diff';
 import { compare, splitLines, type Block } from './compare';
 
 // 差分は共通部品の Rust の WebAssembly（src/engine/diff/wasm/）。Vite の起動時に cargo でビルドしたものを読み込む。
-beforeAll(() => loadDiff());
+beforeAll(() => diff.loadDiff());
 
 /** 変わったまとまりを、前と後の文章に組み立て直す。 */
 function rebuild(blocks: Block[]) {
@@ -89,6 +89,48 @@ describe('compare', () => {
       before: '甲は本契約を解除できる。\n',
       after: '乙は本契約を解除できない。\n',
     });
+  });
+
+  test('短い一致が続いても、結合済みの文章を繰り返し数えない', () => {
+    const before = '甲の'.repeat(100);
+    const after = '乙の'.repeat(100);
+    const segments = vi.spyOn(Intl.Segmenter.prototype, 'segment');
+    try {
+      const result = compare(before, after)!;
+      expect(result.rough).toBe(false);
+      expect(result.changes).toBe(1);
+      expect(rebuild(result.blocks)).toEqual({ before, after });
+      // 時間の実測には頼らず、書記素に分ける文字数が入力の総量以内であることを確かめる。
+      const visited = segments.mock.calls.reduce((sum, [text]) => sum + text.length, 0);
+      expect(visited).toBeLessThanOrEqual(before.length + after.length);
+    } finally {
+      segments.mockRestore();
+    }
+  });
+
+  test('全体の期限を使い切ったら、残るまとまりは書記素に分けず行単位で示す', () => {
+    const before = '甲\n共通\n乙\n';
+    const after = '丙\n共通\n丁\n';
+    const realDiff = diff.diffTokens;
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(0);
+    const tokens = vi.spyOn(diff, 'diffTokens').mockImplementationOnce((a, b, options) => {
+      const runs = realDiff(a, b, options);
+      clock.mockReturnValue(500);
+      return runs;
+    });
+    const segments = vi.spyOn(Intl.Segmenter.prototype, 'segment');
+    try {
+      const result = compare(before, after)!;
+      expect(result.rough).toBe(true);
+      expect(result.changes).toBe(2);
+      expect(rebuild(result.blocks)).toEqual({ before, after });
+      expect(tokens).toHaveBeenCalledTimes(1);
+      expect(segments).not.toHaveBeenCalled();
+    } finally {
+      segments.mockRestore();
+      tokens.mockRestore();
+      clock.mockRestore();
+    }
   });
 
   test('書記素を分けない', () => {

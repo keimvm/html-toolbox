@@ -13,8 +13,8 @@ export const tools: readonly ToolDefinition[] = [
   promptLibrary,
   imageConverter,
   pdfEdit,
+  textCompare,
   noteHtml,
   mojicodeConverter,
   typingGame,
-  textCompare,
 ];

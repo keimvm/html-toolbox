@@ -139,6 +139,14 @@ function create() {
     });
   }
 
+  function clear() {
+    batch(() => {
+      texts.before.value = '';
+      texts.after.value = '';
+      run();
+    });
+  }
+
   /** 前・次の違いへ移り、見える位置までスクロールする。 */
   function go(step: 1 | -1) {
     const result = outcome.value;
@@ -187,6 +195,13 @@ function create() {
             />
             <Button disabled={!hasText} onClick={swap} title="前の文章と後の文章を入れ替える">
               入れ替える
+            </Button>
+            <Button
+              disabled={!texts.before.value && !texts.after.value}
+              onClick={clear}
+              title="前後の文章と比較結果をすべて消す"
+            >
+              すべてクリア
             </Button>
           </>
         }
