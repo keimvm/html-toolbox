@@ -2,9 +2,13 @@
 
 export function formatBytes(bytes: number): string {
   if (bytes < 1_000) return `${bytes} B`;
-  if (bytes < 1_000_000) return `${Math.round(bytes / 1_000)} KB`;
+  const kb = Math.round(bytes / 1_000);
+  if (kb < 1_000) return `${kb} KB`;
+  // 桁は丸めた後の値で決め、「1000 KB」「10.00 MB」「100.0 MB」のような表示にしない。
   const mb = bytes / 1_000_000;
-  return `${mb < 10 ? mb.toFixed(2) : mb < 100 ? mb.toFixed(1) : Math.round(mb)} MB`;
+  if (Number(mb.toFixed(2)) < 10) return `${mb.toFixed(2)} MB`;
+  if (Number(mb.toFixed(1)) < 100) return `${mb.toFixed(1)} MB`;
+  return `${Math.round(mb)} MB`;
 }
 
 /** 拡張子を除いた名前。 */

@@ -442,9 +442,20 @@ function create() {
       });
       chosen.value = new Set();
       changed({ scroll: false });
+      // 知らせを出している間にほかの編集をしたら、その編集を取り消さない。
+      const removed = JSON.stringify(editor.pages);
       toast(`${indices.length}個の要素を取り除きました。`, {
         tone: 'success',
-        action: { label: '元に戻す', run: undo },
+        action: {
+          label: '元に戻す',
+          run: () => {
+            if (JSON.stringify(editor.pages) === removed) undo();
+            else
+              toast(
+                `取り除いた後にページを変えたため、ここからは戻せません。「元に戻す」（${modKey}+Z）で1つずつ戻してください。`,
+              );
+          },
+        },
       });
     });
   }

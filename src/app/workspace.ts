@@ -2,6 +2,9 @@
 // 画面は URL の #/<ツール名> で表し、ブラウザーの戻る・進むでも移れる（file:// でも使える）。
 // 一度開いたツールは、ほかの画面に移っても作業内容を持ったまま残す。
 import { batch, computed, signal } from '@preact/signals';
+import { errorText } from '../lib/files';
+import { prefersReducedMotion } from '../lib/platform';
+import { toast } from '../ui/components';
 import { allTools, toolById } from './registry';
 import type { Incoming, ToolDefinition, ToolInstance } from './tool';
 
@@ -22,8 +25,6 @@ export function routeRendered() {
   rendered = null;
 }
 
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-
 function show(next: Route) {
   const update = () => {
     route.value = next;
@@ -31,7 +32,7 @@ function show(next: Route) {
   const transition = (
     document as Document & { startViewTransition?: (callback: () => Promise<void>) => unknown }
   ).startViewTransition;
-  if (!transition || reducedMotion.matches || document.visibilityState !== 'visible') {
+  if (!transition || prefersReducedMotion.matches || document.visibilityState !== 'visible') {
     update();
     return;
   }
@@ -65,6 +66,16 @@ function instance(tool: ToolDefinition) {
   return created;
 }
 
+/** 渡したものを受け取らせる。受け取りに失敗しても、開いた画面はそのまま使えるようにして知らせる。 */
+async function hand(tool: ToolDefinition, created: ToolInstance, intent: string, input: Incoming) {
+  try {
+    await created.receive?.(intent, input);
+  } catch (error) {
+    console.error(error);
+    toast(`${tool.name}で受け取れませんでした。${errorText(error)}`, { tone: 'error' });
+  }
+}
+
 /** ツールを開く。intent と input を渡すと、開いたツールに受け取らせる。 */
 export function openTool(id: string, delivery?: { intent: string; input: Incoming }) {
   const tool = toolById(id);
@@ -73,7 +84,7 @@ export function openTool(id: string, delivery?: { intent: string; input: Incomin
     const created = instance(tool);
     if (location.hash !== `#/${id}`) location.hash = `/${id}`;
     else show({ kind: 'tool', id });
-    if (delivery) void created.receive?.(delivery.intent, delivery.input);
+    if (delivery) void hand(tool, created, delivery.intent, delivery.input);
   });
 }
 

@@ -4,7 +4,7 @@ import { useComputed, useSignal, useSignalEffect } from '@preact/signals';
 import type { JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { canUseFolders, hasFiles } from '../lib/files';
-import { isEditable, isMac, prefersReducedMotion } from '../lib/platform';
+import { isEditable, modKey, prefersReducedMotion } from '../lib/platform';
 import { Button, IconButton, toast } from '../ui/components';
 import { Icon } from '../ui/icons';
 import { useDropZone } from '../ui/drop';
@@ -183,7 +183,7 @@ export function Home({ active }: { active: boolean }) {
               <Icon name="inbox" />
               <span>
                 ファイル・フォルダをここに置くか、文章や画像を貼り付ける（
-                <kbd>{isMac ? '⌘' : 'Ctrl'}</kbd>+<kbd>V</kbd>）と、使えるツールで開きます。
+                <kbd>{modKey}</kbd>+<kbd>V</kbd>）と、使えるツールで開きます。
               </span>
             </p>
           )}

@@ -65,7 +65,6 @@ export function createItems() {
   let sequence = 0;
   let running = false;
   let waiting: (() => void)[] = [];
-  const listeners = new Set<(item: Item) => void>();
 
   const touch = () => revision.value++;
   const has = (item: Item) => items.value.includes(item);
@@ -102,9 +101,7 @@ export function createItems() {
       bitmap?.close();
     }
     item.done = version;
-    if (!has(item)) return;
-    touch();
-    listeners.forEach((listener) => listener(item));
+    if (has(item)) touch();
   }
 
   function next() {
@@ -140,15 +137,9 @@ export function createItems() {
     items,
     settings,
     revision,
-    touch,
     schedule,
     setCurrent(item: Item | null) {
       current = item;
-    },
-    /** 変換が済んだ・失敗したときに呼ぶ。 */
-    onConverted(listener: (item: Item) => void) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
     },
     add(file: Blob, name: string, source: string, outputBase: string) {
       const item: Item = {

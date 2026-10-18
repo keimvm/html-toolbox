@@ -4,6 +4,8 @@ import { signal } from '@preact/signals';
 import { expect, test, vi } from 'vitest';
 import type { ToolDefinition } from './tool';
 
+vi.mock('../ui/components', () => ({ toast: vi.fn() }));
+
 window.matchMedia ??= (() => ({
   matches: false,
   addEventListener() {},
@@ -40,4 +42,31 @@ test('戻る・進む・アドレス欄でまだ開いていないツールへ�
   location.hash = '/note-html';
   window.dispatchEvent(new HashChangeEvent('hashchange'));
   expect(notes.create).toHaveBeenCalledTimes(1);
+});
+
+test('渡したものの受け取りに失敗したら、ツール名を添えて知らせる', async () => {
+  const { registerTools } = await import('./registry');
+  const { openTool } = await import('./workspace');
+  const { toast } = await import('../ui/components');
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const broken: ToolDefinition = {
+    ...tool('text-compare'),
+    name: '文章比較',
+    create: () => ({
+      View: () => null,
+      status: signal({}),
+      receive: () => Promise.reject(new Error('読めませんでした。')),
+    }),
+  };
+  registerTools([broken]);
+
+  openTool('text-compare', { intent: 'compare', input: { kind: 'text', text: '前' } });
+
+  await vi.waitFor(() =>
+    expect(toast).toHaveBeenCalledWith('文章比較で受け取れませんでした。読めませんでした。', {
+      tone: 'error',
+    }),
+  );
+  expect(logged).toHaveBeenCalled();
+  logged.mockRestore();
 });

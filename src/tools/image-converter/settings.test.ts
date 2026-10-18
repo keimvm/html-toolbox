@@ -44,6 +44,10 @@ test('容量の表示と、保存名の元になる名前', () => {
   expect(formatBytes(820_400)).toBe('820 KB');
   expect(formatBytes(1_234_567)).toBe('1.23 MB');
   expect(formatBytes(23_456_789)).toBe('23.5 MB');
+  // 丸めで桁が上がる境目。
+  expect(formatBytes(999_600)).toBe('1.00 MB');
+  expect(formatBytes(9_996_000)).toBe('10.0 MB');
+  expect(formatBytes(99_960_000)).toBe('100 MB');
   expect(baseName('IMG_0001.HEIC')).toBe('IMG_0001');
   expect(baseName('報告書.v2.pdf')).toBe('報告書.v2');
   expect(baseName('.hidden')).toBe('.hidden');

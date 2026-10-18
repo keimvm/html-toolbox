@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import { ToolFrame } from '../../app/frame';
 import type { Incoming, ToolDefinition } from '../../app/tool';
 import { isTextFile } from '../../lib/files';
-import { isMac, prefersReducedMotion } from '../../lib/platform';
+import { hasMod, modKey, prefersReducedMotion } from '../../lib/platform';
 import { Button, toast } from '../../ui/components';
 import { useDropZone } from '../../ui/drop';
 import { loadDiff } from '../../engine/diff';
@@ -371,7 +371,7 @@ function create() {
       }
       return;
     }
-    if (phase.value === 'setup' && event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+    if (phase.value === 'setup' && event.key === 'Enter' && hasMod(event)) {
       event.preventDefault();
       startCountdown();
       return;
@@ -533,7 +533,7 @@ function create() {
                     開始
                   </button>
                   <p class="tg-shortcut">
-                    <kbd>{isMac ? '⌘' : 'Ctrl'}</kbd> + <kbd>Enter</kbd> でも開始
+                    <kbd>{modKey}</kbd> + <kbd>Enter</kbd> でも開始
                   </p>
                   {note.value && (
                     <p class="tg-note" role="status">
