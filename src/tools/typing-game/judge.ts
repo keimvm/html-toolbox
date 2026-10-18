@@ -1,8 +1,8 @@
 // 見本と入力の照らし合わせ。違う箇所の判定は打ち終えた後に1回だけ行い、
 // 打っている間は確定のたびに、入力の末尾が見本のどこに当たるかだけを求める。
-// 改行・空白を除き、NFKC で全角・半角をそろえてから文字単位の差分（Rust の WebAssembly、diff.ts）を取り、
+// 改行・空白を除き、NFKC で全角・半角をそろえてから文字単位の差分（共通部品 src/engine/diff の Rust の WebAssembly）を取り、
 // 結果は打ったままの文字（正規化前）に戻して示す。
-import { diffChars, loadDiff, type Run } from './diff';
+import { diffChars, loadDiff, type Run } from '../../engine/diff';
 
 const segmenter = new Intl.Segmenter('ja', { granularity: 'grapheme' });
 const BLANK = /^\s+$/u;

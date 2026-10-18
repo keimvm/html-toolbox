@@ -10,7 +10,7 @@ import { isTextFile } from '../../lib/files';
 import { isMac, prefersReducedMotion } from '../../lib/platform';
 import { Button, toast } from '../../ui/components';
 import { useDropZone } from '../../ui/drop';
-import { loadDiff } from './diff';
+import { loadDiff } from '../../engine/diff';
 import { countChars, createLocator, graphemes, isBlank, judge, type Judgement } from './judge';
 import { formatClock, formatSpoken } from './time';
 import icon from './icon.png';

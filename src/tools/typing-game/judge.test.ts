@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, test, vi } from 'vitest';
-import { loadDiff } from './diff';
+import { loadDiff } from '../../engine/diff';
 import { countChars, createLocator, graphemes, judge } from './judge';
 
-// 差分は Rust の WebAssembly（wasm/）。Vite の起動時に cargo でビルドしたものを読み込む。
+// 差分は共通部品の Rust の WebAssembly（src/engine/diff/wasm/）。Vite の起動時に cargo でビルドしたものを読み込む。
 beforeAll(() => loadDiff());
 
 describe('countChars', () => {

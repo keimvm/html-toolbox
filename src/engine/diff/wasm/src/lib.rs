@@ -1,27 +1,28 @@
-//! タイピングゲームの文字単位の差分（見本 → 入力）。
+//! 2つの並び（前 → 後）の差分。タイピングゲーム（見本 → 入力）と文章比較（前の文章 → 後の文章）が使う。
 //!
+//! 並びの要素は u32 で、文字のコードポイントか、JavaScript の側で行・書記素に振った番号を渡す。
 //! Myers の O(ND) 法を、先頭から進める形で解く（jsdiff の `diffChars` と同じ進め方）。
 //! 編集（追加と削除）の数が同じ並べ方のうち、なるべく先頭から一致させ、抜けを後ろに寄せたものになる。
-//! 打ち終えずにやめた場合は、見本の残りが最後にまとめて抜けになる。端に着いた道より外側の対角線は調べない。
+//! 後の並びが途中で終わる場合は、前の残りが最後にまとめて抜けになる。端に着いた道より外側の対角線は調べない。
 //! 道をたどり直すため、歩数ごとに各対角線の最も進んだ位置を残す。残す量が MAX_TRACE を超えるか、
 //! 期限（JavaScript の `Date.now()` の値）を過ぎたら計算をやめ、結果を返さない。
 //!
-//! JavaScript からは、`alloc` で確保した領域に見本と入力のコードポイントを書いて `diff` を呼ぶ。
+//! JavaScript からは、`alloc` で確保した領域に前と後の並びを書いて `diff` を呼ぶ。
 //! 結果は `[区切りの数, 区切り…]` の u32 の並びで、各区切りは `数 << 2 | 種類`（種類は EQUAL・ADDED・REMOVED）。
 //! 使い終えた領域は `dealloc` で返す。
 
-/// 見本と入力の両方にある文字。
+/// 前と後の両方にある要素。
 const EQUAL: u32 = 0;
-/// 入力にだけある文字（打ち間違い・余分）。
+/// 後にだけある要素（タイピングゲームでは打ち間違い・余分、文章比較では追加）。
 const ADDED: u32 = 1;
-/// 見本にだけある文字（抜け）。
+/// 前にだけある要素（タイピングゲームでは抜け、文章比較では削除）。
 const REMOVED: u32 = 2;
 
 /// 道をたどり直すために残す位置の数の上限（i32 で 64 MB）。全く違う3000字どうしで約1350万。
 const MAX_TRACE: usize = 1 << 24;
 
-/// 差分の区切りを集める。続いている違いは、入力にだけある文字を先、見本にだけある文字を後にまとめる
-/// （画面では、打った文字のあとに本来の文字を差し込んで示すため）。
+/// 差分の区切りを集める。続いている違いは、後にだけある要素を先、前にだけある要素を後にまとめる
+/// （タイピングゲームでは、打った文字のあとに本来の文字を差し込んで示すため）。
 #[derive(Default)]
 struct Runs {
     runs: Vec<u32>,
@@ -94,8 +95,8 @@ impl Trace {
         (x >= 0).then_some(x as isize)
     }
 
-    /// 歩数 d で対角線 k に来る直前の位置と、入力の文字を足して（下へ）来たかどうか。
-    /// 見本の文字を除く（右へ）のと同じだけ進むなら、足す方を選ぶ。
+    /// 歩数 d で対角線 k に来る直前の位置と、後の要素を足して（下へ）来たかどうか。
+    /// 前の要素を除く（右へ）のと同じだけ進むなら、足す方を選ぶ。
     fn previous(&self, d: usize, k: isize, n: isize, m: isize) -> Option<(isize, bool)> {
         let down = self.x(d - 1, k + 1).filter(|&x| x - (k + 1) < m);
         let right = self.x(d - 1, k - 1).filter(|&x| x < n);
@@ -108,7 +109,7 @@ impl Trace {
     }
 }
 
-/// 見本（old）→ 入力（new）の差分の区切り。expired が true を返したら（期限を過ぎたら）None。
+/// 前（old）→ 後（new）の差分の区切り。expired が true を返したら（期限を過ぎたら）None。
 fn diff_runs(old: &[u32], new: &[u32], mut expired: impl FnMut() -> bool) -> Option<Vec<u32>> {
     let (n, m) = (old.len() as isize, new.len() as isize);
     let snake = |x: isize, y: isize| x + common_prefix(&old[x as usize..], &new[y as usize..]) as isize;
@@ -221,22 +222,22 @@ pub unsafe extern "C" fn dealloc(ptr: *mut u32, len: usize) {
     drop(unsafe { Vec::from_raw_parts(ptr, 0, len) });
 }
 
-/// 見本と入力（コードポイントの並び）の差分。期限（`Date.now()` の値）を過ぎたら null。
+/// 前と後（u32 の並び）の差分。期限（`Date.now()` の値）を過ぎたら null。
 ///
 /// # Safety
-/// sample・input は、それぞれ u32 を sample_len・input_len 個読める領域であること。
+/// before・after は、それぞれ u32 を before_len・after_len 個読める領域であること。
 #[cfg(target_arch = "wasm32")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn diff(
-    sample: *const u32,
-    sample_len: usize,
-    input: *const u32,
-    input_len: usize,
+    before: *const u32,
+    before_len: usize,
+    after: *const u32,
+    after_len: usize,
     deadline: f64,
 ) -> *mut u32 {
-    let sample = unsafe { std::slice::from_raw_parts(sample, sample_len) };
-    let input = unsafe { std::slice::from_raw_parts(input, input_len) };
-    match diff_runs(sample, input, || unsafe { now() > deadline }) {
+    let before = unsafe { std::slice::from_raw_parts(before, before_len) };
+    let after = unsafe { std::slice::from_raw_parts(after, after_len) };
+    match diff_runs(before, after, || unsafe { now() > deadline }) {
         Some(runs) => {
             let mut out = Vec::with_capacity(runs.len() + 1);
             out.push(runs.len() as u32);
@@ -263,7 +264,7 @@ mod tests {
             .collect()
     }
 
-    /// 区切りから見本と入力を組み立て直せるか、続いている違いが「追加 → 削除」の順か、編集の数が最小かを確かめる。
+    /// 区切りから前と後を組み立て直せるか、続いている違いが「追加 → 削除」の順か、編集の数が最小かを確かめる。
     fn check(old: &[u32], new: &[u32]) {
         let result = diff_runs(old, new, || false).unwrap();
         let (mut s, mut t, mut edits) = (0, 0, 0);

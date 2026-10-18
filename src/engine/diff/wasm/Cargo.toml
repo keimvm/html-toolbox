@@ -1,7 +1,8 @@
-# タイピングゲームの文字単位の差分。WebAssembly（wasm32-unknown-unknown）にして judge.ts から呼ぶ。
+# 2つの並び（文字・行など）の差分。WebAssembly（wasm32-unknown-unknown）にして src/engine/diff/index.ts から呼ぶ。
+# タイピングゲームと文章比較が使う。
 # ビルドは vite/rust.ts が Vite の起動時に行う。依存は持たない。
 [package]
-name = "typing-diff"
+name = "text-diff"
 version = "0.0.0"
 edition = "2024"
 publish = false

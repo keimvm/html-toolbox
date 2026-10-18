@@ -17,8 +17,9 @@ toolbox は、全ツールを1つの HTML に入れた1つのアプリです。�
 | `src/ui/` | 共通の見た目と部品：配色と部品の CSS（`theme.css`）、ボタン・ダイアログ・メニュー・知らせ・確認（`components.tsx`）、アイコン（`icons.tsx`）、ファイルのドロップ（`drop.ts`） |
 | `src/lib/` | 共通の処理：ファイルの受け取りと判定（`files.ts`）、ダウンロード（`download.ts`）、IndexedDB の1件の記録（`idb.ts`）、`localStorage`（`storage.ts`）、配色（`theme.ts`）、クリップボード・数や大きさの表示・OS の違い |
 | `src/engine/pdf/` | PDF エンジン。PDF編集と画像変換が同じ Worker（PDFium）を使う |
+| `src/engine/diff/` | 差分。タイピングゲームと文章比較が同じ Rust の WebAssembly（`wasm/`）を使う |
 | `vite/toolbox.ts` | 1つの HTML にまとめる Vite のプラグイン（重いデータの埋め込み・ライセンスの収集・CSP） |
-| `vite/rust.ts` | Rust のクレート（いまはタイピングゲームの `wasm/`）を、Vite の起動時に cargo で WebAssembly にビルドするプラグイン |
+| `vite/rust.ts` | Rust のクレート（いまは差分の `src/engine/diff/wasm/`）を、Vite の起動時に cargo で WebAssembly にビルドするプラグイン |
 | `scripts/toolbox.mjs` | テスト・ビルド・総合検証・zip の作成（Node.js の標準機能だけ） |
 | `scripts/cdp.mjs` | `file://` の画面を確かめるための、Chrome を操作する小さな道具（自動テストには含めない） |
 | `tests/dist/` | ビルドした配布物のテスト |
@@ -30,7 +31,7 @@ toolbox は、全ツールを1つの HTML に入れた1つのアプリです。�
 
 Node.js（`.node-version`、24.21.0 以降）と pnpm（`package.json` の `packageManager`）を使います。依存関係は直下の `package.json` に1つにまとめ、版を固定しています。
 
-タイピングゲームの差分は Rust で書いた WebAssembly のため、[rustup](https://rustup.rs/) で Rust も入れておきます。開発サーバー・テスト・ビルドのどれでも、Vite の起動時に `vite/rust.ts` が cargo でビルドします。Rust の版と target（wasm32-unknown-unknown）はクレートの `rust-toolchain.toml` で固定していて、初回に rustup が自動で入れます。出力（`target/`）は Git 管理外です。
+差分（タイピングゲーム・文章比較）は Rust で書いた WebAssembly のため、[rustup](https://rustup.rs/) で Rust も入れておきます。開発サーバー・テスト・ビルドのどれでも、Vite の起動時に `vite/rust.ts` が cargo でビルドします。Rust の版と target（wasm32-unknown-unknown）はクレートの `rust-toolchain.toml` で固定していて、初回に rustup が自動で入れます。出力（`target/`）は Git 管理外です。
 
 ```bash
 pnpm install --frozen-lockfile
@@ -57,7 +58,7 @@ pnpm dev
 なるべく OS・ブラウザーの標準の仕組みを使い、ライブラリと共通部品を積極的に活用します。追加・改修・レビューのすべてで、次を確認してください。
 
 1. **標準機能を確認する。** ブラウザーのファイル選択・保存・印刷、`dialog`・`popover`・CSS のアンカー配置、File System Access、Canvas・`OffscreenCanvas`、`DecompressionStream`、View Transitions、Node.js の標準 API を優先します。独自のファイル選択画面、印刷処理、メニューの開閉などを作り直しません。Windows・Mac、Chrome・Edge 129 以降、オフライン・`file://` の条件を満たす範囲で選びます。
-2. **既存部品とライブラリを使う。** まず共通部品（`src/ui/`・`src/lib/`・`src/engine/`・`src/app/`）と依存関係の公開 API を調べます。PDF の処理は EmbedPDF/PDFium、Markdown の解析・出力は markdown-it、文書の編集・選択・取り消し・表は ProseMirror、タイピングゲームの差分は Rust の WebAssembly（`src/tools/typing-game/wasm/`）、画面は Preact と @preact/signals を使います。
+2. **既存部品とライブラリを使う。** まず共通部品（`src/ui/`・`src/lib/`・`src/engine/`・`src/app/`）と依存関係の公開 API を調べます。PDF の処理は EmbedPDF/PDFium、Markdown の解析・出力は markdown-it、文書の編集・選択・取り消し・表は ProseMirror、文字・行の差分は Rust の WebAssembly（`src/engine/diff/`）、画面は Preact と @preact/signals を使います。
 3. **不足する場合はライブラリを検討する。** 同じ役割を自作する前に、要件に合うライブラリを検討します。既存機能では不足する点、保守状況、ライセンス、配布サイズ、1つの HTML への埋め込み、外部通信の有無を確認し、採用理由を [software-stack.md](software-stack.md) に残します。
 4. **自前実装は固有要件に絞る。** 標準機能やライブラリで満たせない部分だけを実装し、不足点と担当範囲を関連する仕様・技術文書に記録します。現在必要なものだけを作り、一般化のための独自基盤や不要な互換層を増やしません。
 5. **同じ部品は共通化して使う。** 複数ツールで役割・振る舞いが同じ処理は共通部品にまとめ、既存の利用箇所も置き換えます。共通 CSS は配色・部品、ツール側の CSS は画面配置や固有の調整を担当します。データ形式や保存方針が異なる処理まで統合しません。
@@ -96,6 +97,7 @@ pnpm dev
 | `src/lib/idb.ts` | `createRecordStore(window, { database, store, key })`。IndexedDB の1つのキーに値を1つ置く。停止・ブロック・中断では待ち続けず拒否する |
 | `src/lib/storage.ts`・`theme.ts` | `localStorage` の読み書き（保存できない環境でも画面の中では覚える）と配色（`toolbox-theme`） |
 | `src/engine/pdf/` | `pdfEngine().call(操作, 引数)`。開く・閉じる・描画・文字と要素の一覧・画像の取り出し・保存（結合と回転）・要素の削除・画像から PDF・PDF の縮小 |
+| `src/engine/diff/` | `loadDiff()` で読み込み、`diffChars()`（コードポイント）・`diffTokens()`（行・書記素などの文字列の並び）・`diffCodes()`（数の並び）で同期で差分を取る。編集の数が最小で、期限（`timeout`）で打ち切ると `undefined` |
 
 - 配色は、ライトがアイボリーの地に深いエバーグリーン（`--tb-accent`）、ダークが黒に近い地にシャンパン色（同）です。真鍮色の `--tb-gold` は選択中の細い縁・区切りの短い線・フォーカス枠など細部の差し色に限ります。大きな見出しは OS の明朝体（`--tb-font-display`）です。
 - 色はすべて `light-dark()` で持ちます。切り替えボタンで選んだ配色は `:root[data-tb-theme]` で `color-scheme` を上書きします。ツールの CSS で `prefers-color-scheme` を使うと切り替えが効かないため、色は `--tb-*` か `light-dark()` で書きます。印刷と、ツールが書き出す文書は常にライトです。
@@ -116,7 +118,7 @@ pnpm dev
 ## 配布物の作り
 
 - `vite build` は `vite-plugin-singlefile` で JavaScript と CSS を `dist/index.html` に入れます。本体の script は普通の script（IIFE）にし、重いデータより前に置いて画面を先に出します。
-- タイピングゲームの差分の WebAssembly（Rust、約20 KB）は小さいため、Vite の `?init` で Base64 にして本体の JavaScript に入れます。
+- 差分の WebAssembly（Rust、約20 KB。タイピングゲームと文章比較が使う）は小さいため、Vite の `?init` で Base64 にして本体の JavaScript に入れます。
 - PDFium の WebAssembly と Noto Sans JP は、gzip と Base64 にして HTML の末尾の `<script type="application/octet-stream" id="tb-payload-…">` に置きます。PDF を初めて使うとき、文書を読み終えてから Worker に渡し、Worker の中で `DecompressionStream` で展開します（`vite/toolbox.ts`・`src/engine/pdf/`）。
 - CSP（`vite/toolbox.ts` の `CONTENT_SECURITY_POLICY`）で外部との通信と外部の読み込みを止めます。Worker は `blob:`、WebAssembly は `'wasm-unsafe-eval'` で動かします。
 - 配布物に実際に入ったパッケージのライセンス文を集めて HTML の末尾に置き、「このアプリについて」で表示します。

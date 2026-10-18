@@ -365,3 +365,19 @@ PDF編集のビルドでは、以前からある EmbedPDF 内の `crypto` 外部
 生成物は `dist/index.html`（9,256,709 バイト）と `out/toolbox-2026.10.18.zip`（約6.5 MB）。同日の出力を枝番なしで作り直した。ビルド時には、以前からある EmbedPDF 内の `crypto` の外部化の警告が出た。
 
 lint・整形チェックは実行していない。変更前後の CPU・GPU の使用率とフレーム時間の計測、実ブラウザーでの見た目（線のにじみ・カードの透け方）、`file://`・Windows／Edge での確認も未実施。
+
+## 文章比較の追加と差分の共通部品化（2026年10月18日）
+
+文章比較（`src/tools/text-compare/`）を追加し、タイピングゲームの差分（`diff.ts`・Rust のクレート `wasm/`）を共通部品の `src/engine/diff/` に移した。クレート名を `typing-diff` から `text-diff` に変え、`vite/rust.ts` のビルド対象を移した先にした。Rust の差分の本体は、説明と引数の名前のほかは変えていない。文章比較の比べ方のテスト（`src/tools/text-compare/compare.test.ts`）を追加し、タイピングゲームのテストの読み込み先を移した先にした。
+
+ユーザーの指示を受け、次の操作を実施した。
+
+| 操作 | 結果 |
+| --- | --- |
+| `node scripts/toolbox.mjs test` | 全32ファイル・296件の単体テストが成功（文章比較の `compare.test.ts`、移した先の差分を読むタイピングゲームのテストを含む） |
+| `src/engine/diff/wasm/` で `cargo test` | 7件が成功 |
+| `node scripts/toolbox.mjs build 2026.10.18` | アプリ・開発用の型検査とビルド、zip 作成が成功 |
+
+生成物は `dist/index.html`（9,277,207 バイト）と `out/toolbox-2026.10.18.zip`（約6.5 MB）。同日の出力を枝番なしで作り直した。ビルド時には、以前からある EmbedPDF 内の `crypto` の外部化の警告が出た。
+
+lint・整形チェック・総合検証、配布物のテスト、画面（開発サーバー・配布物・`file://`）での確認、Windows・Edge での確認は実行していない。

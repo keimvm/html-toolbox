@@ -4,7 +4,7 @@ import { render, type ComponentChildren } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import type { ToolInstance } from '../../app/tool';
-import { loadDiff } from './diff';
+import { loadDiff } from '../../engine/diff';
 
 vi.mock('../../app/frame', () => ({
   ToolFrame: ({ children }: { children: ComponentChildren }) => children,
@@ -12,14 +12,14 @@ vi.mock('../../app/frame', () => ({
 
 // jsdom 用の Vite モジュールはブラウザーの URL を返すため、WASM だけ Node.js で読む。
 // 差分の本体と TypeScript の受け渡しは実物を使う。
-vi.mock('./wasm/target/wasm32-unknown-unknown/release/typing_diff.wasm?init', () => ({
+vi.mock('../../engine/diff/wasm/target/wasm32-unknown-unknown/release/text_diff.wasm?init', () => ({
   default: async (imports: WebAssembly.Imports) => {
     const { readFile } = await import('node:fs/promises');
     const { join } = await import('node:path');
     const bytes = await readFile(
       join(
         process.cwd(),
-        'src/tools/typing-game/wasm/target/wasm32-unknown-unknown/release/typing_diff.wasm',
+        'src/engine/diff/wasm/target/wasm32-unknown-unknown/release/text_diff.wasm',
       ),
     );
     const { instance } = await WebAssembly.instantiate(new Uint8Array(bytes), imports);

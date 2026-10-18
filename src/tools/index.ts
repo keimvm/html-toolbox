@@ -6,6 +6,7 @@ import { mojicodeConverter } from './mojicode-converter';
 import { noteHtml } from './note-html';
 import { pdfEdit } from './pdf-edit';
 import { promptLibrary } from './prompt-library';
+import { textCompare } from './text-compare';
 import { typingGame } from './typing-game';
 
 export const tools: readonly ToolDefinition[] = [
@@ -15,4 +16,5 @@ export const tools: readonly ToolDefinition[] = [
   noteHtml,
   mojicodeConverter,
   typingGame,
+  textCompare,
 ];

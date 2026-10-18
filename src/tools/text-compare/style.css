@@ -1,0 +1,250 @@
+/* 文章比較の画面配置。配色・部品は ui/theme.css の --tb-* とクラスを使う。 */
+/* 上に前と後の文章の欄、下に結果。結果は枠の中でスクロールする。 */
+.tc {
+  --tc-text-size: 15px;
+  display: grid;
+  grid-template-rows: clamp(150px, 30dvh, 300px) minmax(0, 1fr);
+  gap: 14px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1480px;
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 16px 18px 26px;
+}
+.tc-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-height: 0;
+}
+.tc-pane,
+.tc-result {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius-large);
+  background: var(--tb-surface);
+}
+.tc-pane {
+  transition:
+    border-color var(--tb-transition),
+    box-shadow var(--tb-transition);
+}
+.tc-pane:focus-within {
+  border-color: var(--tb-gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tb-gold) 14%, transparent);
+}
+.tc-pane-head,
+.tc-result-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 6px 10px 6px 18px;
+  border-bottom: 1px solid var(--tb-line);
+}
+.tc-pane-head h2,
+.tc-result-head h2 {
+  font-family: var(--tb-font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.tc-count,
+.tc-position {
+  color: var(--tb-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.tc-clear {
+  margin-left: auto;
+}
+textarea.tc-field {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 12px 18px 24px;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  font-size: var(--tc-text-size);
+  line-height: 1.8;
+  resize: none;
+  overscroll-behavior: contain;
+}
+
+/* ── 結果 ── */
+
+.tc-summary {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tc-legend {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+}
+.tc-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+.tc-position {
+  margin-right: 6px;
+}
+.tc-result-body {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.tc-message,
+.tc-note {
+  margin: 0;
+  padding: 18px 22px;
+  color: var(--tb-muted);
+  font-size: 14px;
+}
+.tc-note {
+  padding: 10px 22px;
+  border-bottom: 1px solid var(--tb-line);
+  background: var(--tb-warning-tint);
+  color: var(--tb-ink);
+  font-size: 13px;
+}
+.tc-rows {
+  padding: 8px 0 32px;
+}
+.tc-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.tc[data-layout='inline'] .tc-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+.tc-cell {
+  min-width: 0;
+  padding: 0 22px;
+  color: var(--tb-ink);
+  font-size: var(--tc-text-size);
+  line-height: 1.85;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tc-cell + .tc-cell {
+  border-left: 1px solid var(--tb-line);
+}
+/* 変わったまとまりは、左端に真鍮色の細い線を引く。 */
+.tc-change > .tc-cell:first-child {
+  box-shadow: inset 3px 0 0 var(--tb-gold);
+}
+.tc-change > .tc-cell {
+  padding-block: 2px;
+}
+/* 並べたときに片方にしかないまとまりは、もう片方を斜線で埋める。 */
+.tc-cell.is-empty {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 7px,
+    color-mix(in srgb, var(--tb-line) 70%, transparent) 7px 8px
+  );
+}
+.tc-removed,
+.tc-added {
+  border-radius: 3px;
+  padding: 1px 1px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  scroll-margin: 48px;
+}
+.tc-removed {
+  background: var(--tb-danger-tint);
+  color: var(--tb-danger);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--tb-danger) 70%, transparent);
+}
+.tc-added {
+  background: var(--tb-success-tint);
+  color: var(--tb-success);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--tb-success) 60%, transparent);
+  text-underline-offset: 3px;
+}
+.tc-removed.is-current,
+.tc-added.is-current {
+  outline: 2px solid var(--tb-gold);
+  outline-offset: 1px;
+}
+.tc-break {
+  opacity: 0.65;
+  font-size: 0.85em;
+  text-decoration: none;
+}
+.tc-fold {
+  display: flex;
+  justify-content: center;
+  padding: 4px 22px;
+  border-block: 1px dashed var(--tb-line);
+  background: var(--tb-subtle);
+}
+.tc-fold-button {
+  min-height: 28px;
+  padding-inline: 12px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--tb-muted);
+  font-size: 12px;
+}
+.tc-fold-button:hover {
+  color: var(--tb-ink);
+}
+
+@media (max-width: 760px) {
+  /* 狭い画面では縦に並べ、画面全体をスクロールする。 */
+  .tc {
+    --tc-text-size: 14px;
+    grid-template-rows: auto auto;
+    gap: 10px;
+    overflow: auto;
+    padding: 10px 10px 26px;
+  }
+  .tc-inputs {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .tc-pane {
+    height: 180px;
+  }
+  .tc-result {
+    min-height: 60dvh;
+  }
+  .tc-result-body {
+    overflow: visible;
+  }
+  /* 並べる表示でも、前を上、後を下に重ねる。 */
+  .tc-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tc-cell {
+    padding-inline: 14px;
+  }
+  .tc-cell + .tc-cell {
+    border-top: 1px dashed var(--tb-line);
+    border-left: 0;
+  }
+  /* 変わらない行は同じ文章のため、重ねて出さない。 */
+  .tc-row:not(.tc-change) > .tc-cell + .tc-cell {
+    display: none;
+  }
+}

@@ -10,7 +10,7 @@ import { join, sep } from 'node:path';
 import type { Plugin } from 'vite';
 
 /** 配布物に入れる Rust のクレート（リポジトリ直下からの場所）。 */
-const CRATES = ['src/tools/typing-game/wasm'];
+const CRATES = ['src/engine/diff/wasm'];
 
 function build(dir: string) {
   try {
