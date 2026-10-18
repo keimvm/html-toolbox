@@ -1,4 +1,4 @@
-// toolbox のテスト・ビルド・総合検証・zip 作成。Node.js の標準機能と OS の zip コマンドだけを使う。
+// toolbox のテスト・ビルド・総合検証・zip 作成。Node.js の標準機能と OS の zip コマンドだけを使う（zip の作成は macOS・Linux）。
 //
 //   node scripts/toolbox.mjs test               依存取得とソースのテスト（ビルドなし）
 //   node scripts/toolbox.mjs build <版>          版を付けてビルドし、zip を作る（テスト・lint なし）

@@ -48,23 +48,27 @@ test('配布物は CSP・版・PDF のデータを持つ必要がある', () => 
   ).toThrow(/pdfium/);
 });
 
-test('zip の中は版の名前のフォルダと index.html だけで、英数字の名前になる', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'toolbox-'));
-  temps.push(dir);
-  await mkdir(join(dir, 'dist'));
-  await writeFile(join(dir, 'dist', 'index.html'), sample('2026.10.18'));
-  await packageRelease('2026.10.18', dir);
-  const listing = execFileSync('unzip', ['-Z1', join(dir, 'out', 'toolbox-2026.10.18.zip')], {
-    encoding: 'utf8',
-  })
-    .trim()
-    .split('\n');
-  expect(listing.sort()).toEqual(['toolbox-2026.10.18/', 'toolbox-2026.10.18/index.html']);
-  for (const name of listing) expect(name).toMatch(/^[A-Za-z0-9.\-/]+$/);
-  expect(await readFile(join(dir, 'out', 'toolbox-2026.10.18', 'index.html'), 'utf8')).toBe(
-    sample('2026.10.18'),
-  );
-});
+// zip の作成は OS の zip・unzip コマンドを使い、macOS・Linux だけで行う（リリースは ubuntu で作る）。
+test.skipIf(process.platform === 'win32')(
+  'zip の中は版の名前のフォルダと index.html だけで、英数字の名前になる',
+  async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'toolbox-'));
+    temps.push(dir);
+    await mkdir(join(dir, 'dist'));
+    await writeFile(join(dir, 'dist', 'index.html'), sample('2026.10.18'));
+    await packageRelease('2026.10.18', dir);
+    const listing = execFileSync('unzip', ['-Z1', join(dir, 'out', 'toolbox-2026.10.18.zip')], {
+      encoding: 'utf8',
+    })
+      .trim()
+      .split('\n');
+    expect(listing.sort()).toEqual(['toolbox-2026.10.18/', 'toolbox-2026.10.18/index.html']);
+    for (const name of listing) expect(name).toMatch(/^[A-Za-z0-9.\-/]+$/);
+    expect(await readFile(join(dir, 'out', 'toolbox-2026.10.18', 'index.html'), 'utf8')).toBe(
+      sample('2026.10.18'),
+    );
+  },
+);
 
 test('版を付けずに作った配布物は梱包しない', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'toolbox-'));
