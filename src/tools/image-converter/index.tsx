@@ -81,7 +81,8 @@ function create() {
   const status = computed(() => {
     void store.revision.value;
     const items = store.items.value;
-    const unsaved = items.filter((item) => !item.error && !item.saved).length;
+    const writing = editor.pendingText.value ? editor.current.value : null;
+    const unsaved = items.filter((item) => !item.error && (!item.saved || item === writing)).length;
     const made = Boolean(combine.value?.result && !combine.value.result.saved);
     return {
       title: editor.current.value?.name,

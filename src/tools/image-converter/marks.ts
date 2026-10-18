@@ -131,8 +131,14 @@ export function mapMark(mark: Mark, map: (point: Point) => Point): Mark {
   }
 }
 
-export const moveMark = (mark: Mark, dx: number, dy: number) =>
-  mapMark(mark, ([x, y]) => [x + dx, y + dy]);
+/** 黒塗りは整数画素ずつ動かし、確定時の外側への丸めで範囲を広げない。 */
+export function moveMark(mark: Mark, dx: number, dy: number) {
+  if (mark.kind === 'redact') {
+    dx = Math.round(dx);
+    dy = Math.round(dy);
+  }
+  return mapMark(mark, ([x, y]) => [x + dx, y + dy]);
+}
 
 /**
  * 黒塗りの範囲を、画素の境目まで外側へ広げて画像の中に収める。範囲にかかる画素の元の色を、縁に混ぜて残さないため。

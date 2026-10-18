@@ -160,6 +160,28 @@ test('黒塗りの範囲は画素の境目まで外側へ広げ、画像の外�
   expect(settleRedaction(frame, source)).toBe(frame);
 });
 
+test('縮小表示で黒塗りを繰り返し移動して確定しても、幅と高さを変えない', () => {
+  const source = { width: 2000, height: 1000 };
+  let mark: Mark = {
+    ...common,
+    id: 1,
+    kind: 'redact',
+    rect: { x: 100, y: 100, width: 100, height: 50 },
+  };
+  // 表示倍率 0.3 で、画面の 1 px ずつ右下へ動かす。
+  for (let i = 0; i < 20; i++)
+    mark = settleRedaction(moveMark(mark, 1 / 0.3, 1 / 0.3), source);
+  expect(mark).toMatchObject({ rect: { x: 160, y: 160, width: 100, height: 50 } });
+  for (let i = 0; i < 20; i++)
+    mark = settleRedaction(moveMark(mark, -1 / 0.3, -1 / 0.3), source);
+  expect(mark).toMatchObject({ rect: { x: 100, y: 100, width: 100, height: 50 } });
+
+  // ほかの書き込みは小数の座標のまま動かす。
+  expect(moveMark({ ...mark, kind: 'rect' } as Mark, 0.25, -0.5)).toMatchObject({
+    rect: { x: 100.25, y: 99.5, width: 100, height: 50 },
+  });
+});
+
 test('回した画像の座標に移しても、枠は長方形のまま。動かすと全部の点が同じだけ動く', () => {
   const size = { width: 40, height: 30 };
   const frame: Mark = {

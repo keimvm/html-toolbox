@@ -33,6 +33,16 @@ test('変換中に設定を変えた直後に古い変換が失敗しても、�
   expect(item.error).toBeNull();
   expect(item.result).toBe(result);
   expect(isPending(item)).toBe(false);
+
+  // 保存後に編集したら、新しい変換が終わる前から未保存に戻す。
+  item.saved = true;
+  store.schedule(item);
+  expect(item.saved).toBe(false);
+  expect(isPending(item)).toBe(true);
+  await vi.waitFor(() => expect(conversions).toHaveLength(3));
+  conversions[2]!.resolve(result);
+  await store.idle();
+  expect(item.saved).toBe(false);
 });
 
 test('一覧の中で画像を動かすと、PDF にまとめる順もその順になる', () => {

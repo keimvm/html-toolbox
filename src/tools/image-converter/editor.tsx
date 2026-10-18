@@ -2,7 +2,7 @@
 // 画像の上で直接行う。「見比べる」では左に元の画像、右に保存する画像を並べ、拡大したときは同じ場所を見せる。
 // 右のパネル（ItemPanel）に、この画像の容量・形式とコピー・保存、この画像だけの設定を置く。
 // キャンバスと見比べの画像の大きさ・スクロールは直接書き換え、道具・つまみ・文言は Preact で描く。
-import { signal } from '@preact/signals';
+import { computed, signal } from '@preact/signals';
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { copyImage } from '../../lib/clipboard';
@@ -173,7 +173,7 @@ const ARROWS: Record<string, [number, number]> = {
 /** 押している間の操作。点は画面（画像の枠の左上が原点の CSS px）、切り抜きは回転だけを当てた画像の画素で持つ。 */
 type Drag =
   | { kind: 'draw'; id: number; start: Point; before: Edits }
-  | { kind: 'move'; id: number; start: Point; last: Point; before: Edits }
+  | { kind: 'move'; id: number; start: Point; origin: Mark; before: Edits }
   | { kind: 'handle'; id: number; handle: Handle; fixed: Point; before: Edits }
   | { kind: 'text'; start: Point }
   | { kind: 'crop-new'; start: Point; before: Edits }
@@ -183,6 +183,7 @@ type Drag =
 /** 書いている途中の文字。left・top は文字の塊の左上（画面の px）。 */
 interface Writing {
   id: number;
+  text: string;
   left: number;
   top: number;
   before: Edits;
@@ -234,6 +235,13 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
     highlight: 'yellow',
   });
   const writing = signal<Writing | null>(null);
+  /** 確定前の文字も、終了すると失う作業として追跡する。 */
+  const pendingText = computed(() => {
+    const state = writing.value;
+    if (!state) return false;
+    const original = state.before.marks.find((mark) => mark.id === state.id);
+    return state.text.replace(/\s+$/u, '') !== (original?.kind === 'text' ? original.text : '');
+  });
   /** 元の画像を読み込んだ・読み込めなかったら増やす。 */
   const loaded = signal(0);
   /** 書き込み・切り抜きの範囲を描き直したら増やす（つまみと範囲の枠を置き直す）。 */
@@ -635,7 +643,7 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
     // クリックした点が、1行目の高さの真ん中に来るようにする。
     const line = fontSize(mark) * scale * LINE_HEIGHT;
     selected.value = mark.id;
-    writing.value = { id: mark.id, left: point[0], top: point[1] - line / 2, before };
+    writing.value = { id: mark.id, text: '', left: point[0], top: point[1] - line / 2, before };
     renderMarks();
   }
 
@@ -647,7 +655,13 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
     const bounds = markBounds(mapMark(mark, view.toView) as TextMark, scale, measureLine);
     draft = { ...mark };
     selected.value = mark.id;
-    writing.value = { id: mark.id, left: bounds.x, top: bounds.y, before: snapshot(item.edits) };
+    writing.value = {
+      id: mark.id,
+      text: mark.text,
+      left: bounds.x,
+      top: bounds.y,
+      before: snapshot(item.edits),
+    };
     renderMarks();
   }
 
@@ -822,7 +836,7 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
     const hit = hitAt(point);
     if (hit) {
       selected.value = hit.id;
-      drag = { kind: 'move', id: hit.id, start: point, last: point, before };
+      drag = { kind: 'move', id: hit.id, start: point, origin: hit, before };
       return;
     }
     selected.value = null;
@@ -836,7 +850,7 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
     if (kind === 'number') {
       // 置いたまま、離すまで動かして位置を決められる。
       selected.value = mark.id;
-      drag = { kind: 'move', id: mark.id, start: point, last: point, before };
+      drag = { kind: 'move', id: mark.id, start: point, origin: mark, before };
     } else drag = { kind: 'draw', id: mark.id, start: point, before };
     renderMarks();
   }
@@ -885,9 +899,9 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
         return;
       case 'move': {
         if (!mark) return;
-        const [a, b] = [view.fromView(state.last), view.fromView(point)];
-        draft = moveMark(mark, b[0] - a[0], b[1] - a[1]);
-        state.last = point;
+        // 開始位置からの移動量を使い、黒塗りの丸めによる誤差をイベントごとに積み重ねない。
+        const [a, b] = [view.fromView(state.start), view.fromView(point)];
+        draft = moveMark(state.origin, b[0] - a[0], b[1] - a[1]);
         renderMarks();
         return;
       }
@@ -1398,8 +1412,11 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
           } as JSX.CSSProperties
         }
         onInput={(event) => {
-          if (draft?.id === state.id && draft.kind === 'text')
-            draft = { ...draft, text: (event.target as HTMLTextAreaElement).value };
+          if (draft?.id === state.id && draft.kind === 'text') {
+            const text = (event.target as HTMLTextAreaElement).value;
+            draft = { ...draft, text };
+            writing.value = { ...state, text };
+          }
         }}
         onKeyDown={(event) => {
           if (event.isComposing) return;
@@ -1794,7 +1811,7 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
     );
   }
 
-  return { Stage, ItemPanel, open, current, handleKey, finishText };
+  return { Stage, ItemPanel, open, current, handleKey, finishText, pendingText };
 }
 
 export type Editor = ReturnType<typeof createEditor>;

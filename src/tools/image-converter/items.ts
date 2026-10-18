@@ -128,6 +128,8 @@ export function createItems() {
   /** 設定・編集を変えた画像を変換し直す。 */
   function schedule(item: Item) {
     item.version++;
+    // 新しい編集・設定はまだ保存していない。変換が終わる前から終了時の確認を有効にする。
+    item.saved = false;
     // 読み込めた画像の失敗（メモリー不足など）は、設定を変えたら試し直す。
     if (item.size) item.error = null;
     touch();
