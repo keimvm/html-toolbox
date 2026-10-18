@@ -284,7 +284,8 @@ function create() {
     combine.value = null;
   }
 
-  const dialogOpen = () => Boolean(combine.value) || Boolean(document.querySelector('dialog[open]'));
+  const dialogOpen = () =>
+    Boolean(combine.value) || Boolean(document.querySelector('dialog[open]'));
 
   // 画面を見ている間に貼り付けた画像を、一覧に加えて開く。
   document.addEventListener('paste', (event) => {

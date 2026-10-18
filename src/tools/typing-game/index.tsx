@@ -546,9 +546,7 @@ function create() {
                   <ol class="tg-steps">
                     <li>左の欄に文章を貼り付けます（テキストファイルを置いても入ります）</li>
                     <li>「開始」を押すと、3秒後にスタートします</li>
-                    <li>
-                      いつもの日本語入力で打ち、確定後に {modKey} + Enter で終了します
-                    </li>
+                    <li>いつもの日本語入力で打ち、確定後に {modKey} + Enter で終了します</li>
                   </ol>
                 </div>
               )}

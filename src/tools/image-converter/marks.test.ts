@@ -169,11 +169,9 @@ test('縮小表示で黒塗りを繰り返し移動して確定しても、幅�
     rect: { x: 100, y: 100, width: 100, height: 50 },
   };
   // 表示倍率 0.3 で、画面の 1 px ずつ右下へ動かす。
-  for (let i = 0; i < 20; i++)
-    mark = settleRedaction(moveMark(mark, 1 / 0.3, 1 / 0.3), source);
+  for (let i = 0; i < 20; i++) mark = settleRedaction(moveMark(mark, 1 / 0.3, 1 / 0.3), source);
   expect(mark).toMatchObject({ rect: { x: 160, y: 160, width: 100, height: 50 } });
-  for (let i = 0; i < 20; i++)
-    mark = settleRedaction(moveMark(mark, -1 / 0.3, -1 / 0.3), source);
+  for (let i = 0; i < 20; i++) mark = settleRedaction(moveMark(mark, -1 / 0.3, -1 / 0.3), source);
   expect(mark).toMatchObject({ rect: { x: 100, y: 100, width: 100, height: 50 } });
 
   // ほかの書き込みは小数の座標のまま動かす。

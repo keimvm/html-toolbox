@@ -109,7 +109,11 @@ function refine(before: string, after: string, deadline: number, result: Compari
   for (const { kind, count } of runs) {
     if (Date.now() >= deadline) return rough();
     if (kind === 'equal') {
-      groups.push({ same: a.slice(i, (i += count)).join(''), beforeCount: count, afterCount: count });
+      groups.push({
+        same: a.slice(i, (i += count)).join(''),
+        beforeCount: count,
+        afterCount: count,
+      });
       j += count;
       continue;
     }

@@ -16,8 +16,7 @@ vi.mock('./paint', () => ({
 }));
 vi.mock('./convert', () => ({
   decode: async () => ({ width: 2000, height: 1000, close() {} }),
-  drawEdited: (_source: unknown, _edits: unknown, size: { width: number; height: number }) =>
-    size,
+  drawEdited: (_source: unknown, _edits: unknown, size: { width: number; height: number }) => size,
   convert: async () => ({
     blob: new Blob(['png']),
     thumbnail: new Blob(['thumbnail']),
