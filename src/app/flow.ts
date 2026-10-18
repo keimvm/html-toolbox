@@ -106,7 +106,8 @@ export function createFlow(canvas: HTMLCanvasElement): Flow | null {
   }
 
   function resize() {
-    const dpr = Math.min(win.devicePixelRatio || 1, 2);
+    // 高解像度の画面でも等倍で描く。細く淡い線なので見た目はほぼ変わらず、塗る画素数が減る。
+    const dpr = Math.min(win.devicePixelRatio || 1, 1);
     width = win.innerWidth;
     height = win.innerHeight;
     canvas.width = Math.round(width * dpr);

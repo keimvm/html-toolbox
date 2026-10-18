@@ -327,6 +327,10 @@
     translate var(--tb-transition),
     background-color var(--tb-transition);
 }
+/* 背景が流れている間は、毎フレームのぼかし直しで重くなるため、カードの後ろをぼかさない。 */
+.home-flow[data-running] ~ .home-main .home-card {
+  backdrop-filter: none;
+}
 .home-card:hover {
   border-color: color-mix(in srgb, var(--tb-gold) 55%, var(--tb-line));
   box-shadow: var(--tb-elevation);
