@@ -14,10 +14,10 @@
 | -------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | 画面・処理           | TypeScript ＋ Preact ＋ CSS                                           | toolbox の1つのアプリの一部として、ほかのツールと同じ部品で作る。キャンバス・変換後の画像・囲んだ範囲は直接書き換える                       |
 | ビルド               | Vite ＋ vite-plugin-singlefile（toolbox 全体）                        | toolbox の1つの HTML にまとめる                                                                                                           |
-| PDF の読み書き・描画 | `@embedpdf/engines`・`@embedpdf/pdfium`・`@embedpdf/models`（2.15.0） | PDF編集と同じ版。PDF → 画像はエンジンの描画、画像 → PDF と PDF 内の画像の差し替えは PDFium の API を直接使う（[PDF の処理](#pdf-の処理)） |
+| PDF の読み書き・描画 | `@embedpdf/engines`・`@embedpdf/pdfium`・`@embedpdf/models`（2.15.0） | PDF編集と同じ版。PDF → 画像はエンジンの描画、画像 → PDF は PDFium の API を直接使う（[PDF の処理](#pdf-の処理)） |
 | 日本語フォント       | `@embedpdf/fonts-jp`（1.0.0、Noto Sans JP Regular）                   | フォントを含まない PDF を画像にしたとき、日本語が欠けないようにする。toolbox の配布物の末尾に gzip で1つだけ置き、PDF編集と共有する            |
 | 共通部品             | `src/ui/`・`src/lib/`・`src/app/`                                     | 共通ヘッダー、ドロップの受け付け、ダウンロード、確認・知らせ                                                                              |
-| 自動テスト           | Vitest                                                                | 容量合わせ・座標の計算・PDF の作成と縮小の検査。Canvas の書き出しは Node.js で模擬できないため、付加情報の削除は実機で確かめる            |
+| 自動テスト           | Vitest                                                                | 容量合わせ・座標の計算・PDF の作成の検査。Canvas の書き出しは Node.js で模擬できないため、付加情報の削除は実機で確かめる            |
 
 以下はブラウザーの標準機能でまかない、ライブラリを追加しない。
 
@@ -42,12 +42,9 @@ PDF の処理は toolbox の共有の PDF エンジン（`src/engine/pdf/`）で
 
 - **PDF → 画像**：PDF編集と同じく、エンジンの公開 API（`openDocumentBuffer`・`renderPageRaw`）でページを 200 dpi 相当で描画し、Worker の `OffscreenCanvas` で PNG にして一覧に加える。フォントを含まない日本語は、エンジンのフォントの代替（`fontFallback`）で Noto Sans JP を使う。
 - **画像 → PDF**：PDFium の `FPDF_CreateNewDocument`・`FPDFPage_New`・`FPDFPageObj_NewImageObj`・`FPDFImageObj_SetMatrix`・`FPDFPage_InsertObject`・`FPDFPage_GenerateContent` と、EmbedPDF が PDFium に加えた `EPDFImageObj_SetJpeg`（JPEG をそのまま DCTDecode で入れる）・`EPDFImageObj_SetPng`（PNG を展開して Flate で入れる、透過は SMask）を使い、`PDFiumExt_SaveAsCopy` で保存する。ページの大きさは画像に合わせる（1 px = 0.75 pt、一辺 14,400 pt まで）。
-- **重い PDF を小さくする**：各ページの直下の画像オブジェクトを列挙し、条件に合う画像だけを `FPDFImageObj_GetBitmap` で読み、Worker の `OffscreenCanvas` で縮めて JPEG にし、`EPDFImageObj_SetJpeg` で差し替えてから `FPDFPage_GenerateContent` で保存する。文字・図形のオブジェクトには触れない。
-  - 差し替えない画像：回転・傾け・反転して置かれたもの、1画素 8 bit 未満（白黒2値のスキャンなど）、透過・色抜きのあるもの（`FPDFImageObj_GetRenderedBitmap` の結果にアルファ値 255 未満がある）、JPEG にしても元のデータの9割以上の大きさになるもの、4,000 万画素を超えるもの、グループ（Form XObject）の中のもの。
-  - 複数ページで共有する画像：PDFium は文書内で同じ画像を共有するため、差し替えた後のページでは同じ画像オブジェクトの中身が新しい JPEG になっている。中身が差し替えた JPEG と一致する画像は、`FPDFPageObj_Transform`（単位行列）で変更済みにしてからページの内容を作り直し、元の画像への参照を新しい画像に向ける。こうしないと元の画像が残り、容量が減らない（[検証記録](verification.md#実装前の-pdfium-の確認2026-10-03)）。
-  - ページの内容を作り直すため、PDF の作りによってはしおり・フォーム・注釈などの残り方が元の PDF と変わる場合がある。
-- 当初は JPEG の埋め込みに `FPDFImageObj_LoadJpegFileInline` を使う予定だったが、読み込み用のコールバック構造（`FPDF_FILEACCESS`）を WASM 側に作る必要がある。同じ PDFium の型定義にある `EPDFImageObj_SetJpeg` はバイト列を直接受け取り、EmbedPDF のエンジン自体も画像注釈に使っているため、こちらを採用した。PNG も同様に `FPDFImageObj_SetBitmap` ではなく `EPDFImageObj_SetPng` を使い、展開済みの画素ではなく PNG の予測付き Flate で入れる。
-- EmbedPDF の高水準 API には、文書の作成（`createDocument`）はあるが、画像の追加は注釈向けの非公開関数だけで、画像の差し替えはない。そのため PDF編集と同様に、PDFium の公開 API を直接使う。
+- **重い PDF を小さくする**：2026-10-18 に PDF編集へ移した。処理（共有の PDF エンジンの `shrink`）は変えていない。差し替える画像の条件と確かめた範囲は [PDF編集の技術構成](../../pdf-edit/docs/software-stack.md#pdf-を小さくする画像変換から移す2026-10-18) に移した。
+- 当初は JPEG の埋め込み（画像 → PDF と、PDF を小さくするときの差し替え）に `FPDFImageObj_LoadJpegFileInline` を使う予定だったが、読み込み用のコールバック構造（`FPDF_FILEACCESS`）を WASM 側に作る必要がある。同じ PDFium の型定義にある `EPDFImageObj_SetJpeg` はバイト列を直接受け取り、EmbedPDF のエンジン自体も画像注釈に使っているため、こちらを採用した。PNG も同様に `FPDFImageObj_SetBitmap` ではなく `EPDFImageObj_SetPng` を使い、展開済みの画素ではなく PNG の予測付き Flate で入れる。
+- EmbedPDF の高水準 API には、文書の作成（`createDocument`）はあるが、画像の追加は注釈向けの非公開関数だけで、画像の差し替えはない（PDF を小さくする処理も同じ理由で PDFium の API を使う）。そのため PDF編集と同様に、PDFium の公開 API を直接使う。
 - 配布 HTML の CSP は `connect-src 'none'` などで外部通信を禁止する（PDF編集と同じ）。
 
 ## 画像の変換
@@ -79,9 +76,13 @@ PDF の処理は toolbox の共有の PDF エンジン（`src/engine/pdf/`）で
 - 個別の画面（旧 `detail.ts`）は Preact の部品にし、座標の計算・スクロールの同期・切り抜きの操作は旧コードの処理を移した。
 - 足したもの：画面での画像の貼り付け、ホームからの「まとめて1つのPDFにする」（`combine`）・「PDFを小さくする」（`shrink`）、まとめた PDF を「PDF編集で開く」。PDF編集からは今のページ構成で書き出した PDF を受け取る（`add`・`shrink`）。
 
+## PDF を小さくする機能を PDF編集へ移す（2026-10-18）
+
+- 「PDFを小さくする」（ダイアログ・ホームからの `shrink`・PDF編集からの受け渡し）を PDF編集へ移した。重い PDF を PDF のまま扱う作業は PDF の作業としてまとめ、画像変換は画像と、画像と PDF の行き来に絞る。PDF編集からは、ページを画像にするための PDF（`add`）だけを受け取る。
+- 共有の PDF エンジンの `shrink` と、そのテスト（`src/engine/pdf/runtime.test.ts`）は変えていない。
+
 ## 未決事項・未検証事項
 
-- 実際の写真・スキャンの多い PDF で、画像を差し替えて保存したとき、容量が減り、文字の選択・検索が保たれるか（合成 PDF では確認済み）。特殊な色空間・ICC プロファイル付きの画像の色、しおり・フォーム・注釈の残り方。
 - Chrome・Edge の Canvas が JPEG・PNG を書き出せ、AVIF・HEIC に対応しないこと（既知の仕様。この環境での実機確認はまだ）。
 - `file://` で「すべて保存」したとき、複数ダウンロードの許可の確認が出て、許可後に全件保存されるか（未検証）。
 - 十数枚の高解像度写真（例：1200 万画素 × 15 枚）を扱うときのメモリーと処理時間（未検証）。

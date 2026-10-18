@@ -9,6 +9,6 @@
 - 書き込みの太さ・大きさは、描いたときの画像の長い辺（`unit`）に対する割合で決める。保存する画像では縮めた後の画素に直接描き、線と文字をぼかさない。
 - 編集の取り消しは `history.ts` で、画像ごとに変える前の編集の写しを積む。編集を変える処理は `editor.tsx` の `change()`・`commit()` を通し、取り消しに積み忘れない。
 - 出力は JPEG・PNG だけ。WebP・AVIF の出力、HEIC の読み込み、zip での保存、作業状態の保存・復元は要件で扱わないと決めている。作業内容（書き込み・道具の色や大きさの選択を含む）を localStorage・IndexedDB などに入れない。
-- PDF の処理は toolbox の共有の PDF エンジン（`src/engine/pdf/`、PDF編集と同じ Worker）を使う。画像の埋め込みは `EPDFImageObj_SetJpeg`・`EPDFImageObj_SetPng`、PDF を小さくする処理はページ直下の画像だけを差し替える。理由と確かめた範囲は [技術構成](docs/software-stack.md#pdf-の処理) に書く。
+- PDF の処理は toolbox の共有の PDF エンジン（`src/engine/pdf/`、PDF編集と同じ Worker）を使う。画像の埋め込みは `EPDFImageObj_SetJpeg`・`EPDFImageObj_SetPng`。理由と確かめた範囲は [技術構成](docs/software-stack.md#pdf-の処理) に書く。PDF を小さくするのは PDF編集で行い、このツールに戻さない。
 - 共有テストの画像・PDF は `src/engine/pdf/samples.test-support.ts` の合成データを使う。個人の写真・業務の PDF をコミットしない。
 - WASM・Worker・フォントの埋め込みと `file://` での動作は、実機での確認を [検証記録](docs/verification.md) に分けて記録する。Canvas の描画・書き出し、クリップボード、ポインター操作は Node.js の自動テストで模擬できない。

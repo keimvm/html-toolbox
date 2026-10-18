@@ -1,6 +1,7 @@
 // PDF編集。ページの削除・並べ替え・回転・結合と、画像・文字の取り出し、ページの要素の削除を行う。
 // 元の PDF には手を加えず、ページの並び・回転だけを持つ（Editor）。保存すると新しい PDF をダウンロードする。
 // 再読み込みに備え、開いた PDF と編集の状態をブラウザーの中（IndexedDB）に残し、「閉じる」で消す。
+// 「PDFを小さくする」は、PDF の中の写真・スキャン画像だけを縮めた別の PDF を作る（編集の状態とは別に持つ）。
 import type { PdfDocumentObject } from '@embedpdf/models';
 import { computed, signal } from '@preact/signals';
 import type { JSX } from 'preact';
@@ -9,10 +10,10 @@ import { ToolFrame } from '../../app/frame';
 import type { Incoming, ToolDefinition } from '../../app/tool';
 import { openTool } from '../../app/workspace';
 import { pdfEngine } from '../../engine/pdf/client';
-import type { Inspection, PageElement, PageRef } from '../../engine/pdf/types';
+import type { Inspection, PageElement, PageRef, ShrinkOptions } from '../../engine/pdf/types';
 import { copyText } from '../../lib/clipboard';
 import { downloadBlob, safeFileName } from '../../lib/download';
-import { isPdf, pickFiles } from '../../lib/files';
+import { errorText, isPdf, pickFiles } from '../../lib/files';
 import { baseName, formatBytes, number } from '../../lib/format';
 import { hasMod, isEditable, modKey } from '../../lib/platform';
 import {
@@ -48,6 +49,12 @@ import './style.css';
 const MAX_FILE_SIZE = 150 * 1024 * 1024;
 /** ページ一覧の見本の長い辺（CSS px）。 */
 const THUMBNAIL_SIDE = 110;
+const SHRINK_PRESETS = {
+  high: { dpi: 200, quality: 0.85 },
+  standard: { dpi: 150, quality: 0.75 },
+  small: { dpi: 100, quality: 0.6 },
+} satisfies Record<string, ShrinkOptions>;
+type Preset = keyof typeof SHRINK_PRESETS;
 
 interface Source {
   doc: PdfDocumentObject;
@@ -56,6 +63,13 @@ interface Source {
 }
 type Kind = 'images' | 'text' | 'elements';
 type SaveFormat = 'PDF' | 'PNG' | 'JPEG';
+interface Shrink {
+  file: File | null;
+  preset: Preset;
+  running: boolean;
+  message: string;
+  result: { blob: Blob; saved: boolean } | null;
+}
 
 const KIND_LABELS: Record<PageElement['kind'], string> = {
   text: '文字',
@@ -98,6 +112,7 @@ function create() {
   /** 画像の欄で選んだ画像の要素番号。 */
   const imageIndex = signal<number | undefined>(undefined);
   const saving = signal<{ format: SaveFormat; name: string; error?: string } | null>(null);
+  const shrink = signal<Shrink | null>(null);
   /** 選んだページへプレビューを動かす求め。 */
   const scrollRequest = signal(0);
   let restoring = true;
@@ -125,12 +140,14 @@ function create() {
   const status = computed(() => {
     void revision.value;
     const count = editor.pages.length;
+    // 小さくした PDF は復元用データに入れないため、保存するまでは閉じると失う。
+    const shrunk = Boolean(shrink.value?.result && !shrink.value.result.saved);
     return {
       title: count ? filename.value : undefined,
       summary: count ? `${filename.value}・${count}ページ` : undefined,
-      unsaved: count > 0 && editor.changed,
+      unsaved: (count > 0 && editor.changed) || shrunk,
       // 復元用の保存が済むまでは、閉じると失う。
-      guard: busy.value || (count > 0 && recovery.value !== 'saved'),
+      guard: busy.value || (count > 0 && recovery.value !== 'saved') || shrunk,
     };
   });
 
@@ -472,13 +489,106 @@ function create() {
     });
   }
 
-  /** 今のページの並びで書き出した PDF を、画像変換へ渡す。 */
-  async function handOff(intent: 'add' | 'shrink') {
+  /** 今のページの並びで書き出した PDF。 */
+  async function exportFile() {
+    const content = await pdfEngine().call('export', { pages: editor.pages.map(refOf) });
+    return new File([content], `${base()}.pdf`, { type: 'application/pdf' });
+  }
+
+  /** 今のページの並びで書き出した PDF を、画像変換へ渡してページを画像にする。 */
+  async function handOff() {
     await task(async () => {
-      const content = await pdfEngine().call('export', { pages: editor.pages.map(refOf) });
-      const file = new File([content], `${base()}.pdf`, { type: 'application/pdf' });
-      openTool('image-converter', { intent, input: { kind: 'files', files: [file] } });
+      openTool('image-converter', {
+        intent: 'add',
+        input: { kind: 'files', files: [await exportFile()] },
+      });
     });
+  }
+
+  // ── PDF を小さくする ──
+
+  function openShrink(file?: File) {
+    // 実行中の結果は今の状態に書き足すため、途中で別のファイルに替えない。
+    if (shrink.value?.running) {
+      toast('PDFを小さくしている途中です。終わってから選び直してください。', { tone: 'error' });
+      return;
+    }
+    shrink.value = {
+      file: null,
+      preset: shrink.value?.preset ?? 'standard',
+      running: false,
+      message: '',
+      result: null,
+    };
+    if (file) setShrinkFile(file);
+  }
+
+  /** 開いている PDF を、今のページの並び・回転で小さくする。 */
+  async function shrinkCurrent() {
+    await task(async () => openShrink(await exportFile()));
+  }
+
+  function setShrinkFile(file: File | undefined) {
+    const state = shrink.value;
+    if (!file || !state || state.running) return;
+    if (!isPdf(file)) {
+      shrink.value = { ...state, message: 'PDF を選んでください。' };
+      return;
+    }
+    shrink.value = { ...state, file, result: null, message: '' };
+  }
+
+  async function runShrink() {
+    const state = shrink.value;
+    const file = state?.file;
+    if (!state || !file || state.running) return;
+    shrink.value = {
+      ...state,
+      running: true,
+      result: null,
+      message: '小さくしています…（ページや画像が多いと時間がかかります）',
+    };
+    const finish = (next: Partial<Shrink>) => {
+      if (shrink.value) shrink.value = { ...shrink.value, running: false, ...next };
+    };
+    try {
+      const content = await file.arrayBuffer();
+      const result = await pdfEngine().call(
+        'shrink',
+        { content, options: SHRINK_PRESETS[state.preset] },
+        [content],
+      );
+      const size = result.content.byteLength;
+      const sizes = `${formatBytes(file.size)} → ${formatBytes(size)}`;
+      if (!result.replaced)
+        finish({
+          message: result.images
+            ? `縮められる画像がありませんでした（画像 ${result.images} 個）。透過のある画像や、すでに十分小さい画像は元のまま残します。`
+            : 'ページに画像がないため、小さくできません。',
+        });
+      else if (size >= file.size) finish({ message: `${sizes}。小さくなりませんでした。` });
+      else
+        finish({
+          result: { blob: new Blob([result.content], { type: 'application/pdf' }), saved: false },
+          message: `${sizes}（${Math.round((1 - size / file.size) * 100)}% 減）。画像 ${result.images} 個のうち ${result.replaced} 個を縮めました。文字は選択・検索できるまま残っています。`,
+        });
+    } catch (error) {
+      finish({ message: `小さくできませんでした。${errorText(error)}` });
+    }
+  }
+
+  async function closeShrink() {
+    const state = shrink.value;
+    if (!state || state.running) return;
+    if (
+      state.result &&
+      !state.result.saved &&
+      !(await confirmAction('保存せずに閉じますか？', '小さくした PDF はまだ保存していません。', {
+        ok: '閉じる',
+      }))
+    )
+      return;
+    shrink.value = null;
   }
 
   // ── キーボード ──
@@ -1293,6 +1403,115 @@ function create() {
     );
   }
 
+  function ShrinkDialog({ open }: { open: boolean }) {
+    const state = shrink.value;
+    const zone = useDropZone<HTMLDivElement>({
+      enabled: () => open && Boolean(shrink.value) && !shrink.value!.running,
+      label: () => 'ここにドロップして、小さくする PDF にする',
+      onDrop: (dropped) => {
+        if (dropped.files.length !== 1) {
+          if (shrink.value)
+            shrink.value = { ...shrink.value, message: 'PDF を1つだけドロップしてください。' };
+          return;
+        }
+        setShrinkFile(dropped.files[0]);
+      },
+    });
+    return (
+      <Dialog
+        open={open && Boolean(state)}
+        onClose={() => void closeShrink()}
+        title="PDFを小さくする"
+        class="pe-shrink"
+        busy={state?.running}
+        actions={
+          state && (
+            <>
+              <Button disabled={state.running} onClick={() => void closeShrink()}>
+                閉じる
+              </Button>
+              {state.result ? (
+                <Button
+                  variant="primary"
+                  icon="download"
+                  onClick={() => {
+                    if (!state.result || !state.file) return;
+                    downloadBlob(state.result.blob, `${baseName(state.file.name)}-縮小.pdf`);
+                    shrink.value = { ...state, result: { ...state.result, saved: true } };
+                  }}
+                >
+                  {state.result.saved ? 'もう一度保存' : '保存'}
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  icon="shrink"
+                  disabled={!state.file || state.running}
+                  onClick={() => void runShrink()}
+                >
+                  小さくする
+                </Button>
+              )}
+            </>
+          )
+        }
+      >
+        {state && (
+          <div class="pe-shrink-body" ref={zone}>
+            <p class="tb-dialog-text">
+              PDF の中の写真・スキャン画像だけを縮め、JPEG
+              にし直します。文字・図形はそのまま残すので、選択・検索できます。元の PDF
+              は変更しません。
+            </p>
+            <div class="pe-shrink-file">
+              <Icon name="pdf" />
+              <span class="pe-shrink-name">
+                {state.file
+                  ? `${state.file.name}（${formatBytes(state.file.size)}）`
+                  : 'PDF を選ぶか、ここにドロップします'}
+              </span>
+              <Button
+                size="small"
+                disabled={state.running}
+                onClick={async () => {
+                  const [file] = await pickFiles({
+                    accept: 'application/pdf,.pdf',
+                    multiple: false,
+                  });
+                  setShrinkFile(file);
+                }}
+              >
+                {state.file ? '選び直す' : 'PDFを選ぶ'}
+              </Button>
+            </div>
+            <div class="tb-field">
+              <span class="tb-label">仕上がり</span>
+              <Segmented<Preset>
+                label="仕上がり"
+                value={state.preset}
+                disabled={state.running}
+                onChange={(preset) =>
+                  (shrink.value = { ...state, preset, result: null, message: '' })
+                }
+                options={[
+                  { value: 'high', label: 'きれいめ', title: '200 dpi・画質 85' },
+                  { value: 'standard', label: '標準', title: '150 dpi・画質 75' },
+                  { value: 'small', label: '小さめ', title: '100 dpi・画質 60' },
+                ]}
+              />
+            </div>
+            {state.running && <div class="tb-progress" />}
+            {state.message && (
+              <p class="pe-shrink-result" role="status" data-done={state.result ? '' : undefined}>
+                {state.message}
+              </p>
+            )}
+          </div>
+        )}
+      </Dialog>
+    );
+  }
+
   function Header() {
     void revision.value;
     const count = editor.pages.length;
@@ -1357,22 +1576,28 @@ function create() {
         icon="pdf"
         title="PDFのページを並べ替える・回す・消す"
         actions={
-          <Button
-            variant="primary"
-            size="large"
-            icon="folder-open"
-            disabled={busy.value}
-            onClick={() => void chooseFiles()}
-          >
-            PDFを選ぶ
-          </Button>
+          <>
+            <Button
+              variant="primary"
+              size="large"
+              icon="folder-open"
+              disabled={busy.value}
+              onClick={() => void chooseFiles()}
+            >
+              PDFを選ぶ
+            </Button>
+            <Button size="large" icon="shrink" onClick={() => openShrink()}>
+              PDFを小さくする
+            </Button>
+          </>
         }
         note="ドロップでも開けます。元の PDF は変更しません。"
       >
         <p>
           ページの削除・並べ替え・回転、ほかの PDF
-          の結合ができます。ページの画像や文字を取り出したり、ページの中の要素（画像・図形・文字）を取り除いたりもできます。保存すると、新しい
-          PDF をダウンロードします。
+          の結合ができます。ページの画像や文字を取り出したり、ページの中の要素（画像・図形・文字）を取り除いたりもできます。重い
+          PDF は、文字を残したまま中の画像だけを縮めて小さくできます。保存すると、新しい PDF
+          をダウンロードします。
         </p>
       </EmptyState>
     );
@@ -1394,11 +1619,11 @@ function create() {
                 保存
               </Button>
               <Menu label="ほかの操作" disabled={busy.value}>
-                <MenuItem icon="images" onClick={() => void handOff('add')}>
-                  画像変換でページを画像にする
+                <MenuItem icon="shrink" onClick={() => void shrinkCurrent()}>
+                  PDFを小さくする
                 </MenuItem>
-                <MenuItem icon="shrink" onClick={() => void handOff('shrink')}>
-                  画像変換で小さくする
+                <MenuItem icon="images" onClick={() => void handOff()}>
+                  画像変換でページを画像にする
                 </MenuItem>
                 <MenuSeparator />
                 <MenuItem icon="x" onClick={() => void closeDocument()}>
@@ -1413,6 +1638,7 @@ function create() {
           {body}
         </div>
         <SaveDialog open={visible} />
+        <ShrinkDialog open={visible} />
       </ToolFrame>
     );
   }
@@ -1421,7 +1647,13 @@ function create() {
     View,
     status,
     async receive(intent: string, input: Incoming) {
-      if (intent !== 'open' || input.kind !== 'files') return;
+      if (input.kind !== 'files') return;
+      if (intent === 'shrink') {
+        // 開いている PDF の編集とは別に、受け取った PDF だけを小さくする。
+        openShrink(input.files[0]);
+        return;
+      }
+      if (intent !== 'open') return;
       await restored;
       if (editor.pages.length) {
         const { value } = await ask(
@@ -1445,7 +1677,8 @@ function create() {
 export const pdfEdit: ToolDefinition = {
   id: 'pdf-edit',
   name: 'PDF編集',
-  description: 'PDFのページの削除・並べ替え・回転・結合と、画像・文字の取り出しができます。',
+  description:
+    'PDFのページの削除・並べ替え・回転・結合と、画像・文字の取り出しができます。重いPDFの縮小もできます。',
   icon,
   intents: [
     {
@@ -1456,6 +1689,15 @@ export const pdfEdit: ToolDefinition = {
       accepts: (input) =>
         input.kind === 'files' && input.files.length > 0 && input.files.every(isPdf),
       mayAccept: (hint) => hint.count > 0 && hint.types.every((type) => type === 'application/pdf'),
+    },
+    {
+      id: 'shrink',
+      label: 'PDFを小さくする',
+      detail: 'PDF編集：PDF の中の写真・スキャン画像を縮める。文字はそのまま',
+      icon: 'shrink',
+      accepts: (input) =>
+        input.kind === 'files' && input.files.length === 1 && isPdf(input.files[0]!),
+      mayAccept: (hint) => hint.count === 1 && hint.types[0] === 'application/pdf',
     },
   ],
   create,

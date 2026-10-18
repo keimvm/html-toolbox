@@ -405,6 +405,42 @@
   width: 100%;
 }
 
+/* ── PDF を小さくする ── */
+.tb-dialog.pe-shrink {
+  width: min(540px, calc(100% - 28px));
+}
+.pe-shrink-body {
+  display: grid;
+  gap: 14px;
+}
+.pe-shrink-file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 14px;
+  border: 1.5px dashed var(--tb-line-strong);
+  border-radius: var(--tb-radius);
+  color: var(--tb-muted);
+}
+.pe-shrink-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--tb-ink);
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+.pe-shrink-result {
+  padding: 10px 14px;
+  border-radius: var(--tb-radius);
+  background: var(--tb-subtle);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.pe-shrink-result[data-done] {
+  background: var(--tb-success-tint);
+}
+
 /* ── 狭い画面：一覧を上に横並びにし、パネルは下に重ねる。 ── */
 @media (max-width: 900px) {
   .pe-workbench,

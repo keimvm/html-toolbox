@@ -226,7 +226,7 @@ describe('PDF編集で使う操作', () => {
   });
 });
 
-describe('画像変換で使う操作', () => {
+describe('画像からの PDF 作成と PDF の縮小', () => {
   const tinyEncoder: JpegEncoder = async () => new Uint8Array(TINY_JPEG);
 
   test('JPEG と PNG を1枚1ページにし、ページを画像と同じ縦横比（1 px = 0.75 pt）にする', async () => {
