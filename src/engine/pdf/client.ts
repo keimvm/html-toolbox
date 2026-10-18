@@ -12,11 +12,23 @@ export class PdfEngine {
     { resolve: (result: never) => void; reject: (error: Error) => void }
   >();
   private failed = false;
-
-  constructor() {
+  /**
+   * PDFium と日本語フォントは HTML の末尾にあり、本体の script はその前で動く。
+   * 読み終える前に取り出すと途中までのデータになるため、文書を読み終えてから Worker に渡す。
+   * 処理の依頼はこの後に送り、順番を保つ。
+   */
+  private started = (document.readyState === 'loading'
+    ? new Promise((resolve) =>
+        document.addEventListener('DOMContentLoaded', resolve, { once: true }),
+      )
+    : Promise.resolve()
+  ).then(() =>
     this.worker.postMessage({
       init: { pdfium: payloadSource('pdfium'), font: payloadSource('font-jp') },
-    });
+    }),
+  );
+
+  constructor() {
     this.worker.onmessage = (event: MessageEvent<Response>) => {
       const pending = this.pending.get(event.data.id);
       if (!pending) return;
@@ -42,7 +54,12 @@ export class PdfEngine {
     return new Promise((resolve, reject) => {
       const id = ++this.sequence;
       this.pending.set(id, { resolve, reject });
-      this.worker.postMessage({ id, method, args }, transfer);
+      this.started
+        .then(() => this.worker.postMessage({ id, method, args }, transfer))
+        .catch((error: unknown) => {
+          this.pending.delete(id);
+          reject(error instanceof Error ? error : new Error(String(error)));
+        });
     });
   }
 }
