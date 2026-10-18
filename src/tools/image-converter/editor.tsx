@@ -1,7 +1,7 @@
 // 1枚の画像の編集と仕上がり。中央に画像を大きく出し、回転・切り抜きと書き込み（矢印・枠・文字・番号・蛍光ペン・黒塗り）を
-// 画像の上で直接行う。「見比べる」では元の画像と保存する画像を同じ場所に重ね、境目を動かして比べる（拡大してもスクロールは1つ）。
+// 画像の上で直接行う。「見比べる」では左に元の画像、右に保存する画像を並べ、拡大したときは同じ場所を見せる。
 // 右のパネル（ItemPanel）に、この画像の容量・形式とコピー・保存、この画像だけの設定を置く。
-// キャンバス・見比べの境目は直接書き換え、道具・つまみ・文言は Preact で描く。
+// キャンバスと見比べの画像の大きさ・スクロールは直接書き換え、道具・つまみ・文言は Preact で描く。
 import { signal } from '@preact/signals';
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
@@ -13,16 +13,19 @@ import { Icon, type IconName } from '../../ui/icons';
 import { decode, drawEdited, renderPng } from './convert';
 import {
   between,
+  editedPoint,
   editedSize,
   fitLongSide,
   fitPixels,
   formatRatio,
   moveRect,
+  noEdits,
   pixelRect,
   resizeRect,
   rotatedSize,
   rotateRect,
   snapAngle,
+  sourcePoint,
   squarePoint,
   turn,
   unrotateRect,
@@ -146,7 +149,7 @@ const TOOLS: { id: Tool; label: string; icon: IconName; key: string; hint: strin
   },
 ];
 const COMPARE_HINT =
-  '左が元の画像、右が保存する画像です。境目を左右にドラッグして見比べます。100%・200% ではドラッグで表示する場所を動かせます。';
+  '左が元の画像、右が保存する画像です。100%・200% ではドラッグで表示する場所を動かせ、左右は同じ場所を見せます。';
 
 /** 中が塗られた書き込み。上から別の書き込みを描けるよう、「選ぶ」か同じ道具のときだけつかめる。 */
 const FILLED = new Set<MarkKind>(['highlight', 'redact']);
@@ -189,6 +192,15 @@ function show(canvas: HTMLCanvasElement, image: OffscreenCanvas) {
   canvas.width = image.width;
   canvas.height = image.height;
   canvas.getContext('bitmaprenderer')?.transferFromImageBitmap(image.transferToImageBitmap());
+}
+
+/** 欄の中央が、画像のどこに当たるか（画像の幅・高さに対する割合）。 */
+function centerOf(scroller: HTMLElement, image: DOMRect): [number, number] {
+  const box = scroller.getBoundingClientRect();
+  return [
+    (box.left + scroller.clientLeft + scroller.clientWidth / 2 - image.left) / image.width,
+    (box.top + scroller.clientTop + scroller.clientHeight / 2 - image.top) / image.height,
+  ];
 }
 
 const boxStyle = ({ x, y, width, height }: Rect): JSX.CSSProperties => ({
@@ -243,13 +255,13 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
   let cropDraft: Rect | null = null;
   let sequence = 0;
   let qualityTimer = 0;
-  /** 見比べの境目の位置（左端 0〜右端 1）。 */
-  let split = 0.5;
-  let sliding = false;
-  let panning: Point | null = null;
+  /** 見比べで、ドラッグで表示する場所を動かしている欄と、直前のポインターの位置。 */
+  let panning: { scroller: HTMLDivElement; at: Point } | null = null;
   let centerNext = false;
   let baseKey = '';
-  let beforeKey = '';
+  let beforeDrawn = false;
+  /** 見比べで、自分で動かした欄のスクロール位置。この位置への scroll では、もう片方を動かさない。 */
+  const moved = new WeakMap<HTMLElement, [number, number]>();
   /** 見比べで表示している保存する画像。変わったときだけ URL を作り直す。 */
   let shown: { blob: Blob; url: string } | null = null;
   const el: {
@@ -258,12 +270,10 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
     base?: HTMLCanvasElement | null;
     tint?: HTMLCanvasElement | null;
     ink?: HTMLCanvasElement | null;
-    compare?: HTMLDivElement | null;
-    compareScroll?: HTMLDivElement | null;
-    compareInner?: HTMLDivElement | null;
+    beforeScroll?: HTMLDivElement | null;
+    afterScroll?: HTMLDivElement | null;
     before?: HTMLCanvasElement | null;
     after?: HTMLImageElement | null;
-    divider?: HTMLDivElement | null;
   } = {};
 
   const sourceSize = (): Size | null =>
@@ -419,16 +429,17 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
   }
 
   /**
-   * 見比べの画面。保存する画像の上に、元の画像（同じ編集で、画素を減らさずに描いたもの）を重ね、境目より右を切り取る。
-   * 100%・200% は保存する画像の画素が基準。元の画像は細かいまま重ねるため、縮めて失った細部も分かる。
+   * 見比べの画面。左に元の画像（切り抜き・回転・書き込みの前のまま）、右に保存する画像を並べる。
+   * 100%・200% は保存する画像の画素が基準。元の画像は保存する画像と同じ割合で縮めた大きさで出し、同じ部分が左右で同じ大きさに見えるようにする。
+   * 全体では、それぞれを欄に収める。
    */
   function layoutCompare() {
     const item = current.value;
     const source = sourceSize();
     const size = compareSize();
-    const { compareScroll: scroller, compareInner: inner, before, after } = el;
+    const { beforeScroll, afterScroll, before, after } = el;
     if (mode.value !== 'compare' || !item || !bitmap || !source || !size) return;
-    if (!scroller || !inner || !before || !after) return;
+    if (!beforeScroll || !afterScroll || !before || !after) return;
     const blob = item.result?.blob;
     if (blob && blob !== shown?.blob) {
       const previous = shown;
@@ -436,45 +447,56 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
       after.src = shown.url;
       if (previous) URL.revokeObjectURL(previous.url);
     }
-    const pixels = fitPixels(
-      fitLongSide(editedSize(source, item.edits), Math.max(size.width, size.height) * 4),
-      MAX_VIEW_PIXELS,
-    );
-    const background = item.result?.format === 'jpeg' ? '#fff' : null;
-    const key = JSON.stringify([item.id, item.edits, pixels, background]);
-    if (key !== beforeKey) {
-      beforeKey = key;
-      show(before, drawEdited(bitmap, item.edits, pixels, background));
+    if (!beforeDrawn) {
+      beforeDrawn = true;
+      show(before, drawEdited(bitmap, noEdits(), fitPixels(source, MAX_VIEW_PIXELS), null));
     }
-    const fit = Math.min(
-      1,
-      (scroller.clientWidth - STAGE_PADDING * 2) / size.width,
-      (scroller.clientHeight - STAGE_PADDING * 2) / size.height,
-    );
-    const by = zoom.value === 'fit' ? fit : Number(zoom.value);
-    inner.style.width = `${Math.max(1, size.width * by)}px`;
-    inner.style.height = `${Math.max(1, size.height * by)}px`;
+    const ratio = size.width / editedSize(source, item.edits).width;
+    const original = { width: source.width * ratio, height: source.height * ratio };
+    for (const [view, scroller, shownSize] of [
+      [before, beforeScroll, original],
+      [after, afterScroll, size],
+    ] as const) {
+      const fit = Math.min(
+        1,
+        (scroller.clientWidth - STAGE_PADDING * 2) / shownSize.width,
+        (scroller.clientHeight - STAGE_PADDING * 2) / shownSize.height,
+      );
+      const by = zoom.value === 'fit' ? fit : Number(zoom.value);
+      view.style.width = `${Math.max(1, shownSize.width * by)}px`;
+      view.style.height = `${Math.max(1, shownSize.height * by)}px`;
+    }
     if (centerNext) {
       centerNext = false;
-      scroller.scrollLeft = (scroller.scrollWidth - scroller.clientWidth) / 2;
-      scroller.scrollTop = (scroller.scrollHeight - scroller.clientHeight) / 2;
+      afterScroll.scrollLeft = (afterScroll.scrollWidth - afterScroll.clientWidth) / 2;
+      afterScroll.scrollTop = (afterScroll.scrollHeight - afterScroll.clientHeight) / 2;
     }
-    clipCompare();
+    follow(afterScroll, beforeScroll);
   }
 
-  /** 境目より右の元の画像を切り取り、保存する画像を見せる。境目は画面に対して止まり、スクロールしても動かない。 */
-  function clipCompare() {
-    const { compare, compareInner: inner, before, divider } = el;
-    if (!compare || !inner || !before || !divider) return;
-    const box = compare.getBoundingClientRect();
-    const image = inner.getBoundingClientRect();
-    const shownWidth = Math.min(
-      image.width,
-      Math.max(0, box.left + split * box.width - image.left),
-    );
-    before.style.clipPath = `inset(0 ${image.width - shownWidth}px 0 0)`;
-    divider.style.left = `${split * 100}%`;
-    divider.setAttribute('aria-valuenow', String(Math.round(split * 100)));
+  /** 見比べで、欄の中央に見えている点を、もう片方の欄でも中央に表示する。切り抜き・回転の分は座標を変換して合わせる。 */
+  function follow(from: HTMLElement | null | undefined, to: HTMLElement | null | undefined) {
+    const item = current.value;
+    const source = sourceSize();
+    const { before, after } = el;
+    if (!item || !source || !from || !to || !before || !after) return;
+    const viewOf = (scroller: HTMLElement) => (scroller === el.beforeScroll ? before : after);
+    const fromImage = viewOf(from).getBoundingClientRect();
+    const toImage = viewOf(to).getBoundingClientRect();
+    if (!fromImage.width || !fromImage.height || !toImage.width || !toImage.height) return;
+    const edited = editedSize(source, item.edits);
+    const fromBefore = from === el.beforeScroll;
+    const [fromSize, toSize] = fromBefore ? [source, edited] : [edited, source];
+    const [fx, fy] = centerOf(from, fromImage);
+    const point: Point = [fx * fromSize.width, fy * fromSize.height];
+    const [x, y] = fromBefore
+      ? editedPoint(point, source, item.edits)
+      : sourcePoint(point, source, item.edits);
+    const [cx, cy] = centerOf(to, toImage);
+    const previous = [to.scrollLeft, to.scrollTop];
+    to.scrollBy((x / toSize.width - cx) * toImage.width, (y / toSize.height - cy) * toImage.height);
+    if (previous[0] !== to.scrollLeft || previous[1] !== to.scrollTop)
+      moved.set(to, [to.scrollLeft, to.scrollTop]);
   }
 
   function refresh() {
@@ -947,18 +969,20 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
     if (hit?.kind === 'text') startEdit(hit);
   }
 
-  // 見比べ：境目のドラッグと、拡大したときの表示の移動。
+  // 見比べ：拡大したときの表示の移動。動かした欄に、もう片方の欄を合わせる。
 
-  function slideTo(clientX: number) {
-    const box = el.compare?.getBoundingClientRect();
-    if (!box?.width) return;
-    split = Math.min(1, Math.max(0, (clientX - box.left) / box.width));
-    clipCompare();
+  function onCompareScroll(event: Event) {
+    const from = event.currentTarget as HTMLDivElement;
+    const own = moved.get(from);
+    moved.delete(from);
+    if (own?.[0] === from.scrollLeft && own[1] === from.scrollTop) return;
+    follow(from, from === el.beforeScroll ? el.afterScroll : el.beforeScroll);
   }
 
   function onComparePointerDown(event: PointerEvent) {
-    const { compare, compareScroll: scroller } = el;
-    if (event.button !== 0 || !compare || !scroller) return;
+    const scroller = event.currentTarget as HTMLDivElement;
+    // 指では、標準のスクロールに任せる。
+    if (event.button !== 0 || event.pointerType === 'touch') return;
     // スクロールバーの上では、標準のスクロールに任せる。
     const area = scroller.getBoundingClientRect();
     if (
@@ -966,30 +990,23 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
       event.clientY - area.top > scroller.clientHeight
     )
       return;
+    if (
+      scroller.scrollWidth <= scroller.clientWidth &&
+      scroller.scrollHeight <= scroller.clientHeight
+    )
+      return;
     event.preventDefault();
-    compare.setPointerCapture(event.pointerId);
-    const box = compare.getBoundingClientRect();
-    const near =
-      Math.abs(event.clientX - (box.left + split * box.width)) <= 16 ||
-      Boolean((event.target as Element).closest('.ic-divider'));
-    const scrollable =
-      scroller.scrollWidth > scroller.clientWidth || scroller.scrollHeight > scroller.clientHeight;
-    if (near || !scrollable) {
-      sliding = true;
-      slideTo(event.clientX);
-    } else panning = [event.clientX, event.clientY];
+    scroller.setPointerCapture(event.pointerId);
+    panning = { scroller, at: [event.clientX, event.clientY] };
   }
 
   function onComparePointerMove(event: PointerEvent) {
-    if (sliding) slideTo(event.clientX);
-    else if (panning) {
-      el.compareScroll?.scrollBy(panning[0] - event.clientX, panning[1] - event.clientY);
-      panning = [event.clientX, event.clientY];
-    }
+    if (!panning) return;
+    panning.scroller.scrollBy(panning.at[0] - event.clientX, panning.at[1] - event.clientY);
+    panning.at = [event.clientX, event.clientY];
   }
 
   function onComparePointerUp() {
-    sliding = false;
     panning = null;
   }
 
@@ -1081,7 +1098,7 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
     bitmap = null;
     failed = false;
     baseKey = '';
-    beforeKey = '';
+    beforeDrawn = false;
     clearAfter();
     for (const canvas of [el.base, el.tint, el.ink, el.before])
       if (canvas) canvas.width = canvas.height = 0;
@@ -1476,85 +1493,60 @@ export function createEditor(store: Items, { onSave }: { onSave: (item: Item) =>
           <div
             class="ic-compare"
             hidden={editing || failed}
-            ref={(element) => {
-              el.compare = element;
-            }}
-            onPointerDown={onComparePointerDown}
-            onPointerMove={onComparePointerMove}
-            onPointerUp={onComparePointerUp}
-            onPointerCancel={onComparePointerUp}
+            data-zoomed={zoom.value === 'fit' ? undefined : ''}
           >
-            <div
-              class="ic-compare-scroll tb-scroll"
-              ref={(element) => {
-                el.compareScroll = element;
-              }}
-              onScroll={clipCompare}
-            >
+            <figure class="ic-pane">
+              <figcaption>元の画像</figcaption>
               <div
-                class="ic-compare-inner"
-                data-pending={pending ? '' : undefined}
+                class="ic-compare-scroll tb-scroll"
                 ref={(element) => {
-                  el.compareInner = element;
+                  el.beforeScroll = element;
                 }}
+                onScroll={onCompareScroll}
+                onPointerDown={onComparePointerDown}
+                onPointerMove={onComparePointerMove}
+                onPointerUp={onComparePointerUp}
+                onPointerCancel={onComparePointerUp}
+              >
+                <canvas
+                  class="ic-compare-view"
+                  ref={(element) => {
+                    el.before = element;
+                  }}
+                />
+              </div>
+            </figure>
+            <figure class="ic-pane" data-pending={pending ? '' : undefined}>
+              <figcaption>
+                {pending || !item?.result ? (
+                  <>
+                    <span class="tb-spinner" /> 保存する画像（計算しています…）
+                  </>
+                ) : (
+                  `保存する画像・${formatBytes(item.result.blob.size)}`
+                )}
+              </figcaption>
+              <div
+                class="ic-compare-scroll tb-scroll"
+                ref={(element) => {
+                  el.afterScroll = element;
+                }}
+                onScroll={onCompareScroll}
+                onPointerDown={onComparePointerDown}
+                onPointerMove={onComparePointerMove}
+                onPointerUp={onComparePointerUp}
+                onPointerCancel={onComparePointerUp}
               >
                 <img
-                  class="ic-compare-after"
+                  class="ic-compare-view"
                   alt="保存する画像"
                   draggable={false}
                   ref={(element) => {
                     el.after = element;
                   }}
                 />
-                <canvas
-                  class="ic-compare-before"
-                  ref={(element) => {
-                    el.before = element;
-                  }}
-                />
               </div>
-            </div>
-            <span class="ic-compare-label" data-side="before">
-              元の画像
-            </span>
-            <span class="ic-compare-label" data-side="after">
-              {pending || !item?.result ? (
-                <>
-                  <span class="tb-spinner" /> 保存する画像（計算しています…）
-                </>
-              ) : (
-                `保存する画像・${formatBytes(item.result.blob.size)}`
-              )}
-            </span>
-            <div
-              class="ic-divider"
-              role="slider"
-              tabindex={0}
-              aria-label="見比べる境目"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              ref={(element) => {
-                el.divider = element;
-              }}
-              onKeyDown={(event) => {
-                const steps: Record<string, number> = {
-                  ArrowLeft: -0.02,
-                  ArrowRight: 0.02,
-                  Home: -1,
-                  End: 1,
-                };
-                const step = steps[event.key];
-                if (step === undefined) return;
-                event.preventDefault();
-                event.stopPropagation();
-                split = Math.min(1, Math.max(0, split + step * (event.shiftKey ? 5 : 1)));
-                clipCompare();
-              }}
-            >
-              <span class="ic-divider-knob">
-                <Icon name="compare" />
-              </span>
-            </div>
+            </figure>
           </div>
         </div>
       </section>

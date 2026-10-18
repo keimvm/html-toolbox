@@ -595,16 +595,36 @@
     -0.05em 0.05em 0 var(--ic-halo);
 }
 
-/* ── 見比べ：保存する画像の上に元の画像を重ね、境目より右を切り取る。 ── */
+/* ── 見比べ：左に元の画像、右に保存する画像を並べる。 ── */
 .ic-compare {
-  position: relative;
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   min-width: 0;
   min-height: 0;
-  overflow: hidden;
-  cursor: ew-resize;
-  touch-action: none;
+  padding: 12px;
   user-select: none;
+}
+.ic-pane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius);
+}
+.ic-pane figcaption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--tb-line);
+  color: var(--tb-muted);
+  background: var(--tb-surface);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 .ic-compare-scroll {
   display: flex;
@@ -612,73 +632,29 @@
   min-height: 0;
   overflow: auto;
 }
+.ic-compare[data-zoomed] .ic-compare-scroll {
+  cursor: grab;
+}
+.ic-compare[data-zoomed] .ic-compare-scroll:active {
+  cursor: grabbing;
+}
 /* はみ出したときも左上から見られるよう、中央寄せは margin で行う。 */
-.ic-compare-inner {
-  position: relative;
+.ic-compare-view {
   flex: none;
+  display: block;
+  max-width: none;
   margin: auto;
   background: var(--ic-checker);
   box-shadow: var(--tb-elevation);
 }
-.ic-compare-after,
-.ic-compare-before {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-}
-.ic-compare-inner[data-pending] .ic-compare-after {
+.ic-pane[data-pending] .ic-compare-view {
   opacity: 0.45;
 }
-.ic-compare-label {
-  position: absolute;
-  top: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 0.62);
-  color: #fff;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-  backdrop-filter: blur(6px);
-}
-.ic-compare-label[data-side='before'] {
-  left: 12px;
-}
-.ic-compare-label[data-side='after'] {
-  right: 12px;
-}
-.ic-divider {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  margin-left: -1px;
-  background: #fff;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25);
-  cursor: ew-resize;
-}
-.ic-divider:focus-visible {
-  outline: 2px solid var(--tb-focus);
-  outline-offset: 3px;
-}
-.ic-divider-knob {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--tb-raised);
-  color: var(--tb-ink);
-  box-shadow: var(--tb-elevation);
-  transform: translate(-50%, -50%);
+@media (max-width: 640px) {
+  .ic-compare {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ── 仕上がりのパネル ── */

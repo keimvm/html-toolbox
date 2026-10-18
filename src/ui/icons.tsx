@@ -65,8 +65,6 @@ const paths = {
   circle: '<ellipse cx="12" cy="12" rx="8.5" ry="7.5"/>',
   number: '<circle cx="12" cy="12" r="8.5"/><path d="M10.3 9.3 12.6 8v8.3"/>',
   highlighter: '<path d="m14.8 4.2 5 5-7.3 7.3H7.5v-5Z"/><path d="m7.5 16.5-3 3h4.5M3.5 21h17"/>',
-  compare:
-    '<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M12 2.5v19M8.5 10l-2 2 2 2m7-4 2 2-2 2"/>',
   redact:
     '<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><rect x="7" y="9.5" width="10" height="5" fill="currentColor" stroke="none"/>',
   'zoom-in': '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7.5v6m-3-3h6"/>',
