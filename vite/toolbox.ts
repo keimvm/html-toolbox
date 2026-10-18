@@ -226,8 +226,8 @@ export function dropPdfiumUrl(): Plugin {
     name: 'toolbox:drop-pdfium-url',
     enforce: 'pre',
     transform(code, id) {
-      if (!id.includes(`${sep}@embedpdf${sep}pdfium${sep}`) || !code.includes(pattern))
-        return undefined;
+      // Vite のモジュール ID は Windows でも `/` 区切り。
+      if (!id.includes('/@embedpdf/pdfium/') || !code.includes(pattern)) return undefined;
       return { code: code.replaceAll(pattern, "'pdfium.wasm'"), map: null };
     },
   };
