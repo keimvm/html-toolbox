@@ -359,6 +359,10 @@ body {
 :where(.tb-dialog[open]) {
   animation: tb-dialog-in 260ms var(--tb-ease-out);
 }
+/* 開いたときにダイアログそのものに移るフォーカスには、枠を出さない（中の操作には出す）。 */
+:where(.tb-dialog:focus-visible) {
+  outline: none;
+}
 :where(.tb-dialog)::backdrop {
   background: var(--tb-backdrop);
   backdrop-filter: blur(3px);
