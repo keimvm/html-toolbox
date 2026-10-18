@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
+import { rustWasm } from './vite/rust.ts';
 import { dropPdfiumUrl, toolbox, workerLicenseCollector } from './vite/toolbox.ts';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
@@ -9,7 +10,7 @@ const version = process.env.TOOLBOX_VERSION ?? 'dev';
 const plugins = toolbox({ root });
 
 export default defineConfig({
-  plugins: [viteSingleFile(), ...plugins],
+  plugins: [rustWasm({ root }), viteSingleFile(), ...plugins],
   worker: {
     format: 'iife',
     plugins: () => [dropPdfiumUrl(), workerLicenseCollector(plugins)],

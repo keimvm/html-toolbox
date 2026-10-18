@@ -4,6 +4,7 @@ build/
 out/
 output/
 coverage/
+target/
 local-samples/
 .DS_Store
 .codegraph

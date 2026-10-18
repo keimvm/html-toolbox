@@ -1,8 +1,8 @@
 // 見本と入力の照らし合わせ。違う箇所の判定は打ち終えた後に1回だけ行い、
 // 打っている間は確定のたびに、入力の末尾が見本のどこに当たるかだけを求める。
-// 改行・空白を除き、NFKC で全角・半角をそろえてから jsdiff の diffChars で文字単位の差分を取り、
+// 改行・空白を除き、NFKC で全角・半角をそろえてから文字単位の差分（Rust の WebAssembly、diff.ts）を取り、
 // 結果は打ったままの文字（正規化前）に戻して示す。
-import { diffChars, type Change } from 'diff';
+import { diffChars, loadDiff, type Run } from './diff';
 
 const segmenter = new Intl.Segmenter('ja', { granularity: 'grapheme' });
 const BLANK = /^\s+$/u;
@@ -64,23 +64,11 @@ export interface Judgement {
   differences: number;
 }
 
-/** 置き換えは、打った文字のあとに本来の文字を置くよう、追加を削除より先にする。 */
-function inputFirst(changes: readonly Change[]): Change[] {
-  const ordered = [...changes];
-  for (let i = 0; i + 1 < ordered.length; i++) {
-    const current = ordered[i]!;
-    const next = ordered[i + 1]!;
-    if (current.removed && next.added) {
-      ordered[i] = next;
-      ordered[i + 1] = current;
-      i++;
-    }
-  }
-  return ordered;
-}
-
-/** jsdiff の結果（見本→入力）を、入力の元の文字に当てはめる。 */
-function compose(sample: Normalized, input: Normalized, changes: readonly Change[]): Judgement {
+/**
+ * 差分（見本→入力）を、入力の元の文字に当てはめる。続いている違いは追加が削除より先に来るため、
+ * 置き換えは打った文字のあとに本来の文字を置く形になる。
+ */
+function compose(sample: Normalized, input: Normalized, runs: readonly Run[]): Judgement {
   const expected = sample.source;
   const actual = input.source;
   const wrong = new Set<number>();
@@ -90,26 +78,26 @@ function compose(sample: Normalized, input: Normalized, changes: readonly Change
   let t = 0;
   let differences = 0;
   let inDifference = false;
-  for (const change of inputFirst(changes)) {
-    if (!change.added && !change.removed) {
-      s += change.count;
-      t += change.count;
+  for (const run of runs) {
+    if (run.kind === 'equal') {
+      s += run.count;
+      t += run.count;
       inDifference = false;
       continue;
     }
     if (!inDifference) differences++;
     inDifference = true;
-    if (change.added) {
-      for (let k = t; k < t + change.count; k++) wrong.add(actual[k]!);
-      t += change.count;
+    if (run.kind === 'added') {
+      for (let k = t; k < t + run.count; k++) wrong.add(actual[k]!);
+      t += run.count;
     } else {
       // 直前に打った文字のすぐ後ろへ差し込む。見本側の間の改行・空白も含めて示す。
       const at = t > 0 ? actual[t - 1]! + 1 : 0;
       const first = expected[s]!;
-      const last = expected[s + change.count - 1]!;
+      const last = expected[s + run.count - 1]!;
       const text = sample.units.slice(first, last + 1).join('');
       inserts.set(at, [...(inserts.get(at) ?? []), text]);
-      s += change.count;
+      s += run.count;
     }
   }
 
@@ -128,22 +116,24 @@ function compose(sample: Normalized, input: Normalized, changes: readonly Change
 }
 
 /**
- * 見本と入力を照らし合わせる。画面を止めないよう jsdiff の非同期モードで計算する。
- * 見本と大きく違い、timeout ミリ秒で計算しきれない場合は undefined。
+ * 見本と入力を照らし合わせる。差分は同期で計算するため、画面を止める時間の上限として timeout ミリ秒で打ち切る。
+ * 見本と大きく違い計算しきれない場合と、WebAssembly を使えない場合は undefined。
  */
-export function judge(
+export async function judge(
   sample: string,
   input: string,
-  { timeout = 3000 }: { timeout?: number } = {},
+  { timeout = 1000 }: { timeout?: number } = {},
 ): Promise<Judgement | undefined> {
+  try {
+    await loadDiff();
+  } catch (error) {
+    console.error(error);
+    return undefined;
+  }
   const expected = normalize(sample);
   const actual = normalize(input);
-  return new Promise((resolve) => {
-    diffChars(expected.text, actual.text, {
-      timeout,
-      callback: (changes) => resolve(changes && compose(expected, actual, changes)),
-    });
-  });
+  const runs = diffChars(expected.text, actual.text, { timeout });
+  return runs && compose(expected, actual, runs);
 }
 
 /** 見本の、入力の文字数より先まで照らし合わせる文字数。大きく飛ばした箇所はこの範囲でだけ追いつく。 */
@@ -154,6 +144,7 @@ const LOOKAHEAD = 200;
  * 見本の先頭から何文字目（改行・空白を除く）まで進んだかを返す。
  * 余分に打った文字・抜かした文字があっても、見本と一致した箇所に合わせて位置を戻す。
  * 一致した箇所より後に打った文字は、見本の文字と同じ数だけ進んだものとする（打ち間違いも進む）。
+ * 差分の WebAssembly は先に loadDiff() で読み込んでおく。読み込む前は、確定した文字数で進める。
  */
 export function createLocator(
   sample: string,
@@ -178,26 +169,26 @@ export function createLocator(
     const length = [...actual].length;
     if (!length) return 0;
     const window = sampleChars.slice(0, length + LOOKAHEAD).join('');
-    const changes = diffChars(window, actual, { timeout });
-    // 計算しきれないときは、確定した文字数で進める。
-    if (!changes) return Math.min(countChars(input), total);
+    const runs = diffChars(window, actual, { timeout });
+    // 計算しきれないとき（読み込む前を含む）は、確定した文字数で進める。
+    if (!runs) return Math.min(countChars(input), total);
     // 位置を合わせる目印にした一致箇所の、見本側と入力側の終わり（正規化した文字の数）。
     let sampleAt = 0;
     let inputAt = 0;
     let s = 0;
     let t = 0;
-    for (const change of changes) {
-      if (change.added) {
-        t += change.count;
-      } else if (change.removed) {
-        s += change.count;
+    for (const run of runs) {
+      if (run.kind === 'added') {
+        t += run.count;
+      } else if (run.kind === 'removed') {
+        s += run.count;
       } else {
         // 打った文字より多く見本を飛ばした先の一致は、飛ばした数より長いときだけ目印にする。
         // 打ち間違えた「の」が、ずっと先の「の」に一致して見本が飛ぶのを防ぐ。
         const skipped = s - sampleAt - (t - inputAt);
-        s += change.count;
-        t += change.count;
-        if (change.count > skipped) {
+        s += run.count;
+        t += run.count;
+        if (run.count > skipped) {
           sampleAt = s;
           inputAt = t;
         }

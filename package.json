@@ -25,7 +25,6 @@
     "@embedpdf/models": "2.15.0",
     "@embedpdf/pdfium": "2.15.0",
     "@preact/signals": "2.11.3",
-    "diff": "9.0.0",
     "markdown-it": "14.2.0",
     "preact": "10.29.8",
     "prosemirror-commands": "1.7.2",

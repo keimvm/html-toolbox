@@ -40,9 +40,14 @@
 
 | 場所 | 内容 |
 | --- | --- |
-| `judge.ts` | 文字の数え方（改行・空白を除く）、打っている間の見本の位置、判定（空白の除去・NFKC・jsdiff の差分・元の文字への対応づけ） |
+| `judge.ts` | 文字の数え方（改行・空白を除く）、打っている間の見本の位置、判定（空白の除去・NFKC・差分・元の文字への対応づけ） |
+| `diff.ts` | 文字単位の差分。`wasm/` の WebAssembly を読み込んで呼ぶ |
+| `wasm/` | 差分の本体（Rust のクレート `typing-diff`）。Myers の O(ND) 法を先頭から進め、抜けを後ろに寄せる。期限を過ぎたら打ち切る。Rust の版は `rust-toolchain.toml` で固定 |
 | `time.ts` | 経過時間・かかった時間の表示形式 |
 | `index.tsx`・`style.css` | ツールの定義（受け取れるもの・状態）と画面（貼り付け・カウントダウン・打っている間の進み具合・結果）と動き |
 | `judge.test.ts`・`time.test.ts` | 判定・見本の位置・時間の表示 |
+| `wasm/src/lib.rs` の `tests` | 差分が見本と入力を組み立て直せること、編集の数が最小であること、抜けを後ろに寄せること、区切りの並び、期限 |
+
+Rust（rustup）が要ります。`wasm/` は Vite の起動時（開発サーバー・テスト・ビルド）に `vite/rust.ts` が cargo でビルドし、出力（`wasm/target/`）は Git 管理外です。Rust 側のテストは `wasm/` で `cargo test` を実行します（toolbox のコマンドには含まれません）。
 
 要件は [docs/software-requirements.md](docs/software-requirements.md)、技術構成は [docs/software-stack.md](docs/software-stack.md)、検証結果は [docs/verification.md](docs/verification.md) を参照してください。

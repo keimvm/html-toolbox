@@ -181,9 +181,6 @@ importers:
       '@preact/signals':
         specifier: 2.11.3
         version: 2.11.3(preact@10.29.8)
-      diff:
-        specifier: 9.0.0
-        version: 9.0.0
       markdown-it:
         specifier: 14.2.0
         version: 14.2.0
@@ -776,10 +773,6 @@ packages:
 
   devalue@5.9.4:
     resolution: {integrity: sha512-sPAT4pztbu6586/hrhOnMKS17IJrvg12mXiSPSS3W5qDeN2RGgvZ0diZCm31dBbnevfVmujNO3IM2wrS4Y2Rhg==}
-
-  diff@9.0.0:
-    resolution: {integrity: sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw==}
-    engines: {node: '>=0.3.1'}
 
   entities@4.5.0:
     resolution: {integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==}
@@ -2005,8 +1998,6 @@ snapshots:
   detect-libc@2.1.2: {}
 
   devalue@5.9.4: {}
-
-  diff@9.0.0: {}
 
   entities@4.5.0: {}
 

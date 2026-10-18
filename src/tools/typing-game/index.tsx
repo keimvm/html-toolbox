@@ -10,6 +10,7 @@ import { isTextFile } from '../../lib/files';
 import { isMac, prefersReducedMotion } from '../../lib/platform';
 import { Button, toast } from '../../ui/components';
 import { useDropZone } from '../../ui/drop';
+import { loadDiff } from './diff';
 import { countChars, createLocator, graphemes, isBlank, judge, type Judgement } from './judge';
 import { formatClock, formatSpoken } from './time';
 import icon from './icon.png';
@@ -47,6 +48,9 @@ function create() {
   } | null>(null);
   const announce = signal('');
   let active = false;
+  // 打っている間の進み具合に使う差分の WebAssembly を、開いたときに読み込んでおく。
+  // 使えない環境では進み具合を確定した文字数で進め、失敗は判定のとき（judge）に記録する。
+  loadDiff().catch(() => {});
 
   /** 打っている見本（前後の改行・空白を除いたもの）。 */
   let sampleText = '';

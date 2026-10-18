@@ -4,7 +4,7 @@
 
 ## 採用する技術と役割
 
-選定の基準は [開発手順の実装方針](development.md#実装方針) に従う。版はすべて直下の `package.json` で固定する。
+選定の基準は [開発手順の実装方針](development.md#実装方針) に従う。npm の依存の版はすべて直下の `package.json` で固定する。Rust の版はクレートの `rust-toolchain.toml` で固定する。
 
 | 技術 | 役割 | 採用理由 |
 | --- | --- | --- |
@@ -15,7 +15,7 @@
 | Preact 10・@preact/signals 2 | 画面の部品と状態 | 6つのツールとホームの画面を同じ部品（ボタン・ダイアログ・メニュー・知らせ）で作り、状態の変化を必要な部分だけに伝えるため。React と同じ書き方で、配布物への増加は数十 KB に収まる |
 | EmbedPDF（`@embedpdf/engines`・`@embedpdf/pdfium`・`@embedpdf/fonts-jp`） | PDF の読み込み・描画・文字の取り出し・結合、PDFium の公開 API による回転の保存・要素の一覧と削除・画像からの PDF 作成・縮小 | 旧 PDF編集・画像変換で採用済み。PDFium を1つにし、両ツールで共有する |
 | markdown-it・ProseMirror（`prosemirror-*`）・prosemirror-markdown | ローカルノートの Markdown の解析・表示・直接編集・取り消し・表 | 旧ローカルノートで採用済み |
-| jsdiff（`diff`） | タイピングゲームの見本と入力の違いの判定 | 旧タイピングゲームで採用済み |
+| Rust 1.96（WebAssembly、wasm32-unknown-unknown） | タイピングゲームの見本と入力の文字単位の差分（`src/tools/typing-game/wasm/`） | 利用者の指示で、旧タイピングゲームの jsdiff から切り出した（2026-10-18）。打ち切りの期限を確かめる必要があり、依存なしの自前の差分にした。理由は [タイピングゲームの技術構成](../src/tools/typing-game/docs/software-stack.md#差分を-rust-の-webassembly-にする理由2026-10-18) |
 | Vitest 5・jsdom・fake-indexeddb | 単体テスト（画面の振る舞いを含むローカルノートのテスト、IndexedDB の記録） | Vite と同じ設定で TypeScript・JavaScript のテストを動かせる。旧ローカルノートの `node --test` のテストはそのまま移せた |
 | ESLint・Prettier | lint と整形 | 旧構成から使っている |
 
@@ -33,7 +33,8 @@
 
 - **重いデータは HTML の末尾**：PDFium の wasm と Noto Sans JP（日本語のフォントを含まない PDF を描くため）を gzip と Base64 にし、実行しない script 要素として HTML の末尾に置く。本体の script（IIFE）はその前に置き、画面を先に出す。PDF を初めて使うとき、文書を読み終えてから Worker に渡し、Worker の中で標準の `DecompressionStream` で展開する。JavaScript の文字列として取り込まないため、起動時に読み込む量が増えない。実測（`file://`・ネット遮断・ヘッドレス Chrome 155）：画面の準備 約10ms、読み込み完了 約40ms、PDFium の起動 約45ms。
 - **通信を止める**：CSP（`default-src 'none'`・`connect-src 'none'`）で外部との通信と外部の読み込みを止める。Worker は `blob:`、wasm は `'wasm-unsafe-eval'` だけを許す。
-- **ライセンス**：ビルドの中で、配布物に実際に入ったパッケージ（本体と Worker のモジュール、埋め込んだバイナリ）を集め、そのライセンス文を HTML の末尾に置く。「このアプリについて」で表示する。
+- **小さな WebAssembly は JavaScript の中**：タイピングゲームの差分（Rust、wasm は約20 KB）は、Vite の `?init` で Base64 にして本体の JavaScript に入れ、ツールを開いたときに読み込む。cargo でのビルドは `vite/rust.ts` が Vite の起動時に行う。
+- **ライセンス**：ビルドの中で、配布物に実際に入ったパッケージ（本体と Worker のモジュール、埋め込んだバイナリ）を集め、そのライセンス文を HTML の末尾に置く。「このアプリについて」で表示する。Rust の WebAssembly に入る標準ライブラリのライセンス文は、まだ対象にしていない（未決）。
 - **配色**：色は CSS の `light-dark()` で持ち、切り替えは `:root` の `data-tb-theme` で `color-scheme` を上書きする。Vite（Lightning CSS）が `light-dark()` を OS の設定だけに従う形へ変換しないよう、`build.cssTarget` を Chrome・Edge 129 にする。
 
 ## 選定に関わる制約

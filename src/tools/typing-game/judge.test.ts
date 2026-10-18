@@ -1,5 +1,9 @@
-import { describe, expect, test, vi } from 'vitest';
+import { beforeAll, describe, expect, test, vi } from 'vitest';
+import { loadDiff } from './diff';
 import { countChars, createLocator, graphemes, judge } from './judge';
+
+// 差分は Rust の WebAssembly（wasm/）。Vite の起動時に cargo でビルドしたものを読み込む。
+beforeAll(() => loadDiff());
 
 describe('countChars', () => {
   test('改行・空白（全角・半角・タブ）は数えない', () => {
@@ -61,6 +65,17 @@ describe('judge', () => {
       pieces: [
         { kind: 'wrong', text: '㍻' },
         { kind: 'missing', text: '静' },
+      ],
+      differences: 1,
+    });
+  });
+
+  test('続いている違いは、打った文字をまとめて示したあとに本来の文字を差し込み、1か所と数える', async () => {
+    expect(await judge('あいう', 'かきう')).toEqual({
+      pieces: [
+        { kind: 'wrong', text: 'かき' },
+        { kind: 'missing', text: 'あい' },
+        { kind: 'typed', text: 'う' },
       ],
       differences: 1,
     });
@@ -169,7 +184,7 @@ describe('createLocator', () => {
     const input = 'あXいう'.repeat(50);
     // 計算しきれば、余分な「X」の分だけ確定した文字数より手前になる。
     expect(createLocator(sample, { timeout: 60_000 })(input)).toBeLessThan(200);
-    // jsdiff は現在時刻が期限を過ぎたかで打ち切る。時刻を進め、計算の途中で必ず期限を過ぎるようにする。
+    // 差分の WebAssembly は Date.now() で期限を過ぎたかを確かめる。時刻を進め、計算の途中で必ず期限を過ぎるようにする。
     let now = Date.now();
     const clock = vi.spyOn(Date, 'now').mockImplementation(() => (now += 1000));
     try {

@@ -48,3 +48,18 @@ Claude デスクトップアプリ内蔵のブラウザー（Chromium）で、`p
 - 前のセッションで移した処理とテストが、全体の総合検証で引き続き成功。
 - `file://`・ネット遮断のヘッドレス Chrome 155 で、ライト・ダーク × 1280px・375px の表示と、ホームに貼り付けた文章を「タイピングの見本にする」で受け取る選択肢を確かめた。
 - 未確認：実際の日本語 IME での打鍵、Windows・Edge。
+
+## 差分の Rust の WebAssembly への切り出し（2026年10月18日）
+
+差分の計算を jsdiff から Rust の WebAssembly（`wasm/`）に移した。
+
+- `wasm/` で `cargo test`（Rust 1.96.0、macOS・Apple Silicon）：7件成功（差分の組み立て直し・編集の数が最小であること・抜けを後ろに寄せること・区切りの並び・期限）。
+- `node scripts/toolbox.mjs test`：Vitest 283件成功。`judge.test.ts` は Vite の起動時に cargo でビルドした WebAssembly を読み込んで、判定・見本の位置・打ち切りを確かめる。初回は rustup が `rust-toolchain.toml` の 1.96.0 を自動で入れた。
+- 最初に書いた中央の一致で分割統治する差分では、Vitest の「計算しきれないときは、確定した文字数で進める」が失敗した（計算しきっても確定した文字数と同じ 200 になった）。同じ数の編集のうち抜けを途中に置く並べ方を選んでいたため、jsdiff と同じく先頭から進める形に改めて成功した。
+- 未実施：総合検証（整形・lint・型チェック・ビルド・配布物のテスト）、開発サーバー・配布物での操作確認、`file://`・ネット遮断・CSP のある配布物での WebAssembly の読み込み、計算時間の測定、GitHub Actions（3 OS）での Rust のビルド。
+
+### ローカルビルド（2026年10月18日）
+
+- `node scripts/toolbox.mjs build 2026.10.18`：型チェック、Rust の WebAssembly を含む Vite ビルド、単一 HTML と zip の作成に成功。出力は `out/toolbox-2026.10.18.zip`（約6.5 MB）。
+- `git diff --check`：成功。
+- 今回はテスト・整形チェック・lint・配布物のテストを実行していない。実ブラウザーでの操作、`file://`・ネット遮断・CSP 下での読み込み、計算時間、GitHub Actions（3 OS）は引き続き未確認。

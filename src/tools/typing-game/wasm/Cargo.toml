@@ -1,0 +1,17 @@
+# タイピングゲームの文字単位の差分。WebAssembly（wasm32-unknown-unknown）にして judge.ts から呼ぶ。
+# ビルドは vite/rust.ts が Vite の起動時に行う。依存は持たない。
+[package]
+name = "typing-diff"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

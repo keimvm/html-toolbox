@@ -1,0 +1,6 @@
+# Rust の版と WebAssembly の target を固定する。rustup が cargo を呼んだフォルダでこのファイルを読み、
+# 足りなければ入れる。
+[toolchain]
+channel = "1.96.0"
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"
