@@ -4,7 +4,7 @@
 
 ## 選定に関わる制約
 
-- toolbox 共通の制約（[要件の制約](software-requirements.md#制約)）と [ツール追加の手順](../../../docs/development.md#ツールを追加する) に従う。
+- toolbox 共通の制約（[要件の制約](software-requirements.md#制約)）と [ツール追加の手順](../../../../docs/development.md#ツールを追加する) に従う。
 - 貼った文章と結果は保存しない。外部へも送らない。
 
 ## 採用する技術
@@ -12,10 +12,9 @@
 | 担当       | 技術                                                                    | 役割・採用理由                                                                                             |
 | ---------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | 画面・処理 | TypeScript ＋ HTML ＋ CSS                                               | プロンプト集・文字コード変換と同じ書き方にそろえる                                                         |
-| ビルド     | Vite ＋ vite-plugin-singlefile                                          | 単一 HTML にまとめる。プロンプト集の `vite.config.ts`（CSP・配布ファイル名・`ui/` の取り込み）を流用できる |
+| 画面       | Preact ＋ toolbox の共通部品（`src/ui/`）                                | toolbox の1つのアプリの一部として、ほかのツールと同じ部品で作る。見本の文字は打つたびに直接書き換える |
 | 差分       | jsdiff（npm の `diff` 9.0.0）の `diffChars`                             | 文字単位の差分で、抜け・余分・打ち間違いを取り出す。理由は下記                                             |
 | 自動テスト | Vitest                                                                  | 判定（改行・空白の除去、正規化、差分）と進み具合の求め方                                                   |
-| 依存管理   | pnpm（版は `packageManager` で固定）、Node.js（`.node-version` で固定） | toolbox のツール追加の手順に従う                                                                           |
 
 ### jsdiff を採用する理由
 
@@ -32,7 +31,7 @@
 | 変換中かどうか             | `compositionstart`・`compositionend`、`KeyboardEvent.isComposing` | 変換中の Esc を終了に使わない。見本を進めるのも確定のときだけ     |
 | 全角・半角をそろえる       | `String.prototype.normalize('NFKC')`                              | 自前の変換表は持たない                                            |
 | 時間の計測                 | `performance.now()`                                               | カウントダウンの終わりから、確定後の Esc までを測る               |
-| 見た目・ヘッダー・表示切替 | `ui/theme.css`・`ui/header.js`・`ui/theme-toggle.js`              | [共通 UI](../../../docs/development.md#共通-ui) に従う            |
+| 見た目・ヘッダー・表示切替 | toolbox の `theme.css`・`ToolFrame`・`src/lib/theme.ts` | [共通部品](../../../../docs/development.md#共通部品) に従う |
 | 1文字の単位                | `Intl.Segmenter`（書記素）                                        | 「𠮷」・濁点つきの半角カナ（「ｶﾞ」）を1文字として数え、色を変える |
 | 動き                       | CSS アニメーション・Web Animations API、`prefers-reduced-motion`  | 色の変化・カウントダウン・結果の光。動きを減らす設定では止める    |
 
@@ -62,6 +61,12 @@
 
 ふつうに打った場合は 0.1 秒以内に収まる。全く違う長い文章のときだけ秒単位になるため、`timeout` で打ち切る（`maxEditLength` は文章の長さで適切な値が変わるため使わない）。
 
+## toolbox の1つのアプリへの移行（2026-10-18）
+
+- 判定と時間の表示（`judge.ts`・`time.ts`）は旧コードとテストを移した。時刻次第でたまに失敗していたテストを、確実に再現する形に直した。画面は toolbox の共通部品で作り直した。
+- ホームに貼り付けた文章、置いたテキストファイルを見本として受け取る（`sample`）。
+- ほかのツールを見ている間は、キー操作・貼り付けに反応しない。
+
 ## 未検証事項
 
 - Windows の Edge（Microsoft IME）と Mac の Chrome（日本語入力）で、変換中に押した Esc を `isComposing` などで見分けられ、変換の取り消しと終了を取り違えないか。
@@ -70,4 +75,4 @@
 
 - ファイル構成、関数・型の分け方、TypeScript・ESLint・Prettier などの細かな設定（プロンプト集の設定を参考にする）。
 - 配布ファイル名、開発サーバーのポート番号。
-- 採用する pnpm・Node.js・各開発用パッケージの版（`diff` は 9 系）。
+- `diff` の版は 9 系（toolbox 全体の `package.json` で固定）。

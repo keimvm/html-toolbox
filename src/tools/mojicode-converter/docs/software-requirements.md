@@ -49,13 +49,13 @@
 2. Shift_JIS で表せない文字は「表せない」と示し、読めないバイト列はどこが読めないかを示す。
 3. 代表的な文字（あ・ｱ・①・髙・𠮷 など）が既知の値と一致することを自動テストで確かめる。Shift_JIS は Microsoft が公開している CP932 の対応表と全文字を突き合わせ、代表の選び方も含めて一致を確かめる（表はテスト用で、配布物に入れない）。
 4. 大きく表示した形、フォントの選択が表示される。フォント一覧が使えない環境では、フォント名の手入力で切り替えられる。
-5. `node scripts/toolbox.mjs check mojicode-converter` が通り、`tools.json` に登録されている。ネットにつながない状態で、`file://` から Windows の Edge と Mac の Chrome で動く。
+5. `node scripts/toolbox.mjs check` が通り、`src/tools/index.ts` に登録されている。ネットにつながない状態で、`file://` から Windows の Edge と Mac の Chrome で動く。
 
 ## 制約
 
 - 迷ったときの軸：出てくる値が正しいこと（Windows で確かめた値と同じになること）。
 - toolbox 共通の約束：インストール不要、オフライン・`file://` で動く、Windows と Mac の Chrome・Edge で動く、CDN・外部サイトを読み込まない、入力した文字を外部へ送らない。
-- toolbox の[ツール追加の手順](../../../docs/development.md#ツールを追加する)と共通 UI（`ui/`）に従う。
+- toolbox の[ツール追加の手順](../../../../docs/development.md#ツールを追加する)と共通部品に従う。
 
 ## 未決事項
 

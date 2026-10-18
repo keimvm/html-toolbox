@@ -1,66 +1,62 @@
 # toolbox 技術構成
 
-元の企画書：[requirements.md](requirements.md)。何を満たすかは [software-requirements.md](software-requirements.md) を参照。
+元の企画書：[requirements.md](requirements.md)。何を満たすかは [software-requirements.md](software-requirements.md)、構成と手順は [development.md](development.md) を参照。
 
 ## 採用する技術と役割
 
-選定の基準は [開発手順の実装方針](development.md#実装方針) に従う。
+選定の基準は [開発手順の実装方針](development.md#実装方針) に従う。版はすべて直下の `package.json` で固定する。
 
 | 技術 | 役割 | 採用理由 |
 | --- | --- | --- |
-| GitHub（private リポジトリ1つ） | 全ツールのソースと履歴の管理 | 既に使っている。1つにまとめることで、版を出す操作と版番号が1つで済む。private のまま、ほかのリポジトリを読むための鍵も要らない |
-| GitHub Releases | 版の記録と zip の置き場 | CLI または画面からリリースを作る操作が、版を出す操作になる。過去の版の zip も残る |
-| GitHub Actions（`release` の `published` イベント、Linux ランナー） | リリース時の検査・ビルド・zip 作成・添付 | 手元の PC に何も入れずに、手作業をなくせる。GitHub Free なら private リポジトリで月2,000分まで無料（[公式](https://docs.github.com/en/billing/concepts/product-billing/github-actions)） |
-| 各ツールの既存のビルド環境（pdf-edit では Node.js・pnpm・Vite・vite-plugin-singlefile） | 各ツールを1ファイルの HTML にする | ツールの作り方を変えずに toolbox へ移せる |
+| GitHub（private リポジトリ1つ）・Releases・Actions | ソースと履歴、版の記録と zip の置き場、検証と zip の自動作成 | 既に使っている。リリースを作る操作が版を出す操作になり、手元の PC に何も入れずに手作業をなくせる |
+| Node.js 24・pnpm 12 | 開発・ビルド・テストの実行 | 旧構成から使っている。`scripts/` は Node.js の標準機能だけで書く |
+| TypeScript 6 | アプリと共通部品・各ツールの型 | 6つのツールと共通部品の受け渡しの形（ツールの約束事・PDF エンジンの操作）を型で守る |
+| Vite 8（Rolldown）・vite-plugin-singlefile | 1つの HTML へのビルド、開発サーバー | 旧 PDF編集・画像変換で使っていた。JavaScript・CSS・画像を1つの HTML に入れられ、Worker も `?worker&inline` で同じ HTML に入る |
+| Preact 10・@preact/signals 2 | 画面の部品と状態 | 6つのツールとホームの画面を同じ部品（ボタン・ダイアログ・メニュー・知らせ）で作り、状態の変化を必要な部分だけに伝えるため。React と同じ書き方で、配布物への増加は数十 KB に収まる |
+| EmbedPDF（`@embedpdf/engines`・`@embedpdf/pdfium`・`@embedpdf/fonts-jp`） | PDF の読み込み・描画・文字の取り出し・結合、PDFium の公開 API による回転の保存・要素の一覧と削除・画像からの PDF 作成・縮小 | 旧 PDF編集・画像変換で採用済み。PDFium を1つにし、両ツールで共有する |
+| markdown-it・ProseMirror（`prosemirror-*`）・prosemirror-markdown | ローカルノートの Markdown の解析・表示・直接編集・取り消し・表 | 旧ローカルノートで採用済み |
+| jsdiff（`diff`） | タイピングゲームの見本と入力の違いの判定 | 旧タイピングゲームで採用済み |
+| Vitest 5・jsdom・fake-indexeddb | 単体テスト（画面の振る舞いを含むローカルノートのテスト、IndexedDB の記録） | Vite と同じ設定で TypeScript・JavaScript のテストを動かせる。旧ローカルノートの `node --test` のテストはそのまま移せた |
+| ESLint・Prettier | lint と整形 | 旧構成から使っている |
 
-## 構成
+## 1つのアプリにした理由（2026-10-18）
 
-リポジトリの構成は [development.md の構成](development.md#構成)、各ツールに求める形は [ツールを追加する](development.md#ツールを追加する)、CI の検証対象と手元のコマンドは [CI の検証対象](development.md#ci-の検証対象)・[コマンド](development.md#コマンド) を参照。
+旧構成は、ツールごとに1つの HTML（6ファイル）を作り、ツールごとに npm の依存とロックファイルを閉じ、入口ページを生成して zip にまとめていた。使う人の価値観（手軽さ・手元で完結・元を壊さない・値の正しさ・必要なものだけ・標準機能とライブラリ・静かな上質・日本語・版を出す手間をなくす）は変えず、次の理由で1つのアプリに作り直した。
 
-### CI の設計
+- **配布物が小さくなる**：PDF編集と画像変換がそれぞれ PDFium を持ち、さらに wasm が二重に入っていたため、配布物は約 38 MB だった。PDF エンジンを1つにして、約 9 MB になった。
+- **ツールの間で受け渡せる**：画像変換でまとめた PDF を PDF編集で開く、ホームに置いたファイルを使えるツールで開くなど、別々の HTML では `file://` の制約（ほかのファイルを読めない・ページの間で受け渡す手段が限られる）でできなかった流れを、同じページの中の受け渡しで行える。
+- **作業が消えない**：ツールを移っても、開いたツールの作業内容を保てる（別の HTML へ移ると消えていた）。
+- **共通部品を1つにする**：旧構成は共通部品（`ui/`）を相対パスで各ツールのビルドに取り込み、同じ見た目の部品を各ツールで組み立てていた。1つのアプリでは同じ部品をそのまま使え、配色の切り替え・ドロップ・確認・知らせの振る舞いが揃う。
+- **依存を1つにまとめる**：旧構成の「ツールごとに依存を閉じ、あるツールの更新がほかに影響しない」利点は、共通化の価値を優先して手放した。代わりに、総合検証（`check`）で毎回全ツールのテストを実行し、影響を見逃さないようにする。
 
-- 差分は push では直前のコミットとの比較、PR ではベースとの分岐点からの比較を使う。改名・削除も対象とし、比較失敗を「変更なし」にはしない。
-- 通常 CI とリリースは `.github/workflows/tool.yml` を共用する。依存取得 → `pnpm check` → 単一 HTML の確認・収集まで同じ手順を実行し、リリース時だけ収集した HTML を artifact に保存する。[GitHub の再利用可能なワークフロー](https://docs.github.com/ja/actions/how-tos/reuse-automations/reuse-workflows)を使用する。
-- 一覧の読み込み時に packageManager・scripts.test / test:dist / build / check・ロックファイル・Node.js の版指定・アイコン（`src/icon.png`）を検査する。ツールの追加時にワークフローを編集する必要はない。
+## 1つの HTML にまとめる仕組み
 
-### リリース時の処理
-1. `gh release create <版> --target <公開対象SHA> --title <版> --notes-file <説明ファイル>` または GitHub の画面でリリースが公開されると動く。公開対象は push 済み・Check 成功済みのコミットにする。版番号はそのリリースのタグから取る。
-2. `tools.json` のツールごとに、そのツールの Node.js・pnpm の版で `pnpm install --frozen-lockfile` → 検査 → ビルドを行う。1つでも失敗したら、そこで止めて zip は添付しない。
-3. ビルドされた HTML を `tools/<フォルダ名>.html` として集め、指定位置をトップへの相対リンクに置き換え、画面の隅に版番号を書き足す。
-4. `tools.json` から入口ページ `index.html` を作る。一覧・版番号を HTML の中に直接書き込む。
-5. `toolbox-<版>/` にまとめて `toolbox-<版>.zip` を作り、リリースに添付する。
-
-公開後にワークフローが失敗した場合、リリース自体は存在していてもzipは添付されない（公開後の確認は [development.md](development.md#github-に版を公開する)）。
-
-リリース時は共通スクリプト・UI と、差分にかかわらず全ツールを検証する。過去の CI のビルド成果物を流用せず、リリースのタグからビルドする。これによりタグのソースと配布物の対応を保つ。通常 CI で対象を絞ることと、依存キャッシュ・共通ワークフローの利用で開発時の待ち時間と保守の手間を抑える。
+- **重いデータは HTML の末尾**：PDFium の wasm と Noto Sans JP（日本語のフォントを含まない PDF を描くため）を gzip と Base64 にし、実行しない script 要素として HTML の末尾に置く。本体の script（IIFE）はその前に置き、画面を先に出す。PDF を初めて使うとき、文書を読み終えてから Worker に渡し、Worker の中で標準の `DecompressionStream` で展開する。JavaScript の文字列として取り込まないため、起動時に読み込む量が増えない。実測（`file://`・ネット遮断・ヘッドレス Chrome 155）：画面の準備 約10ms、読み込み完了 約40ms、PDFium の起動 約45ms。
+- **通信を止める**：CSP（`default-src 'none'`・`connect-src 'none'`）で外部との通信と外部の読み込みを止める。Worker は `blob:`、wasm は `'wasm-unsafe-eval'` だけを許す。
+- **ライセンス**：ビルドの中で、配布物に実際に入ったパッケージ（本体と Worker のモジュール、埋め込んだバイナリ）を集め、そのライセンス文を HTML の末尾に置く。「このアプリについて」で表示する。
+- **配色**：色は CSS の `light-dark()` で持ち、切り替えは `:root` の `data-tb-theme` で `color-scheme` を上書きする。Vite（Lightning CSS）が `light-dark()` を OS の設定だけに従う形へ変換しないよう、`build.cssTarget` を Chrome・Edge 129 にする。
 
 ## 選定に関わる制約
-- `file://` で開いた HTML からは、ほかのファイルを `fetch` で読めない（Chrome・Edge）。そのため入口ページは実行時に `tools.json` を読むのではなく、ビルド時に一覧を書き込んだ静的な HTML にする。
-- 各ツールへの版番号の書き足しは、そのツールのセキュリティ設定（CSP）の中で表示できる形にする。pdf-edit の CSP は外部の読み込みを禁じ、インラインの style と script を許している。
-- zip の中の名前は英数字（と `-` `.`）だけにする。pdf-edit のビルド出力 `PDF編集.html` は、集めるときに `pdf-edit.html` へ名前を変える。
 
-## 未決事項・未検証事項
-- 会社の PC の設定で、`file://` の HTML や、pdf-edit が使う WebAssembly・Worker が制限されないか（未検証）。pdf-edit でも、Windows・Edge での `file://` 起動は未確認のまま。
-- 版ごとに解凍先のフォルダが変わり、ツールのファイル名も変わる。そのため、pdf-edit のブラウザ内の復元データは版をまたいで引き継がれない見込み（未検証）。
-- Windows 標準の解凍機能が、日本語のファイル名を正しく扱えるか（未検証）。zip の中を英数字だけにすることで、この問題は避けている。
-- 作る人の GitHub のプラン（未確認）。Free なら無料枠は上記のとおり。
-- 手で書いた（ビルドのない）HTML のツールを入れる場合の扱い（未決。[software-requirements.md](software-requirements.md) を参照）。
+- `file://` で開いた HTML からは、ほかのファイルを `fetch` で読めない（Chrome・Edge）。そのため、必要なものはすべて1つの HTML に入れる。
+- `file://` は `pushState` で URL を変えられない場合があるため、画面の移動は URL のハッシュで行う。
+- `file://` の Chrome・Edge は `localStorage`・IndexedDB を全ページで共有する。記録のキーに配置 URL を含めなければ、版（解凍先のフォルダ）をまたいで同じ記録を読める。`file://` では OPFS は使えない。
+- File System Access のフォルダの許可は、利用者の操作の直後にしか求められない。ホームに置いたフォルダは、「何をしますか？」で選んだ操作の直後に許可を求め、求められないときは画面のボタンから求める。
+- 対象の Chrome・Edge 129 は、`light-dark()`、Popover API、CSS アンカー配置（`position-area`）、`DecompressionStream`、View Transitions に対応する。
 
 ## 実装上の決定
 
-- 入口ページ生成・zip 作成・CI の対象選択は Node.js の標準機能と OS の `zip` コマンドで行う。直下の npm 依存や workspace は導入しない。
-- ビルド出力は `dist/` の HTML 1ファイルから取得する。他のファイル・フォルダがある場合、トップへのリンクの挿入位置が不足・重複している場合、版番号を付けられない場合は収集を失敗させる。
-- タグが実在する日付の形式でないときは、ツールをビルドする前に停止する。
-- pdf-edit の検証は上記の共通ワークフローで継続する。単体の `release.yml` は移動時に削除し、配布は toolbox に統一した。
-- note-html は既存の esbuild で `dist/index.html` を生成し、収集時に `note-html.html` とする。Node.js・pnpm はツール内で固定し、CI・リリースは共通ワークフローを使う。生成物や検証画像は Git 管理に含めない。
-- 共通 UI は npm パッケージや workspace にせず、直下の `ui/` のソースを各ツールが相対パスで取り込む。ツールごとのビルド基盤（Vite・esbuild）を変えずに使え、ツールの依存関係とロックファイルは独立したままにできるため。CI は `tools/` 以外の変更として全ツールを検証する。
-- 配色は CSS の `light-dark()` と `color-scheme: light dark` で OS の設定に従わせ、印刷時は `color-scheme: light` にする。画面の切り替えは `ui/theme-toggle.js` が `:root` に `data-tb-theme` を付けて `color-scheme` だけを上書きするため、配色トークンを二重に持たない。選んだ表示は標準の `localStorage`（キー `toolbox-theme`）に残す。Chrome・Edge は `file://` のページで保存領域を共有するため、入口ページ・全ツール・別の版で同じ表示になる。保存できない環境ではその画面の中だけで切り替える。入口ページも同じ処理をインラインの script で埋め込む。
-- PDF編集の Vite（Lightning CSS）は、対象ブラウザーが古いと `light-dark()` を OS の設定だけに従う変数へ変換し、切り替えが効かない。対象の Chrome・Edge 129 は `light-dark()` に対応するため、`build.cssTarget` を Chrome・Edge 129 にして変換させない。
-- ツールのアイコンは各ツールの `src/icon.png` 1つを正とし、ヘッダーと入口のカードに data URL で埋め込む。ユーザー指定の imagegen で生成し、macOS 標準の `sips` で128×128へ縮小する。PDF編集は既存の Vite のアセット埋め込み、ノートと入口は Node.js 標準の `Buffer.toString('base64')` を利用する。`ui/header.js` がヘッダーと同じ画像を favicon にも使うため、独自の設定処理や新しい依存は追加しない。CSP の `img-src` は `data:` を許可する。
-- 入口ページのカードの並べ替えは、標準の HTML ドラッグ＆ドロップ（`draggable`・`dragover`・`dragend`）と、キーボード・タッチ用の「前へ」「後へ」ボタンで行う。並べ替えライブラリ（SortableJS など）は、`scripts/` と入口ページに npm の依存を持たない方針と、カード数件の入れ替えに必要な処理が少ないことから採用しない。編集中はカードのリンクに標準の `inert` を付け、開かずにドラッグを受ける。並び・非表示は配色と同じく `localStorage`（キー `toolbox-cards`）に残し、版をまたいで共有する。処理は `scripts/index-cards.js` に分け、保存内容の当てはめを Node.js のテストで確かめる。
-- 入口ページの背景の流れ（`scripts/index-flow.js`）は標準の Canvas 2D と `requestAnimationFrame` で描く。流れは、ゆっくり形を変える波を重ねた関数の回転（curl）を速さにし、カーソルの周りに渦・中心の押しのけ・動かした向きへの引きずりを足す。描画ライブラリ（p5.js・three.js など）やノイズのライブラリは、入口ページに npm の依存を持たない方針と、必要な処理が線数百本の移動と描画に限られることから採用しない。線は透明度の段階ごとに `Path2D` へまとめて描き、履歴は 1/60 秒ごとに記録して画面の書き換えの速さによらず尾の長さを揃える。描画ループはタブが隠れている間はブラウザーが止める。画面に見えていても、操作が8秒ないときと、ウィンドウが前面にないとき（`blur`・`focus`）は、流れの速さを 0 へ近づけてから `requestAnimationFrame` の呼び出しをやめ、最後の絵を残す。120Hz などの画面では間隔の短いフレームを飛ばし、計算と描画を毎秒60回までにする。
-- 共通部品の CSS は `:where()` で詳細度を 0 にし、ツールの CSS で調整できるようにする。入口ページは `scripts/toolbox.mjs` が `ui/theme.css` を埋め込んで生成する。
-- ノートのメニューには標準の Popover API と CSS アンカー配置を使う。独自の開閉状態・外側クリック・Escape 処理を持たず、操作後・Tab 移動時の閉鎖だけを補う。[Chrome 129 で導入された `position-area`](https://developer.chrome.com/blog/anchor-syntax-changes) を含め、対応は Chrome・Edge 129 以降とし、最新の安定版を推奨する。
-- HTML エクスポートの画像埋め込みは [FileReader.readAsDataURL](https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsDataURL) を使い、バイト列から Base64 を組み立てる処理を持たない。
-- 復元情報の配置 URL とダイアログ操作欄を共通化する。IndexedDB の構造と保存方法は、PDF 本体を保持する PDF編集と、ファイルハンドル・表示設定だけを記録するノートで異なるため、各ツールが管理する。
-- 自前処理として残すのは、ノートの外部変更検知・原文保持・添付の参照制約、PDF の編集状態と保存対象の選択など、標準 API やライブラリを利用するための固有要件。PDF の処理エンジン、Markdown パーサー、文書編集・履歴・表の仕組みは既存ライブラリに任せる。今回、新しい npm 依存は必要ない。
+- 画面の移動は `src/app/workspace.ts` が持ち、View Transitions でホームのタイルのアイコンがツールの見出しへ移るように見せる（動きを減らす設定・タブが隠れているときは使わない）。
+- ツールの約束事（`src/app/tool.ts`）は、ツールが受け取れるもの（`intents`）と状態（`status`）だけを外へ見せる。ホームはツールの中身を知らずに、受け渡しと作業中の表示ができる。
+- 確認・知らせ・メニューは標準の `dialog`・`popover` と CSS のアンカー配置に任せ、開閉・外側クリック・Escape を自作しない。ブラウザーの許可の要求が要る確認は、押した直後に同期で処理を始める（`ask()` の `start`）。
+- ファイルのドロップは画面全体で1か所が見張り（`src/ui/drop.ts`）、受け付ける場所を登録する。どの場所にも入らないファイルでブラウザーが画面を離れないようにする。
+- PDF エンジンは旧 PDF編集と旧 画像変換の処理を合わせ（`src/engine/pdf/runtime.ts`）、全ツールが同じ Worker を使う。文書 id は重ならないよう `crypto.randomUUID()` で作る。ページの要素の削除は、要素を除いた1ページの PDF を新しい元の文書として開き、ページを差し替える（取り消し・復元・保存はページの差し替えだけで済む）。
+- ローカルノートの振る舞い（約 140 KB の JavaScript）は、利用者が決めてきた仕様の塊のため、旧コードとテストをそのまま移した。画面の骨組みを toolbox の共通ヘッダーの中に置き、Preact には一度だけ描かせて以後は旧コードに任せる。CSS は `.nh` の中に閉じ、本文の CSS（`document.css`）は本文の要素にだけ効かせて画面とエクスポートで共用する。
+- 旧構成の共通部品（`ui/header.js`・`theme-toggle.js`・`download.js`・`file-drop.js`・`idb-record.js`・`session-key.js`）は、`src/app/frame.tsx`・`src/lib/theme.ts`・`src/lib/download.ts`・`src/ui/drop.ts`・`src/lib/files.ts`・`src/lib/idb.ts` に置き換えた。配置 URL をキーにする `session-key.js` は、版をまたいで記録を読むため使わない。
+- 画面の確認は Playwright を使わず、Node.js の標準機能（`child_process`・`WebSocket`）で Chrome DevTools Protocol を話す `scripts/cdp.mjs` で行う。自動テストには含めない。
+
+## 未決事項・未検証事項
+
+- 会社の PC の設定で、`file://` の HTML や WebAssembly・Worker・File System Access が制限されないか（未検証）。
+- Windows・Edge、Chrome 129 そのものでの動作（確認は Mac の Chrome 155 だけ）。
+- 作る人の GitHub のプラン（未確認）。

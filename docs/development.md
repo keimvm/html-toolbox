@@ -2,116 +2,149 @@
 
 開発・保守・配布を行う人向けの手順です。利用方法は [README](../README.md) を参照してください。
 
-目的と要件は [requirements.md](requirements.md)、[software-requirements.md](software-requirements.md)、[software-stack.md](software-stack.md) を参照してください。以下のコマンドとパスは、特に記載がなければリポジトリ直下を基準にしています。
+目的と要件は [requirements.md](requirements.md)（企画書）、[software-requirements.md](software-requirements.md)、技術構成と採用理由は [software-stack.md](software-stack.md) を参照してください。以下のコマンドとパスは、特に記載がなければリポジトリ直下を基準にしています。
 
 ## 構成
 
-| 場所                            | 役割                                                                             |
-| ------------------------------- | -------------------------------------------------------------------------------- |
-| `tools.json`                    | zip に入れるツールの一覧。書いた順に入口ページへ並ぶ                             |
-| `tools/<フォルダ名>/`           | 各ツール。依存関係・ロックファイル・Node.js の版指定はツールごとに持つ           |
-| `ui/`                           | 全ツールと入口ページで共通の配色・部品・ヘッダー・ダークモード、D&D・ダウンロードの処理。npm の依存なし |
-| `scripts/toolbox.mjs`           | 一覧の検査、ビルド済み HTML の収集、入口ページ（ツールのカード一覧）の生成、戻るリンク・版番号の追加、zip 作成 |
-| `scripts/index-cards.js`        | 入口ページに埋め込む、カードの並べ替え・表示の切り替え（ブラウザーで動く処理） |
-| `scripts/index-flow.js`         | 入口ページに埋め込む、マウスカーソルの位置で渦を巻く背景の流れ（ブラウザーで動く処理） |
-| `scripts/ci-tools.mjs`          | Git の差分から CI の検証対象を選ぶ |
-| `.github/workflows/check.yml`   | main への push・PR でスクリプトと変更対象のツールを検証（Linux・macOS・Windows） |
-| `.github/workflows/tool.yml`    | 通常 CI・リリース共通の依存取得・検証・ビルド・HTML 収集 |
-| `.github/workflows/release.yml` | リリースの公開時に検査・ビルドし、`toolbox-<版>.zip` をリリースへ添付           |
+toolbox は、全ツールを1つの HTML に入れた1つのアプリです。配布物は `toolbox-<版>/index.html` の1ファイルだけです。
 
-zip の中身と名前の決まりは [software-requirements.md](software-requirements.md#zip-の中身) を参照してください。
+| 場所 | 役割 |
+| --- | --- |
+| `index.html`・`src/main.tsx` | アプリの入口。保存した配色を反映し、ツールを登録して画面を作る |
+| `src/app/` | アプリの枠：ホーム（`Home.tsx`）、ツールの枠（`frame.tsx` の `ToolFrame`）、画面の切り替えと開いているツール（`workspace.ts`）、受け渡し（`deliver.ts`・`Chooser.tsx`）、このアプリについて（`About.tsx`）、ツールの約束事（`tool.ts`） |
+| `src/tools/<id>/` | 各ツール。`index.tsx` に定義（`ToolDefinition`）、処理・テスト・文書・アイコン（`icon.png`）を同じフォルダに置く |
+| `src/tools/index.ts` | 配布物に入れるツールの一覧。この順にホームへ並ぶ |
+| `src/ui/` | 共通の見た目と部品：配色と部品の CSS（`theme.css`）、ボタン・ダイアログ・メニュー・知らせ・確認（`components.tsx`）、アイコン（`icons.tsx`）、ファイルのドロップ（`drop.ts`） |
+| `src/lib/` | 共通の処理：ファイルの受け取りと判定（`files.ts`）、ダウンロード（`download.ts`）、IndexedDB の1件の記録（`idb.ts`）、`localStorage`（`storage.ts`）、配色（`theme.ts`）、クリップボード・数や大きさの表示・OS の違い |
+| `src/engine/pdf/` | PDF エンジン。PDF編集と画像変換が同じ Worker（PDFium）を使う |
+| `vite/toolbox.ts` | 1つの HTML にまとめる Vite のプラグイン（重いデータの埋め込み・ライセンスの収集・CSP） |
+| `scripts/toolbox.mjs` | テスト・ビルド・総合検証・zip の作成（Node.js の標準機能だけ） |
+| `scripts/cdp.mjs` | `file://` の画面を確かめるための、Chrome を操作する小さな道具（自動テストには含めない） |
+| `tests/dist/` | ビルドした配布物のテスト |
+| `.github/workflows/` | `check.yml`（main への push・PR で3 OS の総合検証）、`release.yml`（リリースの公開で検証・ビルドし zip を添付） |
+
+`tools/` には、作り直す前の構成で作った検証画像などが Git 管理外で残っている場合があります。使いません。
 
 ## 開発する
 
-各ツールの依存関係は、そのフォルダの中だけに置きます。直下の workspace や共通の npm 依存はありません。見た目と一部の処理は、直下の `ui/` のソースを各ツールのビルドで取り込みます（[共通 UI](#共通-ui)）。日常の開発サーバーや個別テストは、各ツールの README を参照してください。
+Node.js（`.node-version`、24.21.0 以降）と pnpm（`package.json` の `packageManager`）を使います。依存関係は直下の `package.json` に1つにまとめ、版を固定しています。
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+開発サーバーは `http://127.0.0.1:5173/` で開きます。CSP と重いデータの埋め込みは配布物にだけ付き、開発中の版の表示は「開発版」です。ツールを直接開くには `#/<ツールの id>`（例：`#/pdf-edit`）を付けます。
 
 ### コマンド
 
-エージェントの作業の進め方（テスト・ビルド・コミットは指示時のみ、テストの方針）は [AGENTS.md](../AGENTS.md#作業の流れ) に従います。既存の有用なテストは維持し、振る舞いの変更に合わせて更新します。
+エージェントの作業の進め方（テスト・ビルド・コミットは指示時のみ、テストの方針）は [AGENTS.md](../AGENTS.md#作業の流れ) に従います。
 
 | 指示する操作 | リポジトリ直下のコマンド | 実行する内容 |
 | --- | --- | --- |
-| テスト | `node scripts/toolbox.mjs test [フォルダ名]` | 共通スクリプト・UI のテスト、対象ツールの依存取得とソースのテスト。ビルド・配布HTMLのテストは行わない |
-| ローカルビルド | `node scripts/toolbox.mjs build <版>` | 全ツールの依存取得・ビルド・単一HTMLの構成確認・収集・入口ページとzipの作成。テスト・lintは行わない。既存の型チェックはビルドに含む |
-| 総合検証 | `node scripts/toolbox.mjs check [フォルダ名]` | 共通スクリプト・UI のテスト、対象ツールの依存取得・`pnpm check`・単一HTMLの構成確認・収集 |
-| 検証付きのzip作成 | `node scripts/toolbox.mjs release <版>` | 全ツールの総合検証とzip作成。GitHubには公開しない |
+| テスト | `node scripts/toolbox.mjs test` | 依存取得と単体テスト（`src/**/*.test.*`・`scripts/*.test.mjs`）。ビルドはしない |
+| ローカルビルド | `node scripts/toolbox.mjs build <版>` | 依存取得・型チェック・版を付けたビルド・zip 作成。テスト・lint はしない |
+| 総合検証 | `node scripts/toolbox.mjs check` | 依存取得・整形・lint・型チェック・単体テスト・ビルド・配布物のテスト・`git diff --check` |
+| 検証付きの zip 作成 | `node scripts/toolbox.mjs release <版>` | 総合検証のあと、版を付けてビルドし zip を作る。GitHub には公開しない |
 
-`test` と `check` はツール名を省略すると全ツールを対象にします。どちらも共通スクリプト・UI のテストを実行します。共通部分を変更した場合は、次に検証を指示されたときに全ツールを対象にします。
-
-各ツールの `package.json` には、次の役割のスクリプトを揃えます。ツール固有の開発サーバーや追加のコマンドは各ツールの README に書きます。
-
-| スクリプト | 内容 |
-| --- | --- |
-| `pnpm test` | ソースのテストだけを実行する。`dist/` がなくても動く |
-| `pnpm test:dist` | 生成済みHTMLのテストだけを実行する。ビルドは自動では始めず、生成物がなければ失敗する。単独で実行するときは、事前にビルドしたソースから変更していないことを確認する |
-| `pnpm build` | テストなしで `dist/` に単一 HTML を作る（既存の型チェックを含む） |
-| `pnpm check` | 既存の整形・lint等の検査、ソースのテスト、1回のビルド、配布HTMLのテスト、`git diff --check` を順に実行する。ブラウザー実機での確認は含まない |
-
-スクリプトは Node.js 24.21.0 以降で動かし、各ツールの Node.js の対応範囲（`package.json` の `engines`）も満たしてください。ローカルでは Node.js を自動で切り替えません。CI はツールごとの `.node-version` を使用します。pnpm は各ツールの `packageManager` の版を使い、依存取得は各ツールのフォルダで `pnpm install --frozen-lockfile` を実行します。
+`package.json` のスクリプトも直接使えます：`pnpm test`（単体テスト）、`pnpm test:dist`（ビルド済みの配布物のテスト。ビルドは始めない）、`pnpm build`（型チェックとビルド。版は環境変数 `TOOLBOX_VERSION`）、`pnpm check`（総合検証）、`pnpm format`（整形）。整形は Prettier（printWidth 100）で、Markdown・`fixtures/`・`designs/` は対象外です。
 
 ### 実装方針
 
-なるべく OS 標準の仕組みを使い、ライブラリと共通部品を積極的に活用します。追加・改修・レビューのすべてで、次を確認してください。
+なるべく OS・ブラウザーの標準の仕組みを使い、ライブラリと共通部品を積極的に活用します。追加・改修・レビューのすべてで、次を確認してください。
 
-1. **標準機能を確認する。** 配布 HTML から使えるブラウザーのファイル選択・保存・印刷・フォーム・`dialog`・`popover`・CSS、開発用の Node.js 標準 API や OS のコマンドを優先します。独自のファイル選択画面、印刷処理、メニューの開閉などを作り直しません。Windows・Mac、Chrome・Edge、オフライン・`file://` の条件を満たす範囲で選びます。
-2. **既存部品とライブラリを使う。** まず `ui/` と対象ツールの依存関係・公開 API・公式の拡張点を調べます。PDF処理は EmbedPDF/PDFium、Markdown の解析・出力は markdown-it、文書編集・選択・取り消し・表操作は ProseMirror を利用します。共通部品があれば必ずそれを取り込みます。
-3. **不足する場合はライブラリを検討する。** 同じ役割を自作する前に、要件に合うライブラリを検討します。既存機能では不足する点、保守状況、ライセンス、配布サイズ、単一 HTML への埋め込み、外部通信の有無を確認し、採用理由を技術文書に残します。版・ロックファイル・ライセンス表記は各ツール内で管理します。
+1. **標準機能を確認する。** ブラウザーのファイル選択・保存・印刷、`dialog`・`popover`・CSS のアンカー配置、File System Access、Canvas・`OffscreenCanvas`、`DecompressionStream`、View Transitions、Node.js の標準 API を優先します。独自のファイル選択画面、印刷処理、メニューの開閉などを作り直しません。Windows・Mac、Chrome・Edge 129 以降、オフライン・`file://` の条件を満たす範囲で選びます。
+2. **既存部品とライブラリを使う。** まず共通部品（`src/ui/`・`src/lib/`・`src/engine/`・`src/app/`）と依存関係の公開 API を調べます。PDF の処理は EmbedPDF/PDFium、Markdown の解析・出力は markdown-it、文書の編集・選択・取り消し・表は ProseMirror、差分は jsdiff、画面は Preact と @preact/signals を使います。
+3. **不足する場合はライブラリを検討する。** 同じ役割を自作する前に、要件に合うライブラリを検討します。既存機能では不足する点、保守状況、ライセンス、配布サイズ、1つの HTML への埋め込み、外部通信の有無を確認し、採用理由を [software-stack.md](software-stack.md) に残します。
 4. **自前実装は固有要件に絞る。** 標準機能やライブラリで満たせない部分だけを実装し、不足点と担当範囲を関連する仕様・技術文書に記録します。現在必要なものだけを作り、一般化のための独自基盤や不要な互換層を増やしません。
-5. **同じ部品は共通化して使う。** 複数ツールで役割・振る舞いが同じ処理は `ui/` にまとめ、既存の利用箇所も置き換えます。共通 CSS は配色・部品、ツール側の CSS は画面配置や固有の調整を担当します。データ形式や保存方針が異なる処理まで統合しません。`ui/` と `scripts/` の npm 依存なしという制約を守ります。
+5. **同じ部品は共通化して使う。** 複数ツールで役割・振る舞いが同じ処理は共通部品にまとめ、既存の利用箇所も置き換えます。共通 CSS は配色・部品、ツール側の CSS は画面配置や固有の調整を担当します。データ形式や保存方針が異なる処理まで統合しません。
 
 レビューでは、独自処理の必要性、共通部品の重複・利用漏れ、ライブラリの公開 API で置き換えられる処理を確認します。標準 API の対応ブラウザーを変える場合は利用条件も更新し、自動テストと実ブラウザーでの操作確認を分けて記録します。
 
-### CI の検証対象
+## アプリの約束事
 
-| 変更・操作 | 検証するツール |
+### ツールの定義
+
+各ツールは `src/tools/<id>/index.tsx` で次の形の定義を書き、`src/tools/index.ts` に並べます（型は `src/app/tool.ts`）。
+
+| 項目 | 内容 |
 | --- | --- |
-| `tools/<名前>/` のコード・設定・テスト | 変更した登録済みツールだけを 3 OS で検証 |
-| 直下と各ツールの `README.md`・`AGENTS.md`・`docs/` だけ | ツールのビルドは省略。直下スクリプトのテストと一覧の検査は実行 |
-| `tools.json`・`scripts/`・`ui/`・ワークフローなど共通部分 | 登録済みの全ツールを 3 OS で検証 |
-| Check の「Run workflow」 | 登録済みの全ツールを 3 OS で検証 |
-| リリース公開 | 登録済みの全ツールを Linux で検証して zip 化 |
+| `id` | URL（`#/<id>`）とホームの並び順の記録に使う名前。英数字と `-` だけ。旧構成のフォルダ名と同じにし、記録を引き継ぐ |
+| `name`・`description`・`icon` | ホームのタイルとヘッダーに出す名前・説明・アイコン（128×128 の `icon.png`） |
+| `intents` | ホームに置いた・貼り付けたもの、ほかのツールから渡したもの（`Incoming`：ファイル・フォルダ・文章）のうち、受け取れるもの。`accepts` で判定し、`mayAccept` でドラッグ中（種類と数だけ分かる）に受け取れそうかを返す |
+| `create()` | 最初に開いたときに一度だけ呼ぶ。`View`（画面）、`status`（状態）、`receive(intent, input)`（受け取り）を返す |
 
-Check は PR と main への push で動きます。作業ブランチへの push だけでは動かさず、PR を作って検証します。PR があるブランチで push と PR の二重実行は発生しません。改名・削除も変更に含め、比較に失敗したときは CI を失敗させます。
+- **画面（`View`）**：`active` を受け取ります。一度開いたツールは画面を移っても消さず、見えていない間は隠します。見えていない間はキー操作・貼り付け・ドロップに反応しないでください（`active` を見る）。モーダルの `dialog` は見えていない間は閉じておきます（隠れた画面のモーダルがほかの画面の操作を止めるため）。画面は `ToolFrame` で包みます。
+- **状態（`status`）**：`title`（タブの題名にツール名と並べる）、`summary`（ホームのタイルと切り替えメニュー）、`unsaved`（保存していない作業の印）、`guard`（閉じる前にブラウザーの確認を出す）。
+- **受け取り（`receive`）**：ホームやほかのツールから `openTool(id, { intent, input })`（`src/app/workspace.ts`）で渡されたものを受け取ります。受け取れるツールが2つ以上なら、ホームが「何をしますか？」で選ばせます（`src/app/deliver.ts`）。
+- **ツールの枠（`ToolFrame`）**：左上の一角は全ツールで同じ（ホーム・アイコンと名前＝ほかのツールへ移るメニュー・配色の切り替え）。`center` にファイル名など、`actions` にツール固有の操作を置きます。右下に版番号を出します。
+- **循環させない**：`src/app/` から `src/tools/` を import しません。ツールの一覧は `main.tsx` が `registerTools()` で登録し、`src/app/registry.ts` の `allTools()`・`toolById()` で読みます。モジュールの読み込み時に一覧を使う処理を書きません。
 
-ブランチ保護を設定する場合、必須チェックは固定名の **Check result** を指定します。ツールごとのジョブは、文書だけの変更では省略されるため必須にはしません。設定自体は GitHub のリポジトリ設定で行います。
+### 共通部品
 
-### 共通 UI
-
-`ui/` には全ツールと入口ページで揃える見た目と処理を置きます。各ツールはビルド時に相対パス（`tools/<フォルダ名>/src/` からは `../../../ui/`）でソースを取り込み、単一 HTML に埋め込みます。npm の依存は持たず、パッケージとしても登録しません。
-
-| ファイル | 内容 |
+| 部品 | 使い方 |
 | --- | --- |
-| `theme.css` | 配色・文字・角丸などのトークン（`--tb-*`）と、ボタン（`.tb-button` に `.tb-primary`・`.tb-secondary`・`.tb-danger`・`.tb-icon-button` を組み合わせる）、入力欄（`.tb-input`）、ダイアログ（`.tb-dialog`）、操作欄（`.tb-dialog-actions`、縦並びは `.tb-stack` を追加）、ポップオーバー（`.tb-popover`）、フォーカス枠、ファイルのドロップ中の表示、共通ヘッダー（下記）、戻るリンク（`#toolbox-home`、ホームのアイコン）と切り替えボタン（`.tb-theme-toggle`）の見た目 |
-| `header.js` | `setupToolHeader(header)`。共通ヘッダーのアイコン（`.tb-header-icon`）を favicon にも使い、`.tb-theme-toggle` に表示の切り替えを設定する。どちらかがなければ例外 |
-| `theme-toggle.js` | `setupThemeToggle(button)`。ボタンの押下でライト・ダークを切り替え、`localStorage` の `toolbox-theme` に残す。OS と同じ表示に戻すと記録を消す。ボタンのアイコンと読み上げ名を今の表示に合わせる。入口ページはこれを直接埋め込む |
-| `download.js` | `downloadBlob(blob, ファイル名, { signal })`。blob URL とリンクでダウンロードさせ、60秒後か `signal` の中断で URL を解放する |
-| `file-drop.js` | `watchFileDrop({ zone, onDrop, enabled })`。`zone` の外に落としたファイルでブラウザーが画面を離れないようにする。受け付ける間は `zone` に `data-tb-file-drag` を付け、`data-tb-drop-label` の文言を重ねて表示する。フォルダを含む場合は `onDrop` に `null` を渡す。`hasFiles`・`droppedFiles` も使える |
-| `idb-record.js` | `createRecordStore(window, { database, store, key, timeoutMs })`。IndexedDB の1つのキーに値を1つ置き、`load()`・`save(値)` で読み書きする。transaction の確定を待ち、停止・ブロック・中断では待ち続けず拒否する。ローカルノートの復元情報とプロンプト集の保存先の記録に使う。DB名・キー・値の形と検査は各ツールで管理する |
-| `session-key.js` | `sessionKey(href)`。クエリーとフラグメントを除いた HTML の配置 URL。両ツールの復元情報の保存先に使い、従来のキーを維持する。DB名・形式・保存処理は各ツールで管理する |
+| `src/ui/theme.css` | 配色・文字・角丸のトークン（`--tb-*`）と部品のクラス（`.tb-button` に `.tb-primary`・`.tb-secondary`・`.tb-danger`・`.tb-icon-button`、`.tb-input`、`.tb-dialog`、`.tb-popover`、`.tb-chip`、`.tb-badge`、`.tb-empty`、`.tb-progress` など）。部品は `:where()` で詳細度を 0 にしているため、ツールの CSS で上書きできる |
+| `src/ui/components.tsx` | `Button`・`IconButton`・`Dialog`（標準の `dialog`）・`Menu`／`MenuItem`（`popover` とアンカー配置）・`Field`・`Segmented`・`EmptyState`。知らせは `toast()`、確認は `ask()`・`confirmAction()`（選択肢の `start` は押した直後に同期で呼ぶため、ブラウザーの許可の要求に使える） |
+| `src/ui/drop.ts` | `useDropZone()` で受け付ける場所を登録する。画面全体で1か所がドラッグを見張り、どの場所にも入らないファイルでブラウザーが画面を離れないようにする。入れ子は内側が優先 |
+| `src/lib/files.ts` | `pickFiles()`（ファイル選択）、`readDrop()`（ドロップの中身。フォルダは File System Access のハンドル）、`droppedFiles()`、`canUseFolders()`、`isPdf()`・`isImage()`・`isTextFile()` |
+| `src/lib/download.ts` | `downloadBlob(blob, ファイル名, { signal })`。blob URL とリンクでダウンロードさせ、60秒後か中断で解放する。`safeFileName()` |
+| `src/lib/idb.ts` | `createRecordStore(window, { database, store, key })`。IndexedDB の1つのキーに値を1つ置く。停止・ブロック・中断では待ち続けず拒否する |
+| `src/lib/storage.ts`・`theme.ts` | `localStorage` の読み書き（保存できない環境でも画面の中では覚える）と配色（`toolbox-theme`） |
+| `src/engine/pdf/` | `pdfEngine().call(操作, 引数)`。開く・閉じる・描画・文字と要素の一覧・画像の取り出し・保存（結合と回転）・要素の削除・画像から PDF・PDF の縮小 |
 
-- 配色は、ライトがアイボリーの地に深いエバーグリーン（`--tb-accent`）、ダークが黒に近い地にシャンパン色（同）です。真鍮色の `--tb-gold` は選択中の細い縁・区切りの短い線・フォーカス枠など細部の差し色に限り、文字色には使いません。大きな見出しは OS の明朝体（`--tb-font-display`）、それ以外は `--tb-font` を使います。浮いた面の影は `--tb-elevation` です。
-- 色はすべて `light-dark()` で持ち、OS のダークモード設定に従います。切り替えボタンで選んだ表示は `:root[data-tb-theme]` で `color-scheme` を上書きします。印刷と、ツールが書き出す文書（ローカルノートの HTML エクスポートは本文用の `document.css` だけを入れる）は常にライトです。ツールの CSS で `prefers-color-scheme` を使うと切り替えが効かないため、色は `--tb-*` か `light-dark()` で書きます。
-- 共通ヘッダーは次の形で書き、`setupToolHeader()` をツールの起動処理の最初に呼びます（保存した表示を早く反映するため）。左上の一角は全ツールで同じ中身・順序にし、ツール固有の操作は右側に置きます。ファイル名など中央に置く要素は一角と右側の間に書きます。
+- 配色は、ライトがアイボリーの地に深いエバーグリーン（`--tb-accent`）、ダークが黒に近い地にシャンパン色（同）です。真鍮色の `--tb-gold` は選択中の細い縁・区切りの短い線・フォーカス枠など細部の差し色に限ります。大きな見出しは OS の明朝体（`--tb-font-display`）です。
+- 色はすべて `light-dark()` で持ちます。切り替えボタンで選んだ配色は `:root[data-tb-theme]` で `color-scheme` を上書きします。ツールの CSS で `prefers-color-scheme` を使うと切り替えが効かないため、色は `--tb-*` か `light-dark()` で書きます。印刷と、ツールが書き出す文書は常にライトです。
+- 動きは控えめにし、`prefers-reduced-motion: reduce` では止めます（`theme.css` が全体で短くする）。
+- 1つの HTML に同居するため、ツールの CSS はクラス名に接頭辞（`pl-`・`ic-`・`pe-` など）を付けるか、ツールの枠のクラス（ローカルノートは `.nh`）の中に閉じます。`body` や `:root` に直接書きません。
 
-  ```html
-  <header class="tb-header">
-    <div class="tb-header-start">
-      <template id="toolbox-home"></template>
-      <span class="tb-header-brand"><img class="tb-header-icon" src="（src/icon.png の data URL）" alt="">ツール名</span>
-      <button type="button" class="tb-button tb-icon-button tb-theme-toggle"></button>
-    </div>
-    <div class="tb-header-end">ツール固有のボタン・メニュー</div>
-  </header>
-  ```
+### 記録の置き場所
 
-- アイコンは各ツールの `src/icon.png`（128×128、角丸のエバーグリーン地にアイボリーの図柄と真鍮色の差し色）を正とし、ビルドで data URL として埋め込みます（PDF編集は Vite のアセット、ローカルノートは Node.js 標準の `Buffer.toString('base64')`）。favicon は `header.js` が同じ画像から設定するため、HTML に `link rel="icon"` を書きません。生成に使ったプロンプトと画像の処理は [favicon-prompts.md](favicon-prompts.md) に記録しています。
-- 部品は `:where()` で詳細度を 0 にしているため、ツールの CSS で余白などを上書きできます。逆に、ツールの CSS でボタン全体に `color` や `font` を指定すると部品の指定も打ち消すため、`:where(:not(.tb-button))` のように部品を除外してください。
-- 入口ページは `scripts/toolbox.mjs` が `theme.css` と `theme-toggle.js` を埋め込んで作り、版番号の右に背景の流れのボタン、その右に切り替えボタンを置きます。ツールは `tools.json` の順にカードで並べ、カードには各ツールの `src/icon.png`（data URL）・表示名・説明を載せます。配布時に足す戻るリンクと版番号も、ページの配色とトークンに従います。
-- 入口ページ専用の `scripts/index-cards.js`（`setupCards()`）も埋め込みます。「並べ替え・表示」の編集中だけ、各カードに表示のチェックボックスと「前へ」「後へ」を出し、標準のドラッグ＆ドロップでも並べ替えられるようにします。選んだ内容は `localStorage` の `toolbox-cards` に `{ "order": [フォルダ名…], "hidden": [フォルダ名…] }` で残し、`tools.json` と同じ並び・全部表示に戻したら記録を消します。一覧にないフォルダ名は無視し、並べ替えた後に増えたツールは最後に置きます。ツールだけで使わない処理なので `ui/` には置きません。
-- 入口ページ専用の `scripts/index-flow.js`（`setupFlow()`）も埋め込みます。画面全体に敷いた `canvas#flow` に細い線の流れを描き、マウスカーソルの周りでは線が渦を巻いて道を空け、動かした向きへ引きずられ、近くの線が `--tb-gold` で光ります。地の線は `--tb-accent` で、どちらも canvas の `color`・`outline-color` の計算済みの値から読み、切り替えボタンと OS の設定の変更に追従します。`pointer-events: none` で操作を妨げません。版番号の右、表示の切り替えの左にある波のボタン（`#flow-toggle`、`setupFlowToggle()`）で止める・動かすを切り替えられ、状態は `aria-pressed` で伝えます。止めたことは `localStorage` の `toolbox-flow` に `off` で残し、動かしたら記録を消します。止めるときは薄くし終えてから描画を止めます。見ていないときの負荷を抑えるため、マウス・キー・ホイールの操作がないまま8秒経つか、ウィンドウが前面から外れたら、2秒ほどかけて流れを静め、線をその場に残して描き直しをやめます。操作・前面への復帰・ウィンドウの大きさの変更で再び動かします。描き直しは画面の書き換えの速さによらず毎秒60回までです。`prefers-reduced-motion: reduce` では描かず、ボタンも出しません。
-- 入口ページ専用の favicon は `ui/toolbox-icon.png`（128×128、道具箱の図柄）です。`scripts/toolbox.mjs` が既存の `iconDataUrl()` で変換し、`link rel="icon"` に直接埋め込みます。配布物へ画像ファイルを追加せず、オフラインでも表示できます。
-- メニューは `<button popovertarget="対象ID">` と `<div id="対象ID" popover="auto" class="tb-popover">` を組み合わせます。開閉・排他表示・外側クリック・Escape・展開状態の支援技術への通知は [Popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API/Using)、配置は CSS のアンカー配置に任せます。`hidden` や `aria-expanded` に開閉状態を重複して保持しません。ローカルノートの Tab による閉鎖・操作後の閉鎖は固有処理として残します。
-- TypeScript からは同じ名前の `.d.ts` で型を参照します。Vite の開発サーバーでは、`server.fs.allow` に `../../ui` を加えます（PDF編集の `vite.config.ts`）。
+| 記録 | 置き場所 |
+| --- | --- |
+| 配色・ホームの並び・背景の流れ | `localStorage` の `toolbox-theme`・`toolbox-cards`・`toolbox-flow` |
+| プロンプト集の保存先のフォルダ | IndexedDB `toolbox-prompt-library` |
+| PDF編集の復元用データ | IndexedDB `toolbox-pdf-edit` |
+| ローカルノートの前回のフォルダ・レイアウト・表示設定 | IndexedDB `local-notes-session`（キー `toolbox#session`・`toolbox#layout`・`toolbox#display`） |
+
+`file://` の Chrome・Edge は保存領域を共有するため、どれも版（解凍先のフォルダ）をまたいで同じ記録を読みます。配置 URL をキーに含めません。
+
+## 配布物の作り
+
+- `vite build` は `vite-plugin-singlefile` で JavaScript と CSS を `dist/index.html` に入れます。本体の script は普通の script（IIFE）にし、重いデータより前に置いて画面を先に出します。
+- PDFium の WebAssembly と Noto Sans JP は、gzip と Base64 にして HTML の末尾の `<script type="application/octet-stream" id="tb-payload-…">` に置きます。PDF を初めて使うとき、文書を読み終えてから Worker に渡し、Worker の中で `DecompressionStream` で展開します（`vite/toolbox.ts`・`src/engine/pdf/`）。
+- CSP（`vite/toolbox.ts` の `CONTENT_SECURITY_POLICY`）で外部との通信と外部の読み込みを止めます。Worker は `blob:`、WebAssembly は `'wasm-unsafe-eval'` で動かします。
+- 配布物に実際に入ったパッケージのライセンス文を集めて HTML の末尾に置き、「このアプリについて」で表示します。
+- 配布物のテスト（`tests/dist/`）は、1ファイルであること・CSP・script の並び・埋め込み・ライセンスを確かめます。
+
+## 画面を確かめる
+
+`scripts/cdp.mjs` は、Node.js の標準機能だけでヘッドレス Chrome を操作し、配布物を本物の `file://`・ネット遮断で開いて、画面の撮影・操作・コンソールのエラー・外部への通信を確かめる道具です（macOS の Chrome の場所を前提にしています）。自動テストには含めません。
+
+```js
+import { launch } from './scripts/cdp.mjs';
+const b = await launch({ offline: true, width: 1280, height: 800 });
+await b.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+await b.goto('file:///<リポジトリ>/dist/index.html#/typing-game');
+await b.waitFor(`!!document.querySelector('.tg-start')`);
+await b.screenshot('shot.png');
+console.log(b.logs); // コンソール・例外・外部への通信
+await b.close();
+```
+
+- `Input.insertText`（確定した文字）、`Input.dispatchKeyEvent`（キー）、`Input.imeSetComposition`（変換中の模擬）が使えます。実際の日本語 IME の動きとは違う場面があります。
+- `waitFor` に DOM の要素をそのまま返す式を渡さず、`!!` で真偽値にします（ProseMirror の要素などは値として返せません）。
+- フォルダの選択は自動化できないため、`Page.addScriptToEvaluateOnNewDocument` でメモリー上のフォルダ（File System Access の模擬）を `showDirectoryPicker` に差し込んで確かめます。`file://` では OPFS は使えません。
+- Claude の内蔵ブラウザーはローカルファイルを静的な写しで表示するため、`file://` の確認には使えません。
+
+## CI
+
+| 契機 | 内容 |
+| --- | --- |
+| main への push・PR、Check の「Run workflow」 | Linux・macOS・Windows で総合検証（`node scripts/toolbox.mjs check`） |
+| リリースの公開 | Linux で版番号を検査し、総合検証・版を付けたビルド・zip 作成のあと、リリースに `toolbox-<版>.zip` を添付 |
+
+ブランチ保護を設定する場合、必須チェックは固定名の **Check result** を指定します。pnpm は `pnpm/action-setup` が `packageManager` の版を、Node.js は `.node-version` を使います。
 
 ## GitHub に版を公開する
 
@@ -127,65 +160,35 @@ Check は PR と main への push で動きます。作業ブランチへの pus
 3. Release ワークフローの成功と、リリースへの `toolbox-<版>.zip` の添付を確認する。
 4. zip をダウンロードして同僚に渡す。
 
-GitHub の版は `2026.10.03` のような日付形式にします。同日の追加公開には `2026.10.03.2` のように枝番を付け、未使用のタグで公開します。既存タグを指定した場合は `--target` ではそのタグの参照先を変えられないため、別コミットの公開に既存タグを流用しません。GitHub の Releases 画面から公開する方法も継続できます。
+GitHub の版は `2026.10.03` のような日付形式にします。同日の追加公開には `2026.10.03.2` のように枝番を付け、未使用のタグで公開します。既存タグを指定した場合は `--target` ではそのタグの参照先を変えられないため、別コミットの公開に既存タグを流用しません。
 
-公開を契機に、タグのソースで共通テストと全ツールの検証・ビルドを行い、zip を添付します。リリースの作成とzip添付は別の処理です。版番号・検査・ビルドが不正ならリリース自体は存在していても、新しいzipは添付されません。コマンドの成功だけで完了扱いにせず、Actions と添付結果まで確認してください。修正後は新しい版で公開します。PR・main への push 時の自動検証も維持します。
+公開を契機に、タグのソースで総合検証・ビルドを行い、zip を添付します。リリースの作成と zip の添付は別の処理です。版番号・検証・ビルドが不正ならリリース自体は存在していても、zip は添付されません。コマンドの成功だけで完了扱いにせず、Actions と添付結果まで確認してください。修正後は新しい版で公開します。
 
 ## ツールを追加する
 
-1. `tools/<フォルダ名>/` を作る。フォルダ名は英数字と `-` `.` だけにする。
-2. そのフォルダの中だけで次のことができるようにする。
-   - `package.json` の `packageManager` で pnpm の版（`pnpm@x.y.z`）を、`.node-version` で Node.js の版（`x.y.z`）を固定する。
-   - `pnpm install --frozen-lockfile` で依存関係を取得できる。
-   - `pnpm test`・`test:dist`・`build`・`check` を[コマンド](#コマンド)の役割どおりに用意し、`dist/` に外部を何も読み込まない HTML を1つだけ出力する。別のファイルやフォルダは残さない。
-   - 画面上部に[共通ヘッダー](#共通-ui)を置き、`ui/header.js` の `setupToolHeader()` を呼ぶ。左上の一角の先頭に `<template id="toolbox-home"></template>` を1つ置き、ビルド後にもこの文字列を残す。アイコンは `src/icon.png` に置く（入口ページのカードにも使う）。画面が狭い場合はヘッダーを折り返せるようにする。
-   - CSP を指定する場合は、`img-src` に `data:`（アイコン）を、`style-src` にインラインの style（版番号）を許可する。
-   - `ui/theme.css` を読み込み、配色は `--tb-*`、ボタン・入力欄・ダイアログは共通部品のクラスを使う。ファイルのドラッグ＆ドロップとダウンロードは `ui/` の処理を使う（[共通 UI](#共通-ui)）。
-3. `tools.json` に追加し、直下の README に利用者向けの紹介を加える。
+1. `src/tools/<id>/` を作る。`id` は英数字と `-` だけにする。
+2. `index.tsx` に [ツールの定義](#ツールの定義) を書き、`icon.png`（128×128、角丸のエバーグリーン地にアイボリーの図柄と真鍮色の差し色）を置く。画面は `ToolFrame` で包み、配色は `--tb-*`、部品は共通部品を使う。ファイルの受け取り・ダウンロード・確認は共通部品を使う。
+3. 受け取れるもの（`intents`）を決める。ホームに置いた・貼り付けたものを受け取れるなら、`accepts` と `mayAccept` を書く。
+4. `src/tools/index.ts` に加える（この順にホームへ並ぶ）。新しい依存は直下の `package.json` に版を固定して加え、採用理由を [software-stack.md](software-stack.md) に残す。
+5. テストは同じフォルダに `*.test.ts`（または `.tsx`・`.js`）で置く。直下の README に利用者向けの紹介を加え、ツールの README・AGENTS.md・`docs/` を書く。
 
-```json
-[
-  {
-    "dir": "pdf-edit",
-    "name": "PDF編集",
-    "description": "入口ページに表示する説明"
-  }
-]
-```
-
-`tools.json` に書いていないフォルダ（作りかけ・個人用）は zip にも CI にも入りません。
-
-追加後のコミット、総合検証（`node scripts/toolbox.mjs check <フォルダ名>`）、PR 作成は、それぞれ指示時に行います。ワークフローへのツール名の追記は不要です。`node scripts/toolbox.mjs list` で、一覧と必要な設定ファイル（`src/icon.png` を含む）だけを素早く検査できます。単一 HTML に収まることは共通処理が検査しますが、外部通信や `file://` での動作は各ツールで検証してください。
-
-zip を作るときに、上記の空の `template` をトップへ戻るリンク（`#toolbox-home`、`class="tb-button tb-icon-button"`、`href="../index.html"`）に置き換えます。文言は表示せず、`ui/theme.css` がホームのアイコンを描きます。読み上げ名とツールチップは `aria-label`・`title` の「トップへ戻る」です。通常のリンクなので、同じタブで戻り、ツールの既存の離脱確認が働きます。作業状態の削除や独自の確認処理は追加しません。挿入位置が不足・重複している場合は収集・梱包を失敗させます。開発画面や加工前の HTML では `template` は表示されません。
-
-版番号は、各ツールの `</body>` の直前へ、右下に固定表示する小さな要素（`#toolbox-version`）として書き足します。版番号のスタイルはインラインの `<style>` で追加するため、ツールの CSP ではインラインの style を許可してください。色はツールの配色（ライト・ダーク）に従います。加工は配布用のコピーにだけ行い、元のソース・`dist/`・`build/` は変えません。
+追加後のコミット、総合検証、PR 作成は、それぞれ指示時に行います。CI・リリースの設定へのツール名の追記は不要です。
 
 ## 手元で zip を作る
 
 ローカルビルドの指示を受けてから実行します。macOS または Linux で、Node.js・pnpm・`zip` コマンドを用意します。
 
 ```bash
-node scripts/toolbox.mjs build 2026.10.03
+node scripts/toolbox.mjs build 2026.10.18
 ```
 
 版は今日の日付（`YYYY.MM.DD`）だけにします。同じ日に作り直すときも枝番を付けず、同じ版で上書きします。実装やコミットのたびには作り直しません。
 
-`out/toolbox-2026.10.03.zip` と同じ中身のフォルダ（`out/toolbox-2026.10.03/`）を作ります。テスト未実行でも生成できるため、ビルド成功と検証成功は区別してください。公開やアップロードは行いません。全検証付きのzip作成を指示された場合は `node scripts/toolbox.mjs release <版>` を使います。
-
-古い `build/` と同じ版の出力を消してから作り直すため、途中で失敗しても同じ版の古いzipは残りません。`build/` と `out/` は Git 管理対象外です。
-
-`collect <フォルダ名>` と `package <版>` は、CI が検証済みHTMLを集めて梱包するための個別コマンドです。`package` は再ビルドしないため、通常のローカルビルドには `build` を使います。
-
-共通スクリプト・UI だけのテストを指示された場合は、次のコマンドを使えます。Git と `zip`・`unzip` が必要です。zip のテストは一時フォルダの合成HTMLを使い、実ツールのビルドは行いません。
-
-```bash
-node --test 'scripts/*.test.mjs' 'ui/*.test.mjs'
-```
+`out/toolbox-2026.10.18.zip` と、同じ中身のフォルダ（`out/toolbox-2026.10.18/index.html`）を作ります。テスト未実行でも生成できるため、ビルド成功と検証成功は区別してください。全検証付きの zip 作成を指示された場合は `node scripts/toolbox.mjs release <版>` を使います。同じ版の古い出力は消してから作るため、途中で失敗しても同じ版の古い zip は残りません。`dist/` と `out/` は Git 管理対象外です。
 
 ## 未確認のこと
 
-- 会社の PC（Windows・Edge、Mac・Chrome）で、ネットにつながない状態で zip を解凍し、`file://` で入口ページとツールが動くこと。
-- GitHub 上での Release ワークフローの実行。
+- 会社の PC（Windows・Edge、Mac・Chrome）で、ネットにつながない状態で zip を解凍し、`file://` でホームと全ツールが動くこと。最小の対応版（Chrome・Edge 129）そのもの。
+- GitHub 上での Check・Release ワークフローの実行。
 
-開発・リリース手順の検証結果は [verification.md](verification.md) を参照してください。
+検証の結果は [verification.md](verification.md) を参照してください。

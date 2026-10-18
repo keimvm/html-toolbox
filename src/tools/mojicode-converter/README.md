@@ -4,7 +4,7 @@
 
 ## 使い方
 
-1. toolbox の `index.html` を Chrome または Edge で開き（[使い始める](../../README.md#使い始める)）、一覧から「文字コード変換」を選びます。
+1. toolbox の `index.html` を Chrome または Edge で開き（[使い始める](../../../README.md#使い始める)）、ホームから「文字コード変換」を選びます。ホームに文字を貼り付けて「文字コードを調べる」を選んでも始められます。
 2. 「文字」の欄に文字や短い文章を打つか貼り付けます。Unicode の番号・UTF-8・UTF-16・Shift_JIS の欄と、大きな表示がすぐ変わります。
 3. コードの値から文字を調べるときは、どれかのコード欄を書き換えます（例：Shift_JIS の欄に `82 A0`）。文字とほかの欄が変わります。
 4. 「大きく表示」で形を確かめます。フォントを変えるときは、フォント名を入力するか、「PCのフォントを一覧にする」を押して一覧から選びます。
@@ -41,23 +41,15 @@ API は Windows・macOS のデスクトップ版 Chrome・Edge に対応して�
 
 ## 開発する
 
-`tools/mojicode-converter/` で実行します。
+開発サーバー・コマンドは [共通の開発・リリース手順](../../../docs/development.md#開発する) に従います。ツールを直接開くには `#/mojicode-converter` を付けます。
 
-```sh
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-`pnpm dev` で開発サーバー（<http://127.0.0.1:5174/>）が開きます。`pnpm build` は型検査のあと `dist/文字コード変換.html` を1ファイルで作ります。Node.js・pnpm の版、`test`・`test:dist`・`check` などのスクリプトの役割、リポジトリ直下からのテスト・検証は [共通の開発・リリース手順](../../docs/development.md#コマンド) に従います。
-
-### ファイル配置
-
-| 場所                                         | 内容                                                                                                                    |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `src/sjis.ts`                                | Shift_JIS（CP932）の表。`TextDecoder('shift_jis')` で全コードを読み、逆引きと代表の選び方もここで決める                 |
-| `src/codec.ts`                               | 各欄の読み取りと表示（U+番号・UTF-8・UTF-16・Shift_JIS）                                                                |
-| `src/fonts.ts`                               | フォントの一覧（Local Font Access API）と `font-family` の値                                                            |
-| `src/main.ts`・`src/style.css`・`index.html` | 画面                                                                                                                    |
-| `tests/fixtures/`                            | テスト用の Microsoft の CP932 対応表（配布物に入れない）。入手元は [tests/fixtures/README.md](tests/fixtures/README.md) |
+| 場所 | 内容 |
+| --- | --- |
+| `sjis.ts` | Shift_JIS（CP932）の表。`TextDecoder('shift_jis')` で全コードを読み、逆引きと代表の選び方もここで決める |
+| `codec.ts`・`result.ts` | 各欄の読み取りと表示（U+番号・UTF-8・UTF-16・Shift_JIS）、読み取りの結果の形 |
+| `fonts.ts` | フォントの一覧（Local Font Access API）と `font-family` の値 |
+| `index.tsx`・`style.css` | ツールの定義（受け取れるもの・状態）と画面 |
+| `codec.test.ts`・`sjis.test.ts`・`cp932.test-support.ts` | 各欄の読み書きと、CP932 の全件の突き合わせ |
+| `fixtures/` | テスト用の Microsoft の CP932 対応表（配布物に入れない）。入手元は [fixtures/README.md](fixtures/README.md) |
 
 要件は [docs/software-requirements.md](docs/software-requirements.md)、技術構成は [docs/software-stack.md](docs/software-stack.md)、検証結果は [docs/verification.md](docs/verification.md) を参照してください。

@@ -1,10 +1,10 @@
 # プロンプト集の作業ガイド
 
-直下の [AGENTS.md](../../AGENTS.md) に加える、このツール固有の約束です。最初に [README](README.md)、[要件](docs/software-requirements.md)、[技術構成](docs/software-stack.md)、[検証記録](docs/verification.md) を読む。
+直下の [AGENTS.md](../../../AGENTS.md) に加える、このツール固有の約束です。最初に [README](README.md)、[要件](docs/software-requirements.md)、[技術構成](docs/software-stack.md)、[検証記録](docs/verification.md) を読む。
 
 - プロンプトの正本は、利用者が選んだフォルダの `prompt-library.json`。ブラウザー内（IndexedDB・localStorage）にはフォルダの記録だけを置き、プロンプトの本文を入れない。
 - 追加・編集・削除は確定した時点で書き込む。画面全体の保存ボタンや下書きの保持を追加しない。書き込みは `changeLibrary()` で直前に読み直した内容に当て、ほかのタブの変更を消さない。
 - 読めない保存ファイルは推測で直したり上書きしたりしない。保存ファイルの形を変えるときは `LIBRARY_VERSION` を上げ、古い形の読み込みと新しい版の拒否をテストで確かめる。
-- フォルダの記録は、版（解凍先のフォルダ）をまたいで読めるよう固定のキーで持つ。`ui/session-key.js` の配置 URL を使わない。IndexedDB の読み書きは `ui/idb-record.js` を使う。
-- 配布物は `dist/プロンプト集.html` の1ファイル。プロンプトを外部へ送信しない。
+- フォルダの記録は、版（解凍先のフォルダ）をまたいで読めるよう固定のキーで持つ。配置 URL をキーにしない。IndexedDB の読み書きは `src/lib/idb.ts` を使う。
+- プロンプトを外部へ送信しない。ホームから受け取った文章・フォルダは、利用者が選んだ操作としてだけ扱う（文章は編集画面に入れるだけで、保存は利用者が確定する）。
 - 自動テストはファイル API を模擬しているため、実フォルダ・`file://`・許可・コピーの確認は [検証記録](docs/verification.md) に分けて記録する。
