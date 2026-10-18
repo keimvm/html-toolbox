@@ -1,14 +1,18 @@
-/* 画像変換の画面配置。配色・部品は ui/theme.css の --tb-* とクラスを使う。 */
+/*
+ * 画像変換の画面配置。配色・部品は ui/theme.css の --tb-* とクラスを使う。
+ * 左に画像の列（.ic-rail）、中央に編集（.ic-editor）、右に仕上がり（.ic-panel）を並べる。
+ * 書き込みの色（赤・黄など）は画像に描く色そのもので、画面の配色に合わせて変えない。
+ */
 .ic {
   /* 透過の部分が分かるよう、市松模様の上に画像を置く。 */
   --ic-checker: repeating-conic-gradient(var(--tb-tint) 0 25%, var(--tb-surface) 0 50%) 0 0 / 16px
     16px;
   height: 100%;
-  overflow: auto;
+  min-height: 0;
 }
-.ic-detail {
-  --ic-checker: repeating-conic-gradient(var(--tb-tint) 0 25%, var(--tb-surface) 0 50%) 0 0 / 16px
-    16px;
+.ic-empty {
+  height: 100%;
+  overflow: auto;
 }
 .ic-muted {
   color: var(--tb-muted);
@@ -18,14 +22,41 @@
   font-weight: 600;
 }
 .ic-notice {
+  margin-top: 12px;
   padding: 8px 14px;
   border-radius: var(--tb-radius);
   background: var(--tb-gold-tint);
   color: var(--tb-ink);
   font-size: 13px;
 }
-.ic .tb-empty .ic-notice {
-  margin-top: 12px;
+
+/* ── ヘッダー ── */
+.ic-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--tb-muted);
+  font-size: 13px;
+}
+.ic-current .tb-icon {
+  color: var(--tb-gold);
+}
+.ic-current-name {
+  overflow: hidden;
+  color: var(--tb-ink);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ic-current-position {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (max-width: 1080px) {
+  .ic-current {
+    display: none;
+  }
 }
 @media (max-width: 640px) {
   .ic-header-add {
@@ -33,359 +64,443 @@
   }
 }
 
-.ic-work {
+/* ── 作業の画面 ── */
+.ic-bench {
   display: grid;
-  gap: 14px;
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 20px 22px 56px;
+  grid-template-columns: 152px minmax(0, 1fr) 300px;
+  height: 100%;
+  min-height: 0;
 }
-@media (max-width: 720px) {
-  .ic-work {
-    padding: 14px 12px 56px;
+@media (max-width: 1180px) {
+  .ic-bench {
+    grid-template-columns: 132px minmax(0, 1fr) 272px;
   }
 }
 
-/* ── 全体の設定 ── */
-.ic-settings {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 12px 26px;
-  padding: 14px 18px;
-  border: 1px solid var(--tb-line);
-  border-radius: var(--tb-radius-large);
-  background: var(--tb-surface);
-}
-.ic-settings-note {
-  flex: 1 1 260px;
-  color: var(--tb-faint);
-  font-size: 12px;
-  line-height: 1.6;
-}
-.ic-field {
+/* ── 画像の列 ── */
+.ic-rail {
   display: grid;
-  gap: 5px;
-  min-width: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  border-right: 1px solid var(--tb-line);
+  background: var(--tb-subtle);
 }
-.ic-field > span:first-child {
-  color: var(--tb-muted);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-.ic-with-unit {
+.ic-rail-head {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--tb-muted);
-  font-size: 13px;
-}
-.ic-number {
-  width: 110px;
-}
-.ic-check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-}
-
-/* ── 一覧の上の集計と操作 ── */
-.ic-bar {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px 16px;
-}
-.ic-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 14px;
-  font-size: 13.5px;
-  font-variant-numeric: tabular-nums;
-}
-.ic-summary strong {
+  padding: 12px 14px 6px;
+  color: var(--tb-muted);
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.08em;
 }
-.ic-summary > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.ic-rail-count {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--tb-tint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
-.ic-bar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* ── 画像の一覧 ── */
-.ic-list {
+.ic-rail-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
-  gap: 14px;
+  align-content: start;
+  gap: 4px;
+  min-height: 0;
   margin: 0;
-  padding: 0;
+  padding: 4px 10px 14px;
+  overflow: auto;
   list-style: none;
 }
-.ic-item {
+.ic-rail-item,
+.ic-rail-add-item {
+  position: relative;
+}
+.ic-rail-item[data-drop-target]::before,
+.ic-rail-add-item[data-drop-target]::before {
+  content: '';
+  position: absolute;
+  inset: -3px 4px auto;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--tb-gold);
+}
+.ic-rail-thumb {
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  overflow: hidden;
-  border: 1px solid var(--tb-line);
-  border-radius: var(--tb-radius-large);
-  background: var(--tb-surface);
+  gap: 3px;
+  width: 100%;
+  padding: 6px 6px 5px;
+  border: 1px solid transparent;
+  border-radius: var(--tb-radius);
+  background: transparent;
+  color: var(--tb-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   transition:
-    border-color var(--tb-transition),
-    box-shadow 240ms var(--tb-ease);
+    background-color var(--tb-transition),
+    border-color var(--tb-transition);
 }
-.ic-item:hover {
-  box-shadow: var(--tb-elevation);
+.ic-rail-thumb:hover {
+  background: var(--tb-tint);
 }
-.ic-item[data-over] {
-  border-color: var(--tb-warning-line);
-  box-shadow: 0 0 0 1px var(--tb-warning-line);
+.ic-rail-thumb[aria-current='true'] {
+  border-color: color-mix(in srgb, var(--tb-gold) 55%, var(--tb-line));
+  background: var(--tb-gold-tint);
+  color: var(--tb-ink);
 }
-.ic-thumb {
+.ic-rail-image {
   position: relative;
   display: grid;
   place-items: center;
   aspect-ratio: 4 / 3;
-  padding: 0;
-  border: 0;
-  border-bottom: 1px solid var(--tb-line);
+  overflow: hidden;
+  border-radius: 4px;
   background: var(--ic-checker);
-  color: var(--tb-muted);
-  cursor: zoom-in;
+  box-shadow: 0 0 0 1px var(--tb-line);
 }
-.ic-thumb:disabled {
-  cursor: default;
-}
-.ic-thumb img {
+.ic-rail-image img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   transition: opacity 200ms ease;
 }
-.ic-item[data-pending] .ic-thumb img {
-  opacity: 0.45;
+.ic-rail-item[data-pending] .ic-rail-image img {
+  opacity: 0.5;
 }
-.ic-thumb-spinner {
+.ic-rail-image > .tb-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--tb-faint);
+}
+.ic-rail-item[data-over] .ic-rail-image {
+  box-shadow: 0 0 0 2px var(--tb-warning-line);
+}
+.ic-rail-spinner {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
+  right: 6px;
+  bottom: 6px;
 }
-.ic-thumb-icon {
+.ic-rail-name {
+  overflow: hidden;
+  color: var(--tb-ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ic-rail-size {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 5px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+.ic-rail-item[data-error] .ic-rail-size {
+  color: var(--tb-danger);
+}
+.ic-rail-flag {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--tb-warning-tint);
+  color: var(--tb-warning);
+  font-size: 11px;
+  font-weight: 600;
+}
+.ic-rail-saved {
+  width: 14px;
+  height: 14px;
+  color: var(--tb-success);
+}
+.ic-rail-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: var(--tb-surface);
+  color: var(--tb-muted);
+  box-shadow: 0 1px 3px var(--tb-shadow);
+  opacity: 0;
+  transition: opacity var(--tb-transition);
+}
+.ic-rail-item:hover .ic-rail-remove,
+.ic-rail-remove:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .ic-rail-remove {
+    opacity: 1;
+  }
+}
+.ic-rail-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+  border: 1.5px dashed var(--tb-line-strong);
+  border-radius: var(--tb-radius);
+  background: transparent;
+  color: var(--tb-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    border-color var(--tb-transition),
+    color var(--tb-transition),
+    background-color var(--tb-transition);
+}
+.ic-rail-add:hover {
+  border-color: var(--tb-gold);
+  background: var(--tb-surface);
+  color: var(--tb-ink);
+}
+.ic-rail-foot {
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--tb-line);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+.ic-rail-total strong {
+  font-weight: 600;
+}
+.ic-rail-total .ic-muted {
+  display: block;
+  font-size: 11px;
+}
+.ic-rail-notice {
+  color: var(--tb-ink);
+  overflow-wrap: anywhere;
+}
+.ic-rail-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── 編集 ── */
+.ic-editor {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  background: var(--tb-bg);
+}
+.ic-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 4px;
+  min-height: 52px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--tb-line);
+  background: var(--tb-surface);
+}
+.ic-tool-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+.ic-tool-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--tb-line);
+}
+.ic-tool-end {
+  margin-left: auto;
+}
+/* 使っている道具は、主色で塗ってはっきり示す。 */
+.ic-tool[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--tb-accent);
+  color: var(--tb-on-accent);
+}
+.ic-tool[aria-pressed='true']:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--tb-accent) 88%, var(--tb-ink));
+}
+.ic-swatch {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ic-swatch);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.2);
+  cursor: pointer;
+  transition:
+    transform var(--tb-transition),
+    box-shadow var(--tb-transition),
+    opacity var(--tb-transition);
+}
+.ic-swatch:hover:not(:disabled) {
+  transform: scale(1.12);
+}
+.ic-swatch[aria-pressed='true'] {
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.2),
+    0 0 0 2px var(--tb-surface),
+    0 0 0 4px var(--tb-gold);
+}
+.ic-swatch:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+.ic-size {
+  --tb-control-height: 32px;
+  width: 32px;
+  padding: 0;
+}
+.ic-size-dot {
+  display: block;
+  border-radius: 50%;
+  background: currentColor;
+}
+.ic-size-dot[data-size='s'] {
+  width: 5px;
+  height: 5px;
+}
+.ic-size-dot[data-size='m'] {
+  width: 9px;
+  height: 9px;
+}
+.ic-size-dot[data-size='l'] {
+  width: 14px;
+  height: 14px;
+}
+.ic-hintbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-height: 38px;
+  padding: 5px 14px;
+  border-bottom: 1px solid var(--tb-line);
+  background: var(--tb-subtle);
+}
+.ic-hint {
+  flex: 1 1 260px;
+  color: var(--tb-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.ic-stage {
+  position: relative;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.ic-stage > * {
+  grid-area: 1 / 1;
+}
+.ic-stage-spinner {
+  place-self: center;
+}
+.ic-stage-message {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  place-self: center;
+  max-width: 28em;
+  padding: 24px;
+  color: var(--tb-muted);
+  font-size: 14px;
+  text-align: center;
+}
+.ic-stage-message .tb-icon {
   width: 32px;
   height: 32px;
   color: var(--tb-faint);
 }
-.ic-item-body {
-  display: grid;
-  align-content: start;
-  gap: 2px;
-  min-width: 0;
-  padding: 10px 14px 4px;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.ic-item-name {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ic-item-line {
-  color: var(--tb-muted);
-}
-.ic-item-result {
-  color: var(--tb-ink);
-}
-.ic-item[data-pending] .ic-item-result {
-  color: var(--tb-muted);
-}
-.ic-item[data-over] .ic-item-result {
-  color: var(--tb-warning);
-  font-weight: 600;
-}
-.ic-item[data-error] .ic-item-result {
-  color: var(--tb-danger);
-}
-.ic-item-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
-}
-.ic-item-badges:empty {
-  display: none;
-}
-.ic-item-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 10px 10px 14px;
-}
-.ic-remove {
-  margin-left: auto;
-  color: var(--tb-muted);
-}
 
-/* ── 個別の画面。画面いっぱいに広げ、左に画像、右に設定を置く。 ── */
-.tb-dialog.ic-detail {
-  width: calc(100vw - 24px);
-  max-width: none;
-  height: calc(100dvh - 24px);
-  max-height: none;
-  padding: 14px 18px 18px;
-}
-.ic-detail[open] {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 12px;
-}
-.ic-detail-head {
+/* 画像の枠。キャンバスと範囲の暗い外側は枠の中だけに出し、つまみ・文字の欄は枠の外にはみ出してよい。 */
+.ic-canvas {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 14px;
-}
-.ic-detail-head h2 {
-  overflow: hidden;
-  min-width: 0;
-  font: 500 19px/1.4 var(--tb-font-display);
-  letter-spacing: 0.03em;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ic-position {
-  color: var(--tb-muted);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-.ic-detail-nav {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-}
-.ic-detail-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 18px;
-  min-height: 0;
-}
-.ic-stage {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 8px;
-  min-width: 0;
-  min-height: 0;
-}
-.ic-stage-tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-}
-.ic-hint {
-  color: var(--tb-muted);
-  font-size: 12px;
-}
-.ic-compare {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  min-height: 0;
-}
-.ic-pane {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--tb-line);
-  border-radius: var(--tb-radius);
 }
-.ic-pane figcaption {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-bottom: 1px solid var(--tb-line);
-  color: var(--tb-muted);
-  background: var(--tb-surface);
-  font-size: 12px;
-}
-.ic-scroll {
-  display: flex;
-  min-height: 0;
-  overflow: auto;
-  background: var(--ic-checker);
-}
-/* はみ出したときも左上から見られるよう、中央寄せは margin で行う。 */
-.ic-view {
-  flex: none;
-  display: block;
-  max-width: none;
-  margin: auto;
-}
-.ic-compare[data-busy] .ic-after {
-  opacity: 0.45;
-}
-.ic-edit {
-  display: flex;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid var(--tb-line);
-  border-radius: var(--tb-radius);
-  background: var(--ic-checker);
-}
-.ic-edit-frame {
+.ic-frame {
   position: relative;
   flex: none;
   margin: auto;
-  overflow: hidden;
+  background: var(--ic-checker);
+  box-shadow: var(--tb-elevation);
   cursor: crosshair;
   touch-action: none;
   user-select: none;
 }
-.ic-edit-frame:focus {
+.ic-frame[data-tool='select'] {
+  cursor: default;
+}
+.ic-frame[data-tool='text'] {
+  cursor: text;
+}
+.ic-frame:focus {
   outline: none;
 }
-.ic-edit-canvas {
-  display: block;
+.ic-frame-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* 蛍光ペンの色の掛け合わせを、画像のキャンバスとの間だけにする。 */
+  isolation: isolate;
+}
+.ic-layer {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   max-width: none;
 }
-.ic-crop-box,
-.ic-draft {
+.ic-tint {
+  mix-blend-mode: multiply;
+}
+/* 切り抜く範囲の外側を暗くする。 */
+.ic-crop-shade {
+  position: absolute;
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.55);
+  pointer-events: none;
+}
+/* 切り抜く範囲の枠。三分割の補助線を薄く引く。 */
+.ic-crop-box {
+  position: absolute;
+  outline: 2px solid var(--tb-gold);
+  pointer-events: none;
+}
+.ic-crop-box::before,
+.ic-crop-box::after {
+  content: '';
   position: absolute;
   pointer-events: none;
 }
-.ic-crop-box:not([data-show]),
-.ic-draft:not([data-show]) {
-  display: none;
+.ic-crop-box::before {
+  inset: 0 33.33%;
+  border-inline: 1px solid rgb(255 255 255 / 0.35);
 }
-/* 切り抜きの外側を暗くする。 */
-.ic-crop-box {
-  outline: 2px solid var(--tb-gold);
-  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.5);
-}
-.ic-draft {
-  border: 2px dashed var(--tb-gold);
-}
-[data-mode='redact'] .ic-draft {
-  background: rgb(0 0 0 / 0.6);
+.ic-crop-box::after {
+  inset: 33.33% 0;
+  border-block: 1px solid rgb(255 255 255 / 0.35);
 }
 /*
  * 囲んだ範囲の大きさと縦横比。範囲の外（上・下）に置き、画像の色に関係なく読めるようにする。
- * 置く側は data-side・data-align で detail.tsx が決める。
+ * 置く側は data-side・data-align で editor.tsx が決める。
  */
 .ic-box-label {
   position: absolute;
+  z-index: 1;
   bottom: calc(100% + 6px);
   left: -2px;
   padding: 2px 6px;
@@ -414,59 +529,346 @@
   right: 4px;
   left: auto;
 }
-.ic-box-label:empty,
-[data-mode='redact'] .ic-box-label {
-  display: none;
+/* 選んだ書き込みの枠と、大きさを変えるつまみ。 */
+.ic-selection {
+  position: absolute;
+  outline: 1.5px dashed var(--tb-gold);
+  outline-offset: 4px;
+  pointer-events: none;
 }
-.ic-side {
+.ic-selection[data-round] {
+  border-radius: 50%;
+}
+.ic-handle {
+  position: absolute;
+  z-index: 2;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--tb-gold);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  touch-action: none;
+  cursor: move;
+}
+.ic-handle[data-handle='nw'],
+.ic-handle[data-handle='se'] {
+  cursor: nwse-resize;
+}
+.ic-handle[data-handle='ne'],
+.ic-handle[data-handle='sw'] {
+  cursor: nesw-resize;
+}
+@media (pointer: coarse) {
+  .ic-handle {
+    width: 24px;
+    height: 24px;
+  }
+}
+/* 書いている途中の文字。保存する画像と同じ書体・大きさ・縁取りで出す。 */
+.ic-text-input {
+  position: absolute;
+  z-index: 3;
+  min-width: 1em;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  outline: 1.5px dashed var(--tb-gold);
+  outline-offset: 4px;
+  background: transparent;
+  resize: none;
+  white-space: pre;
+  field-sizing: content;
+  /* 画像の枠ではドラッグで文字を選ばないようにしているが、書く欄では選べるようにする。 */
+  user-select: text;
+  text-shadow:
+    0.07em 0 0 var(--ic-halo),
+    -0.07em 0 0 var(--ic-halo),
+    0 0.07em 0 var(--ic-halo),
+    0 -0.07em 0 var(--ic-halo),
+    0.05em 0.05em 0 var(--ic-halo),
+    -0.05em -0.05em 0 var(--ic-halo),
+    0.05em -0.05em 0 var(--ic-halo),
+    -0.05em 0.05em 0 var(--ic-halo);
+}
+
+/* ── 見比べ：保存する画像の上に元の画像を重ね、境目より右を切り取る。 ── */
+.ic-compare {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}
+.ic-compare-scroll {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  min-width: 0;
   min-height: 0;
   overflow: auto;
 }
-.ic-stats {
+/* はみ出したときも左上から見られるよう、中央寄せは margin で行う。 */
+.ic-compare-inner {
+  position: relative;
+  flex: none;
+  margin: auto;
+  background: var(--ic-checker);
+  box-shadow: var(--tb-elevation);
+}
+.ic-compare-after,
+.ic-compare-before {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+}
+.ic-compare-inner[data-pending] .ic-compare-after {
+  opacity: 0.45;
+}
+.ic-compare-label {
+  position: absolute;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.62);
+  color: #fff;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+.ic-compare-label[data-side='before'] {
+  left: 12px;
+}
+.ic-compare-label[data-side='after'] {
+  right: 12px;
+}
+.ic-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25);
+  cursor: ew-resize;
+}
+.ic-divider:focus-visible {
+  outline: 2px solid var(--tb-focus);
+  outline-offset: 3px;
+}
+.ic-divider-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   display: grid;
-  gap: 4px;
-  padding: 12px 14px;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--tb-raised);
+  color: var(--tb-ink);
+  box-shadow: var(--tb-elevation);
+  transform: translate(-50%, -50%);
+}
+
+/* ── 仕上がりのパネル ── */
+.ic-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  border-left: 1px solid var(--tb-line);
+  background: var(--tb-surface);
+}
+.ic-section {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px 18px;
+  border-bottom: 1px solid var(--tb-line);
+}
+.ic-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tb-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.ic-section-title::before {
+  content: '';
+  width: 14px;
+  height: 1px;
+  background: var(--tb-gold);
+}
+.ic-conditions {
+  display: grid;
+  gap: 12px;
+}
+.ic-condition-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.ic-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.ic-field > span:first-child {
+  color: var(--tb-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.ic-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--tb-muted);
+  font-size: 13px;
+}
+.ic-number {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+.ic-own-body .ic-number {
+  flex: none;
+  width: 110px;
+}
+.ic-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.ic-note {
+  color: var(--tb-faint);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+.ic-gauge {
+  display: grid;
+  gap: 6px;
+}
+.ic-gauge-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.ic-gauge-size {
+  font: 500 26px/1.2 var(--tb-font-display);
+  letter-spacing: 0.01em;
+}
+.ic-gauge-limit {
+  color: var(--tb-muted);
+  font-size: 13px;
+}
+.ic-gauge-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--tb-tint);
+}
+.ic-gauge-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tb-success);
+  transition: width 320ms var(--tb-ease-out);
+}
+.ic-gauge[data-over] .ic-gauge-bar > span {
+  background: var(--tb-warning);
+}
+.ic-gauge[data-over] .ic-gauge-size,
+.ic-gauge[data-over] .ic-gauge-note {
+  color: var(--tb-warning);
+}
+.ic-gauge[data-pending] .ic-gauge-size,
+.ic-gauge[data-pending] .ic-gauge-bar {
+  opacity: 0.5;
+}
+.ic-gauge-note {
+  color: var(--tb-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.ic-gauge-error {
+  color: var(--tb-danger);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.ic-facts {
+  display: grid;
+  gap: 3px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.ic-facts > div {
+  display: grid;
+  grid-template-columns: 5em minmax(0, 1fr);
+  gap: 8px;
+}
+.ic-facts dt {
+  color: var(--tb-muted);
+}
+.ic-facts dd {
+  margin: 0;
+}
+.ic-own {
   border: 1px solid var(--tb-line);
   border-radius: var(--tb-radius);
   background: var(--tb-subtle);
+}
+.ic-own > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
   font-size: 13px;
-  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  list-style: none;
 }
-.ic-stat {
+.ic-own > summary::-webkit-details-marker {
+  display: none;
+}
+.ic-own > summary::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-right: 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--tb-transition);
+}
+.ic-own[open] > summary::before {
+  transform: rotate(45deg);
+}
+.ic-own-body {
   display: grid;
-  grid-template-columns: 4.5em minmax(0, 1fr);
-  gap: 10px;
+  gap: 12px;
+  padding: 4px 12px 12px;
 }
-.ic-stat dt {
-  color: var(--tb-muted);
-}
-.ic-stat dd {
-  margin: 0;
-}
-.ic-stat[data-warning] dd {
-  color: var(--tb-warning);
-  font-weight: 600;
-}
-.ic-side-section {
-  display: grid;
-  gap: 10px;
-}
-.ic-side-section h3 {
-  color: var(--tb-muted);
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-}
-.ic-side-section .tb-input {
+.ic-own-body select.tb-input {
   width: 100%;
 }
-.ic-side-section .ic-number {
-  width: 110px;
-}
-.ic-side-section input[type='range'] {
+.ic-own-body input[type='range'] {
   flex: 1;
 }
 .ic-quality {
@@ -475,26 +877,55 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.ic-buttons {
+/* コピー・保存はパネルの下に止めて、いつでも押せるようにする。右下の版番号に重ならないよう下を空ける。 */
+.ic-panel-actions {
+  position: sticky;
+  bottom: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-.ic-save-current {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
   margin-top: auto;
+  padding: 12px 18px 24px;
+  border-top: 1px solid var(--tb-line);
+  background: color-mix(in srgb, var(--tb-surface) 92%, transparent);
+  backdrop-filter: blur(8px);
 }
-@media (max-width: 860px) {
-  .ic-detail-body {
+
+/* ── 狭い画面：画像の列を上に横並びにし、仕上がりは編集の下に重ねる。 ── */
+@media (max-width: 900px) {
+  .ic-bench {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(320px, 1fr) auto;
+    grid-template-rows: auto minmax(420px, 72dvh) auto;
     overflow: auto;
   }
-  .ic-compare {
-    grid-template-columns: minmax(0, 1fr);
-    grid-auto-rows: minmax(150px, 1fr);
+  .ic-rail {
+    grid-template-rows: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--tb-line);
   }
-  .ic-side {
+  .ic-rail-head,
+  .ic-rail-foot {
+    display: none;
+  }
+  .ic-rail-list {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px 10px;
+  }
+  .ic-rail-item,
+  .ic-rail-add-item {
+    flex: none;
+    width: 108px;
+  }
+  .ic-rail-add {
+    height: 100%;
+    margin-top: 0;
+  }
+  .ic-panel {
     overflow: visible;
+    border-top: 1px solid var(--tb-line);
+    border-left: 0;
   }
 }
 

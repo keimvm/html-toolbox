@@ -1,25 +1,34 @@
-// 全体の設定と、個別の画面で変えた設定。容量・大きさの表示（formatBytes・baseName）は src/lib/format.ts。
+// 全体の設定と、画像ごとに変えた設定（「この画像だけ変える」）。容量・大きさの表示（formatBytes・baseName）は src/lib/format.ts。
+/** 書き出す形式。 */
 export type Format = 'jpeg' | 'png';
+/** 設定で選ぶ形式。auto は画像ごとに、PNG でも JPEG と同じくらいに収まる画像（スクリーンショット・図）を PNG、写真を JPEG にする。 */
+export type FormatChoice = 'auto' | Format;
+
+export const FORMAT_LABELS: Record<FormatChoice, string> = {
+  auto: '自動',
+  jpeg: 'JPEG',
+  png: 'PNG',
+};
 
 /** 全画像に当てる設定。 */
 export interface GlobalSettings {
-  format: Format;
+  format: FormatChoice;
   /** 1枚あたりの容量の上限（バイト）。null は上限なし。 */
   limit: number | null;
   /** 長い辺の画素数の上限。null は元のまま。 */
   longSide: number | null;
 }
 
-/** 個別の画面で変えた設定。書いていない項目は全体の設定に従う。 */
+/** 画像ごとに変えた設定。書いていない項目は全体の設定に従う。 */
 export interface Overrides {
-  format?: Format;
-  /** 手で決めた JPEG の画質（1〜100）。書いていなければ自動。 */
+  format?: FormatChoice;
+  /** 手で決めた JPEG の画質（1〜100）。書いていなければ自動。決めると JPEG で書き出す。 */
   quality?: number;
   longSide?: number;
 }
 
 export interface Effective extends GlobalSettings {
-  /** 手で決めた画質。null は自動（上限に合わせる）。 */
+  /** 手で決めた画質。null は自動（上限に合わせる）。形式が自動でも、画質を決めたら JPEG にする。 */
   quality: number | null;
 }
 
@@ -28,7 +37,7 @@ export const MIN_QUALITY = 30;
 export const MAX_QUALITY = 90;
 
 export const defaultSettings = (): GlobalSettings => ({
-  format: 'jpeg',
+  format: 'auto',
   limit: 1_000_000,
   longSide: 1920,
 });

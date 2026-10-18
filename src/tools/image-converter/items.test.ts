@@ -23,6 +23,7 @@ test('変換中に設定を変えた直後に古い変換が失敗しても、�
     width: 40,
     height: 30,
     format: 'jpeg',
+    auto: false,
     quality: 80,
     fits: null,
     thumbnail: new Blob(['thumbnail']),
@@ -32,4 +33,17 @@ test('変換中に設定を変えた直後に古い変換が失敗しても、�
   expect(item.error).toBeNull();
   expect(item.result).toBe(result);
   expect(isPending(item)).toBe(false);
+});
+
+test('一覧の中で画像を動かすと、PDF にまとめる順もその順になる', () => {
+  const store = createItems();
+  const [a, b, c] = ['a', 'b', 'c'].map((name) =>
+    store.add(new Blob([name]), `${name}.png`, `${name}.png`, name),
+  );
+  store.move(c!, 0);
+  expect(store.items.value).toEqual([c, a, b]);
+  store.move(c!, 5);
+  expect(store.items.value).toEqual([a, b, c]);
+  store.move(a!, 1);
+  expect(store.items.value).toEqual([b, a, c]);
 });

@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
-import { fitQuality } from './fit';
+import { fitQuality, preferPng } from './fit';
 import { baseName, formatBytes } from '../../lib/format';
-import { effective, parseLimit, parseLongSide } from './settings';
+import { defaultSettings, effective, parseLimit, parseLongSide } from './settings';
 
 test('上限は 1 KB = 1,000 バイトで数え、空・0以下・数でないものは上限なしにする', () => {
   expect(parseLimit('1', 'MB')).toBe(1_000_000);
@@ -20,9 +20,13 @@ test('長い辺は整数の画素数にし、空・1未満は元のままにす�
   expect(parseLongSide('0')).toBeNull();
 });
 
+test('最初の設定は、形式を自動・上限 1 MB・長い辺 1920 px にする', () => {
+  expect(defaultSettings()).toEqual({ format: 'auto', limit: 1_000_000, longSide: 1920 });
+});
+
 test('個別に変えた設定だけがその画像に効き、上限は全体の設定に従う', () => {
   const global = {
-    format: 'jpeg' as const,
+    format: 'auto' as const,
     limit: 1_000_000,
     longSide: 1920,
   };
@@ -86,4 +90,16 @@ test('最低の画質でも収まらなければ、最低の画質の結果に�
   const result = await fitQuality(encode, 10_000);
   expect(result).toMatchObject({ quality: 30, fits: false });
   expect(result.blob.size).toBe(30_000);
+});
+
+test('形式が自動のとき、PNG が上限に収まり、最高の画質の JPEG の 1.5 倍までなら PNG にする', () => {
+  // スクリーンショット：PNG の方が小さい。
+  expect(preferPng(200_000, 260_000, 1_000_000)).toBe(true);
+  // 図：PNG の方が少し大きいが、1.5 倍まで。
+  expect(preferPng(390_000, 260_000, 1_000_000)).toBe(true);
+  // 写真：PNG は JPEG の何倍にもなる。
+  expect(preferPng(2_400_000, 400_000, null)).toBe(false);
+  // PNG が上限を超えるなら、JPEG で上限に合わせる。
+  expect(preferPng(1_200_000, 1_100_000, 1_000_000)).toBe(false);
+  expect(preferPng(1_200_000, 1_100_000, null)).toBe(true);
 });

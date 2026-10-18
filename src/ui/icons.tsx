@@ -59,6 +59,14 @@ const paths = {
   layers:
     '<path d="m12 3.5 8.5 4.5L12 12.5 3.5 8Z"/><path d="m3.5 12 8.5 4.5 8.5-4.5M3.5 16l8.5 4.5 8.5-4.5"/>',
   crop: '<path d="M6.5 2.5v14a1 1 0 0 0 1 1h14"/><path d="M2.5 6.5h14a1 1 0 0 1 1 1v14"/>',
+  cursor: '<path d="M6 3.5v15l4-3.8 2.7 6 2.6-1.2-2.7-5.9H18Z"/>',
+  'arrow-mark': '<path d="M5 19 18 6"/><path d="M10 5.5h8.5V14"/>',
+  square: '<rect x="4" y="5.5" width="16" height="13" rx="1.5"/>',
+  circle: '<ellipse cx="12" cy="12" rx="8.5" ry="7.5"/>',
+  number: '<circle cx="12" cy="12" r="8.5"/><path d="M10.3 9.3 12.6 8v8.3"/>',
+  highlighter: '<path d="m14.8 4.2 5 5-7.3 7.3H7.5v-5Z"/><path d="m7.5 16.5-3 3h4.5M3.5 21h17"/>',
+  compare:
+    '<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M12 2.5v19M8.5 10l-2 2 2 2m7-4 2 2-2 2"/>',
   redact:
     '<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><rect x="7" y="9.5" width="10" height="5" fill="currentColor" stroke="none"/>',
   'zoom-in': '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7.5v6m-3-3h6"/>',

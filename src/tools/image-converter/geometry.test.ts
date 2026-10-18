@@ -10,10 +10,13 @@ import {
   resizeRect,
   rotatePoint,
   rotateRect,
+  snapAngle,
   sourcePoint,
+  squarePoint,
   turn,
   unrotatePoint,
   unrotateRect,
+  viewTransform,
   type Rotation,
 } from './geometry';
 
@@ -72,8 +75,8 @@ test('範囲は画素の境目まで外側へ広げ、画像の中に収め、�
 
 test('切り抜き・回転した後の大きさ', () => {
   const crop = { x: 0, y: 0, width: 20, height: 10 };
-  expect(editedSize(size, { rotation: 0, crop: null, redactions: [] })).toEqual(size);
-  expect(editedSize(size, { rotation: 90, crop, redactions: [] })).toEqual({
+  expect(editedSize(size, { rotation: 0, crop: null, marks: [] })).toEqual(size);
+  expect(editedSize(size, { rotation: 90, crop, marks: [] })).toEqual({
     width: 10,
     height: 20,
   });
@@ -82,14 +85,14 @@ test('切り抜き・回転した後の大きさ', () => {
 test('見比べで、切り抜き・回転した画像の点と元の画像の点を行き来できる', () => {
   const crop = { x: 10, y: 5, width: 20, height: 10 };
   // 切り抜いた範囲の左上は、右に90度回すと右上に来る。
-  expect(editedPoint([10, 5], size, { rotation: 90, crop, redactions: [] })).toEqual([10, 0]);
-  expect(sourcePoint([10, 0], size, { rotation: 90, crop, redactions: [] })).toEqual([10, 5]);
+  expect(editedPoint([10, 5], size, { rotation: 90, crop, marks: [] })).toEqual([10, 0]);
+  expect(sourcePoint([10, 0], size, { rotation: 90, crop, marks: [] })).toEqual([10, 5]);
   // 切り抜いた範囲の外の点は、切り抜いた画像の外の座標になる。
-  expect(editedPoint([0, 0], size, { rotation: 0, crop, redactions: [] })).toEqual([-10, -5]);
+  expect(editedPoint([0, 0], size, { rotation: 0, crop, marks: [] })).toEqual([-10, -5]);
   for (const rotation of rotations)
     for (const edits of [
-      { rotation, crop, redactions: [] },
-      { rotation, crop: null, redactions: [] },
+      { rotation, crop, marks: [] },
+      { rotation, crop: null, marks: [] },
     ])
       expect(sourcePoint(editedPoint([17, 9], size, edits), size, edits)).toEqual([17, 9]);
 });
@@ -154,4 +157,44 @@ test('縦横比は、正方形と小さな整数の比をそのまま、それ�
   // 1 px だけ違う範囲は正方形と書かず、比も 1:1 にしない。
   expect(formatRatio({ width: 801, height: 800 })).toBe('約 1.00:1');
   expect(formatRatio({ width: 1000, height: 1501 })).toBe('約 1:1.50');
+});
+
+test('編集の画面の座標と元の画像の座標を、切り抜く画面・切り抜いた画面のどちらでも行き来できる', () => {
+  const crop = { x: 10, y: 5, width: 20, height: 10 };
+  for (const rotation of rotations)
+    for (const edits of [
+      { rotation, crop, marks: [] },
+      { rotation, crop: null, marks: [] },
+    ])
+      for (const cropView of [true, false]) {
+        const view = viewTransform(size, edits, { crop: cropView, scale: 2.5 });
+        const [x, y] = view.fromView(view.toView([17, 9]));
+        expect(x).toBeCloseTo(17);
+        expect(y).toBeCloseTo(9);
+      }
+  // 切り抜く画面は回転だけを当てた画像、ほかは切り抜いた画像を表示する。
+  const edits = { rotation: 90 as const, crop, marks: [] };
+  expect(viewTransform(size, edits, { crop: true, scale: 1 }).size).toEqual({
+    width: 30,
+    height: 40,
+  });
+  expect(viewTransform(size, edits, { crop: false, scale: 2 }).size).toEqual({
+    width: 10,
+    height: 20,
+  });
+  // 切り抜いた範囲の左上は、右に90度回した切り抜いた画面の右上（2倍で表示）に来る。
+  expect(viewTransform(size, edits, { crop: false, scale: 2 }).toView([10, 5])).toEqual([20, 0]);
+});
+
+test('Shift を押しながらのドラッグは、正方形と 45° 刻みにそろえる', () => {
+  expect(squarePoint([10, 10], [30, 15])).toEqual([30, 30]);
+  expect(squarePoint([10, 10], [4, 40])).toEqual([-20, 40]);
+  // 動かしていない向きは、正の向きに広げる。
+  expect(squarePoint([10, 10], [10, 25])).toEqual([25, 25]);
+  const [x, y] = snapAngle([0, 0], [10, 1]);
+  expect(x).toBeCloseTo(Math.hypot(10, 1));
+  expect(y).toBeCloseTo(0);
+  const [dx, dy] = snapAngle([0, 0], [10, 9]);
+  expect(dx).toBeCloseTo(dy);
+  expect(Math.hypot(dx, dy)).toBeCloseTo(Math.hypot(10, 9));
 });

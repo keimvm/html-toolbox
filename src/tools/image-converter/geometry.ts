@@ -1,3 +1,5 @@
+import type { Mark } from './marks';
+
 /** 時計回りの回転（度）。 */
 export type Rotation = 0 | 90 | 180 | 270;
 export interface Size {
@@ -10,19 +12,22 @@ export interface Rect {
   width: number;
   height: number;
 }
-type Point = [x: number, y: number];
+export type Point = [x: number, y: number];
 
-/** 切り抜き・塗りつぶしは、向きを直した元の画像の画素の座標で持つ。回転は最後に当てる。 */
+/**
+ * 切り抜き・書き込み（矢印・枠・文字・番号・蛍光ペン・黒塗り）は、向きを直した元の画像の画素の座標で持つ。
+ * 回転は最後に当てる。書き込みは描いた順に重ねる（重ね方は marks.ts の paintOrder）。
+ */
 export interface Edits {
   rotation: Rotation;
   crop: Rect | null;
-  redactions: Rect[];
+  marks: Mark[];
 }
 
 export const noEdits = (): Edits => ({
   rotation: 0,
   crop: null,
-  redactions: [],
+  marks: [],
 });
 
 export const turn = (rotation: Rotation, quarter: 1 | -1) =>
@@ -72,6 +77,54 @@ export function editedPoint([x, y]: Point, source: Size, edits: Edits): Point {
   return rotatePoint([x - crop.x, y - crop.y], crop, edits.rotation);
 }
 
+/**
+ * 画面に表示している画像と、元の画像の座標の行き来。
+ * crop が真なら回転だけを当てた画像（切り抜く範囲を選ぶ画面）、偽なら切り抜き・回転した画像を、scale 倍で表示する。
+ */
+export interface ViewTransform {
+  /** 表示している画像の大きさ（元の画像の画素）。 */
+  size: Size;
+  /** 元の画像の 1 px が、画面の何 px か。 */
+  scale: number;
+  toView(point: Point): Point;
+  fromView(point: Point): Point;
+}
+
+export function viewTransform(
+  source: Size,
+  edits: Edits,
+  { crop, scale }: { crop: boolean; scale: number },
+): ViewTransform {
+  const zoom = ([x, y]: Point, by: number): Point => [x * by, y * by];
+  if (crop)
+    return {
+      size: rotatedSize(source, edits.rotation),
+      scale,
+      toView: (point) => zoom(rotatePoint(point, source, edits.rotation), scale),
+      fromView: (point) => unrotatePoint(zoom(point, 1 / scale), source, edits.rotation),
+    };
+  return {
+    size: editedSize(source, edits),
+    scale,
+    toView: (point) => zoom(editedPoint(point, source, edits), scale),
+    fromView: (point) => sourcePoint(zoom(point, 1 / scale), source, edits),
+  };
+}
+
+/** Shift を押しながら囲むとき：start を角にして、縦横の長い方にそろえた正方形の反対の角。 */
+export function squarePoint([x1, y1]: Point, [x2, y2]: Point): Point {
+  const side = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+  return [x1 + Math.sign(x2 - x1 || 1) * side, y1 + Math.sign(y2 - y1 || 1) * side];
+}
+
+/** Shift を押しながら線を引くとき：start から見た向きを 45° 刻みにそろえた点。長さは変えない。 */
+export function snapAngle([x1, y1]: Point, [x2, y2]: Point): Point {
+  const length = Math.hypot(x2 - x1, y2 - y1);
+  const step = Math.PI / 4;
+  const angle = Math.round(Math.atan2(y2 - y1, x2 - x1) / step) * step;
+  return [x1 + Math.cos(angle) * length, y1 + Math.sin(angle) * length];
+}
+
 /** 2点を対角とする長方形。 */
 export function between([x1, y1]: Point, [x2, y2]: Point): Rect {
   const x = Math.min(x1, x2),
@@ -79,7 +132,7 @@ export function between([x1, y1]: Point, [x2, y2]: Point): Rect {
   return { x, y, width: Math.abs(x2 - x1), height: Math.abs(y2 - y1) };
 }
 
-const corners = (rect: Rect): [Point, Point] => [
+export const corners = (rect: Rect): [Point, Point] => [
   [rect.x, rect.y],
   [rect.x + rect.width, rect.y + rect.height],
 ];
@@ -96,7 +149,7 @@ export function unrotateRect(rect: Rect, size: Size, rotation: Rotation) {
 
 /**
  * 画素の境目に合わせて外側へ広げ、画像の中に収める。
- * 塗りつぶしでは、範囲にかかる画素を残さないよう外側へ丸める。小さすぎる範囲は null。
+ * 黒塗りでは、範囲にかかる画素を残さないよう外側へ丸める。小さすぎる範囲は null。
  */
 export function pixelRect(rect: Rect, bounds: Size, minimum = 2): Rect | null {
   const left = Math.max(0, Math.floor(rect.x));

@@ -1,5 +1,16 @@
 import { MAX_QUALITY, MIN_QUALITY } from './settings';
 
+/**
+ * 形式が自動のとき、PNG を選ぶのは、PNG が最高の画質の JPEG のこの倍までに収まるとき。
+ * スクリーンショット・図・書き込みの文字は PNG でも小さくくっきり残り、写真は PNG だと JPEG の何倍にもなる。
+ */
+export const PNG_ALLOWANCE = 1.5;
+
+/** 形式が自動のとき PNG にするか。PNG が上限に収まり、最高の画質の JPEG（jpeg バイト）と比べて大きすぎないこと。 */
+export function preferPng(png: number, jpeg: number, limit: number | null) {
+  return (limit === null || png <= limit) && png <= jpeg * PNG_ALLOWANCE;
+}
+
 export interface Fitted {
   blob: Blob;
   /** 選んだ画質（1〜100）。 */

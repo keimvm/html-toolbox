@@ -5,6 +5,7 @@ import { downloadBlob } from '../../lib/download';
 import { errorText } from '../../lib/files';
 import { convert, decode, type Converted } from './convert';
 import { noEdits, type Edits, type Size } from './geometry';
+import { emptyHistory, type History } from './history';
 import {
   defaultSettings,
   effective,
@@ -25,7 +26,10 @@ export interface Item {
   outputBase: string;
   /** 向きを直した元の大きさ。読み込むまでは null。 */
   size: Size | null;
+  /** 回転・切り抜き・書き込み。取り消すと、写しに丸ごと置き換える。 */
   edits: Edits;
+  /** edits の取り消し・やり直し。 */
+  history: History;
   overrides: Overrides;
   /** 設定・編集を変えるたびに増やす。 */
   version: number;
@@ -153,6 +157,7 @@ export function createItems() {
         outputBase,
         size: null,
         edits: noEdits(),
+        history: emptyHistory(),
         overrides: {},
         version: 0,
         done: -1,
@@ -164,6 +169,13 @@ export function createItems() {
       items.value = [...items.value, item];
       schedule(item);
       return item;
+    },
+    /** ほかの画像の並びの中で、index 番目（0 が先頭）へ動かす。PDF にまとめるページの順になる。 */
+    move(item: Item, index: number) {
+      const others = items.value.filter((other) => other !== item);
+      if (others.length === items.value.length) return;
+      const at = Math.min(Math.max(0, index), others.length);
+      items.value = [...others.slice(0, at), item, ...others.slice(at)];
     },
     remove(item: Item) {
       items.value = items.value.filter((other) => other !== item);
