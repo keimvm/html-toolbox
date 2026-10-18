@@ -6,24 +6,31 @@ export const RELEASE_DELAY = 60_000;
 export function downloadBlob(
   blob: Blob,
   filename: string,
-  { signal }: { signal?: AbortSignal } = {},
+  {
+    signal,
+    window: win = globalThis.window,
+  }: {
+    signal?: AbortSignal;
+    /** テストで別の window（jsdom）を渡す。 */
+    window?: Window & typeof globalThis;
+  } = {},
 ) {
-  const url = URL.createObjectURL(blob);
+  const url = win.URL.createObjectURL(blob);
   let timer = 0;
   function release() {
-    clearTimeout(timer);
+    win.clearTimeout(timer);
     signal?.removeEventListener('abort', release);
-    URL.revokeObjectURL(url);
+    win.URL.revokeObjectURL(url);
   }
-  timer = window.setTimeout(release, RELEASE_DELAY);
+  timer = win.setTimeout(release, RELEASE_DELAY);
   // 画面を閉じるときなどに、待たずに解放できるようにする。
   signal?.addEventListener('abort', release, { once: true });
-  const link = document.createElement('a');
+  const link = win.document.createElement('a');
   link.href = url;
   link.download = filename;
   link.rel = 'noopener';
   link.hidden = true;
-  document.body.append(link);
+  win.document.body.append(link);
   try {
     link.click();
   } catch (error) {

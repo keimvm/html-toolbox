@@ -1,0 +1,843 @@
+/*
+ * ローカルノートの画面。配色・部品は ui/theme.css の --tb-* とクラスを使う。
+ * toolbox の1つの HTML に同居するため、ツールの外へ効かせない（.nh の中に閉じる）。
+ * 本文の体裁は document.css。画面では本文の配色を共通の配色へ置き換える。エクスポートには document.css だけを入れ、出力は常にライト。
+ * リンクの編集・添付を落とす位置の印・印刷する本文は rich-editor.js・export.js が body の直下に置くため、固有のクラス・id で指す。
+ */
+.nh {
+  /* 設定の「UIフォントサイズ」の倍率（display.js が :root に置く）。本文・ソース（--note-font-size）と案内画面の見出しには掛けない。 */
+  font-family: var(--ui-font-family, var(--tb-font));
+}
+.nh .markdown {
+  --bg: var(--tb-bg);
+  --paper: var(--tb-surface);
+  --ink: var(--tb-ink);
+  --muted: var(--tb-muted);
+  --line: var(--tb-line);
+  --red: var(--tb-danger);
+  --blue: var(--tb-link);
+  --completed-ink: var(--tb-muted);
+  --soft-bg: var(--tb-subtle);
+  --code-bg: var(--tb-bg);
+  --rule: color-mix(in srgb, var(--tb-muted) 50%, var(--tb-surface));
+  --quote-line: var(--rule);
+  --quote-ink: var(--tb-muted);
+  --table-head: var(--tb-bg);
+}
+
+/* 骨組み（markup.js）を包む要素は、配置に関わらせない。 */
+.nh .nh-body {
+  height: 100%;
+}
+.nh .nh-body > div {
+  display: contents;
+}
+
+/* ── 共通ヘッダーの中の、ノートの操作 ── */
+.nh .tb-header {
+  container: note-header / inline-size;
+  flex-wrap: nowrap;
+}
+.nh .tb-header-center {
+  gap: 4px;
+}
+.nh .tb-header-center > div,
+.nh .tb-header-end > div {
+  display: contents;
+}
+.nh .tb-button {
+  font-size: calc(13px * var(--ui-scale, 1));
+}
+.nh svg.icon {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.nh .icon-library {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.nh .folder-actions,
+.nh .note-heading,
+.nh .note-actions {
+  display: flex;
+  align-items: center;
+}
+.nh .folder-actions {
+  gap: 2px;
+  color: var(--tb-muted);
+}
+.nh .note-heading {
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+  padding-left: 6px;
+  border-left: 1px solid var(--tb-line);
+  margin-left: 4px;
+}
+.nh #sidebar-toggle {
+  flex: none;
+  width: 34px;
+  min-height: 34px;
+  padding: 6px;
+  color: var(--tb-muted);
+}
+.nh .note-location {
+  min-width: 0;
+  overflow: hidden;
+}
+.nh .note-location h2 {
+  overflow: hidden;
+  font-size: calc(14px * var(--ui-scale, 1));
+  font-weight: 600;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nh .note-actions {
+  flex: none;
+  gap: 4px;
+}
+.nh #save {
+  min-width: 60px;
+  min-height: 34px;
+  padding: 5px 14px;
+}
+.nh #save-status {
+  max-width: 112px;
+  margin-inline: 4px;
+  overflow: hidden;
+  color: var(--tb-muted);
+  font-size: calc(12px * var(--ui-scale, 1));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nh #save-status.dirty {
+  color: var(--tb-danger);
+}
+.nh .toolbar-button {
+  gap: 5px;
+  min-height: 34px;
+  padding: 5px 9px;
+  font-size: calc(12.5px * var(--ui-scale, 1));
+}
+.nh .note-actions:has(#format-panel:popover-open) #format-toggle,
+.nh .note-actions:has(#options-panel:popover-open) #options-toggle {
+  background: var(--tb-tint);
+}
+.nh .toolbar-button .menu-chevron {
+  width: 11px;
+  height: 11px;
+  transform: rotate(90deg);
+}
+.nh #options-toggle {
+  width: 34px;
+  font-size: calc(22px * var(--ui-scale, 1));
+  line-height: 1;
+}
+.nh .toolbar-panel {
+  /* 書式メニューは書式ボタンの下に出す（アンカーは popovertarget のボタン）。 */
+  position-area: bottom span-left;
+  width: 352px;
+}
+.nh .options-panel {
+  width: 248px;
+}
+.nh .options-panel:popover-open {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+.nh .source-button {
+  justify-content: flex-start;
+  min-height: 36px;
+  padding: 5px 10px;
+  color: var(--tb-ink);
+  font-size: calc(13px * var(--ui-scale, 1));
+  text-align: left;
+}
+.nh .source-button[aria-pressed='true'] {
+  background: var(--tb-tint);
+}
+.nh .menu-path {
+  margin-top: 6px;
+  padding: 10px 10px 4px;
+  border-top: 1px solid var(--tb-line);
+  color: var(--tb-muted);
+  font-size: calc(11.5px * var(--ui-scale, 1));
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.nh .format-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+}
+.nh .format-toolbar button,
+.nh .format-toolbar select,
+.nh .format-toolbar summary {
+  min-height: 30px;
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tb-ink);
+  font-size: calc(12.5px * var(--ui-scale, 1));
+}
+.nh .format-toolbar button:hover:not(:disabled),
+.nh .format-toolbar summary:hover {
+  background: var(--tb-tint);
+}
+.nh .format-toolbar select {
+  max-width: 150px;
+  margin-right: 6px;
+  border: 1px solid var(--tb-line);
+}
+.nh .format-toolbar button[aria-pressed='true'] {
+  background: var(--tb-accent);
+  color: var(--tb-on-accent);
+}
+.nh .format-toolbar [data-command='strong'] {
+  font-weight: 800;
+}
+.nh .format-toolbar [data-command='em'] {
+  font-style: italic;
+}
+.nh .format-toolbar [data-command='strike'] {
+  text-decoration: line-through;
+}
+.nh .format-more {
+  width: 100%;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--tb-line);
+}
+.nh .format-more summary {
+  line-height: 22px;
+  cursor: pointer;
+}
+.nh .format-menu {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px;
+  padding-top: 6px;
+}
+.nh .format-menu button {
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+}
+@container note-header (max-width: 760px) {
+  .nh #save-status {
+    max-width: 60px;
+    font-size: calc(11px * var(--ui-scale, 1));
+  }
+  .nh .folder-actions #reload {
+    display: none;
+  }
+}
+@container note-header (max-width: 560px) {
+  .nh .return-label,
+  .nh .note-location {
+    display: none;
+  }
+}
+
+/* ── ナビゲーションと本文 ── */
+.nh .workspace {
+  --sidebar-default-width: 292px;
+  --splitter-width: 28px;
+  display: grid;
+  grid-template-columns:
+    var(--sidebar-width, var(--sidebar-default-width)) var(--splitter-width)
+    minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  width: 100%;
+  max-width: 1800px;
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 14px 26px 18px;
+}
+.nh .workspace.sidebar-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.nh #sidebar-resizer {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 12px 0;
+  cursor: col-resize;
+  touch-action: none;
+}
+.nh #sidebar-resizer::before {
+  content: '';
+  width: 2px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background-color var(--tb-transition);
+}
+.nh #sidebar-resizer:hover::before,
+.nh #sidebar-resizer:focus-visible::before,
+.nh .resizing-sidebar #sidebar-resizer::before {
+  background: var(--tb-gold);
+}
+.nh #sidebar-resizer:focus-visible {
+  outline-offset: -4px;
+  border-radius: 7px;
+}
+.nh .resizing-sidebar,
+.nh .resizing-sidebar * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+.nh .sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.nh #tree {
+  flex: 1;
+  overflow: auto;
+  padding: 0 3px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tb-line-strong) transparent;
+}
+.nh .tree-empty {
+  margin: 20px 10px;
+  color: var(--tb-muted);
+  font-size: calc(13px * var(--ui-scale, 1));
+  line-height: 1.9;
+}
+.nh .tree-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nh .tree-row {
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  min-height: 29px;
+  padding: 3px 8px;
+  padding-left: calc(7px + var(--depth, 0) * 16px);
+  border: 1px solid transparent;
+  border-radius: var(--tb-radius);
+  font-size: calc(12.5px * var(--ui-scale, 1));
+  text-align: left;
+}
+.nh .tree-row .icon {
+  width: 17px;
+  height: 17px;
+  color: var(--tb-muted);
+}
+.nh .tree-row .row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nh .tree-row.root-row {
+  font-weight: 600;
+}
+.nh .tree-row[aria-current='page'] {
+  border-color: color-mix(in srgb, var(--tb-gold) 60%, var(--tb-line));
+  background: var(--tb-gold-tint);
+  font-weight: 600;
+}
+.nh .tree-row .chevron {
+  width: 13px;
+  height: 13px;
+  transition: transform var(--tb-transition);
+}
+.nh .tree-row[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+.nh .file-row::before {
+  content: '';
+  flex: none;
+  width: 13px;
+}
+.nh .tree-hint {
+  margin: 2px 0 6px;
+  padding-left: calc(27px + var(--depth, 0) * 16px);
+  color: var(--tb-muted);
+  font-size: calc(12px * var(--ui-scale, 1));
+  line-height: 1.7;
+}
+.nh .tree-retry {
+  min-height: 25px;
+  padding: 1px 4px;
+  color: var(--tb-link);
+  font-size: calc(12px * var(--ui-scale, 1));
+  text-decoration: underline;
+}
+.nh .tree-item-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.nh .tree-item-row > .tree-row {
+  flex: 1;
+  min-width: 0;
+  padding-right: 30px;
+}
+.nh .tree-entry-menu {
+  position: absolute;
+  right: 3px;
+  width: 27px;
+  min-height: 24px;
+  padding: 0;
+  color: var(--tb-muted);
+  font-size: calc(18px * var(--ui-scale, 1));
+  opacity: 0;
+  transition: opacity var(--tb-transition);
+}
+.nh .tree-item-row:hover .tree-entry-menu,
+.nh .tree-item-row:focus-within .tree-entry-menu,
+.nh .tree-item-row:has([aria-current='page']) .tree-entry-menu {
+  opacity: 1;
+}
+@media (pointer: coarse) {
+  .nh .tree-entry-menu {
+    opacity: 1;
+  }
+}
+
+.nh .paper {
+  container: note / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius-large);
+  background: var(--tb-surface);
+  box-shadow: var(--tb-elevation);
+}
+.nh .notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 24px 0;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--tb-danger) 35%, var(--tb-surface));
+  border-radius: var(--tb-radius);
+  background: var(--tb-danger-tint);
+  font-size: calc(13px * var(--ui-scale, 1));
+  line-height: 1.7;
+}
+.nh .notice p {
+  flex: 1;
+}
+.nh .notice button {
+  min-height: 30px;
+  padding: 4px 9px;
+  font-size: calc(12px * var(--ui-scale, 1));
+}
+.nh .text-button {
+  min-height: 30px;
+  padding: 4px 6px;
+  color: var(--tb-muted);
+}
+.nh .format-warning {
+  margin: 14px 24px 0;
+  padding: 10px 14px;
+  border-radius: var(--tb-radius);
+  background: var(--tb-warning-tint);
+  font-size: calc(13px * var(--ui-scale, 1));
+  line-height: 1.7;
+}
+.nh .welcome {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+  padding: 40px clamp(35px, 8vw, 120px) 80px;
+}
+.nh .welcome-mark {
+  margin-bottom: 30px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--tb-gold) 60%, var(--tb-line));
+  border-radius: 50%;
+  color: var(--tb-gold);
+}
+.nh .welcome-mark .icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.3;
+}
+.nh .welcome h2 {
+  font-family: var(--tb-font-display);
+  font-size: clamp(28px, 3.2vw, 42px);
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+}
+.nh .welcome h2::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 1px;
+  margin-top: 26px;
+  background: var(--tb-gold);
+}
+.nh .welcome p {
+  margin: 22px 0 26px;
+  color: var(--tb-muted);
+  font-size: calc(14px * var(--ui-scale, 1));
+  line-height: 1.95;
+}
+.nh .welcome button {
+  min-height: 44px;
+  padding: 11px 24px;
+}
+.nh .welcome .welcome-drop {
+  margin: 14px 0 0;
+  color: var(--tb-faint);
+  font-size: 12.5px;
+}
+
+/* ── 本文（直接編集・プレビュー・Markdown ソース） ── */
+.nh .markdown {
+  font-family: var(--default-font-family);
+}
+.nh #rich-editor {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.nh .rich-document {
+  flex: none;
+  min-height: 100%;
+  overflow: visible;
+}
+.nh .rich-document:focus-visible {
+  outline: none;
+}
+.nh .rich-document > p:only-child:has(> br:only-child)::before {
+  content: 'ここから本文を書き始める';
+  position: absolute;
+  color: var(--tb-faint);
+  pointer-events: none;
+}
+.nh .rich-document .soft-break {
+  white-space: normal;
+}
+.nh .rich-document table {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+.nh .rich-document th,
+.nh .rich-document td {
+  position: relative;
+}
+.nh .rich-document th > p,
+.nh .rich-document td > p {
+  margin: 0;
+}
+.nh .rich-document .selectedCell::after {
+  background: color-mix(in srgb, var(--tb-link) 13%, transparent);
+}
+.nh .rich-document .list-content > p:first-child {
+  margin-top: 0;
+}
+.nh .rich-document .list-content > p:last-child {
+  margin-bottom: 0;
+}
+.nh .rich-document [data-tight='true'] > li > .list-content > p {
+  margin-block: 0;
+}
+.nh .rich-document .task-item {
+  position: relative;
+}
+.nh .rich-document .task-item > input {
+  position: absolute;
+  top: 0.44em;
+  left: -1.65em;
+  margin: 0;
+  cursor: pointer;
+}
+.nh .rich-document .task-item > input:disabled {
+  cursor: default;
+}
+.nh .rich-document .image-node {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+  white-space: normal;
+}
+.nh .rich-document .image-node img {
+  display: block;
+}
+.nh .rich-document .editor-link {
+  color: var(--tb-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: text;
+}
+.nh .rich-document .code-block {
+  position: relative;
+}
+.nh .rich-document .code-block > pre {
+  padding-bottom: 34px;
+}
+.nh .rich-document .code-language {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.nh .rich-document .code-block:hover .code-language,
+.nh .rich-document .code-block.is-active .code-language,
+.nh .rich-document .code-block.has-language .code-language,
+.nh .rich-document .code-language:focus-within {
+  opacity: 1;
+}
+.nh .rich-document .code-language > input {
+  width: 10em;
+  padding: 1px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--tb-muted);
+  font: 12px/1.6 var(--tb-font-mono);
+  text-align: right;
+}
+.nh .rich-document .code-language > input:hover:not(:disabled) {
+  border-color: var(--tb-line);
+}
+.nh .rich-document .code-language > input:focus {
+  border-color: var(--tb-gold);
+  outline: none;
+  background: var(--tb-surface);
+  color: var(--tb-ink);
+  text-align: left;
+}
+.nh .rich-document .raw-block {
+  background: var(--tb-warning-tint);
+  white-space: pre-wrap;
+}
+.nh .rich-document .raw-block::before {
+  content: '原文を保持 · 編集は Markdownソースから';
+  display: block;
+  margin-bottom: 8px;
+  color: var(--tb-muted);
+  font: 11px var(--tb-font);
+}
+.nh #editor {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  padding: 28px 36px 50px;
+  border: 0;
+  outline-offset: -4px;
+  background: var(--tb-surface);
+  color: var(--tb-ink);
+  font-family: var(--tb-font-mono);
+  font-size: var(--note-font-size, 16px);
+  line-height: 1.9;
+  resize: none;
+  tab-size: 2;
+}
+.nh #editor:read-only {
+  background: var(--tb-subtle);
+}
+@container note (max-width: 600px) {
+  .nh .markdown,
+  .nh #editor {
+    padding: 22px;
+  }
+}
+
+/* ── ダイアログ ── */
+.nh dialog h2 {
+  margin: 0 0 14px;
+  font: 500 calc(20px * var(--ui-scale, 1)) / 1.5 var(--tb-font-display);
+  letter-spacing: 0.03em;
+}
+.nh dialog p {
+  font-size: calc(14px * var(--ui-scale, 1));
+  line-height: 1.8;
+}
+.nh dialog .tb-dialog-actions.tb-stack button {
+  min-height: 42px;
+}
+.nh #confirm-text {
+  color: var(--tb-muted);
+  overflow-wrap: anywhere;
+}
+.nh #entry-menu {
+  width: min(340px, calc(100% - 28px));
+}
+.nh #entry-menu h2 {
+  font-size: calc(16px * var(--ui-scale, 1));
+  overflow-wrap: anywhere;
+}
+.nh .entry-menu-actions {
+  display: grid;
+  gap: 4px;
+}
+.nh .entry-menu-actions button {
+  justify-content: flex-start;
+}
+.nh #entry-name-label,
+.nh #settings-dialog > label {
+  display: block;
+  margin-top: 18px;
+  font-size: calc(13px * var(--ui-scale, 1));
+}
+.nh #entry-name,
+.nh #ui-font {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+}
+.nh #entry-error {
+  color: var(--tb-danger);
+}
+.nh #ui-font-hint {
+  color: var(--tb-muted);
+  font-size: calc(12px * var(--ui-scale, 1));
+  line-height: 1.7;
+}
+.nh .font-size-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: calc(13px * var(--ui-scale, 1));
+}
+.nh #font-size,
+.nh #ui-font-size {
+  padding: 5px 8px;
+}
+
+/* ── 幅による調整 ── */
+@media (min-width: 1500px) {
+  .nh .workspace {
+    --sidebar-default-width: 320px;
+    --splitter-width: 32px;
+    padding: 14px 30px 20px;
+  }
+  .nh .tree-row {
+    min-height: 30px;
+    font-size: calc(13px * var(--ui-scale, 1));
+  }
+}
+@media (max-width: 1050px) {
+  .nh .workspace {
+    --sidebar-default-width: 250px;
+    --splitter-width: 18px;
+    padding: 10px 18px 14px;
+  }
+  .nh .markdown {
+    padding: 25px 34px 50px;
+  }
+}
+@media (max-width: 680px) {
+  .nh .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: 180px minmax(0, 1fr);
+    gap: 12px;
+    padding: 8px 12px;
+  }
+  .nh .tree-row {
+    min-height: 34px;
+  }
+  .nh .paper {
+    border-radius: 10px;
+  }
+  .nh .welcome {
+    justify-content: flex-start;
+    padding: 30px;
+  }
+  .nh .welcome-mark {
+    display: none;
+  }
+  .nh .welcome h2 {
+    font-size: 26px;
+  }
+  .nh .markdown {
+    padding: 22px;
+  }
+  .nh .notice {
+    flex-wrap: wrap;
+    margin: 10px 16px 0;
+  }
+  .nh .notice p {
+    flex-basis: 100%;
+  }
+  .nh #editor {
+    padding: 20px;
+  }
+}
+
+/* ── body の直下に置くもの（リンクの編集・添付を落とす位置・印刷する本文） ── */
+.link-dialog {
+  width: min(440px, calc(100% - 28px));
+}
+.link-dialog h2 {
+  margin: 0 0 6px;
+  font: 500 20px/1.5 var(--tb-font-display);
+}
+.link-dialog label {
+  display: block;
+  margin-top: 15px;
+  color: var(--tb-muted);
+  font-size: calc(12.5px * var(--ui-scale, 1));
+}
+.link-dialog input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  font-size: calc(14px * var(--ui-scale, 1));
+}
+.link-dialog [role='alert'] {
+  color: var(--tb-danger);
+  font-size: 13px;
+}
+.link-dialog .tb-dialog-actions {
+  margin-top: 22px;
+}
+.asset-drop-cursor {
+  position: fixed;
+  z-index: 100;
+  width: 3px;
+  background: var(--tb-gold);
+  pointer-events: none;
+}
+#print-document {
+  display: none;
+}
+@media print {
+  body.note-printing {
+    display: block;
+    height: auto;
+    background: white;
+  }
+  body.note-printing > :not(#print-document) {
+    display: none !important;
+  }
+  body.note-printing > #print-document {
+    display: block;
+    padding: 0;
+  }
+}

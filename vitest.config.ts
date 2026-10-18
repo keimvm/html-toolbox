@@ -11,7 +11,7 @@ export default mergeConfig(
           test: {
             name: 'unit',
             environment: 'node',
-            include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
+            include: ['src/**/*.test.{ts,tsx,js}', 'scripts/**/*.test.mjs'],
           },
         },
         {

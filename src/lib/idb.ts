@@ -9,7 +9,8 @@ export interface RecordStore<T> {
 
 /** 読み書きのたびに接続し、transaction の確定を待って閉じる。停止・ブロック・中断では待ち続けず拒否する。 */
 export function createRecordStore<T = unknown>(
-  { indexedDB }: Pick<Window, 'indexedDB'>,
+  // indexedDB は使う直前に読む。保存できない環境では読むだけで例外になり、それも拒否として返す。
+  source: Pick<Window, 'indexedDB'>,
   {
     database,
     store,
@@ -42,7 +43,7 @@ export function createRecordStore<T = unknown>(
       };
       const timer = setTimeout(() => finish(new Error('RecordStorageTimeout')), timeoutMs);
       try {
-        const request = indexedDB.open(database, 1);
+        const request = source.indexedDB.open(database, 1);
         request.onblocked = () => finish(new Error('RecordStorageBlocked'));
         request.onerror = () => finish(request.error);
         request.onupgradeneeded = () => {

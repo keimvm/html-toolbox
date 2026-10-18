@@ -16,7 +16,7 @@ export default defineConfig([
   js.configs.recommended,
   tseslint.configs.recommended,
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx,js}'],
     languageOptions: { globals: globals.browser },
   },
   {
@@ -25,7 +25,8 @@ export default defineConfig([
       'vite/**/*.ts',
       'scripts/**/*.mjs',
       'tests/**/*.ts',
-      'src/**/*.test.{ts,tsx}',
+      'src/**/*.test.{ts,tsx,js}',
+      'src/**/*.test-support.{ts,js}',
     ],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },

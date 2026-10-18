@@ -21,6 +21,13 @@ export const isImage = (file: Blob & { name?: string }) =>
 export const isTextFile = (file: Blob & { name?: string }) =>
   file.type.startsWith('text/') || /\.(txt|md|markdown|csv|log)$/iu.test(file.name ?? '');
 
+/** 落とされたファイルの配列。フォルダを含む場合は null（同期で読む。drop イベントの中で呼ぶ）。 */
+export function droppedFiles(transfer: DataTransfer | null | undefined): File[] | null {
+  const items = Array.from(transfer?.items ?? []).filter((item) => item.kind === 'file');
+  if (items.some((item) => item.webkitGetAsEntry?.()?.isDirectory)) return null;
+  return Array.from(transfer?.files ?? []);
+}
+
 export interface Dropped {
   files: File[];
   /** フォルダを1つだけ落とした場合の、そのフォルダ。 */

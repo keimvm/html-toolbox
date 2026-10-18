@@ -24,6 +24,7 @@
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.test-support.ts",
+    "src/**/*.d.ts",
     "tests/**/*.ts"
   ]
 }
