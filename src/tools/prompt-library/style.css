@@ -1,0 +1,287 @@
+/* プロンプト集の画面配置。配色・部品は ui/theme.css の --tb-* とクラスを使う。 */
+.pl {
+  height: 100%;
+  overflow: auto;
+}
+.pl-main {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 24px 22px 72px;
+}
+@media (max-width: 720px) {
+  .pl-main {
+    padding: 16px 12px 64px;
+  }
+}
+.pl-code,
+.pl-menu-file {
+  font-family: var(--tb-font-mono);
+  font-size: 0.9em;
+}
+.pl-alert,
+.pl-notice {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: var(--tb-radius);
+  font-size: 13.5px;
+  line-height: 1.7;
+  text-align: left;
+}
+.pl-alert {
+  color: var(--tb-danger);
+  background: var(--tb-danger-tint);
+}
+.pl-notice {
+  color: var(--tb-ink);
+  background: var(--tb-gold-tint);
+}
+
+/* ── ヘッダーの保存先 ── */
+.pl-folder {
+  max-width: 16em;
+  color: var(--tb-muted);
+}
+.pl-folder-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-menu-file {
+  max-width: 300px;
+  margin: 0;
+  padding: 0 10px 4px;
+  color: var(--tb-muted);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .pl-new-label,
+  .pl-folder-name {
+    display: none;
+  }
+}
+
+/* ── タグの絞り込み ── */
+.pl-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius-large);
+  background: var(--tb-surface);
+}
+.pl-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tb-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.pl-filter-label .tb-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--tb-gold);
+}
+.pl-tags,
+.pl-tag-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pl-tags {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.pl-tag .tb-icon {
+  width: 13px;
+  height: 13px;
+  margin-left: -3px;
+  stroke-width: 2.2;
+}
+.pl-count-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin: 18px 4px 10px;
+  color: var(--tb-muted);
+  font-size: 12.5px;
+}
+.pl-count {
+  font-variant-numeric: tabular-nums;
+}
+.pl-keys {
+  color: var(--tb-faint);
+}
+.pl-keys kbd {
+  font-size: 11px;
+}
+@media (pointer: coarse) {
+  .pl-keys,
+  .pl-key {
+    display: none;
+  }
+}
+.pl-empty {
+  margin: 28px 0;
+  padding: 36px 20px;
+  border: 1px dashed var(--tb-line-strong);
+  border-radius: var(--tb-radius-large);
+  color: var(--tb-muted);
+  text-align: center;
+}
+
+/* ── プロンプトのカード ── */
+.pl-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pl-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 18px 18px 14px;
+  border: 1px solid var(--tb-line);
+  border-radius: var(--tb-radius-large);
+  background: var(--tb-surface);
+  transition:
+    border-color var(--tb-transition),
+    box-shadow 240ms var(--tb-ease);
+}
+.pl-card:hover,
+.pl-card:focus-within {
+  border-color: var(--tb-line-strong);
+  box-shadow: var(--tb-elevation);
+}
+/* コピーした直後は、真鍮色の線をカードの上に一瞬引く。 */
+.pl-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px -1px auto;
+  height: 2px;
+  border-radius: var(--tb-radius-large) var(--tb-radius-large) 0 0;
+  background: var(--tb-gold);
+  opacity: 0;
+  scale: 0 1;
+  transition:
+    opacity 200ms ease,
+    scale 420ms var(--tb-ease-out);
+}
+.pl-card[data-copied]::before {
+  opacity: 1;
+  scale: 1 1;
+}
+.pl-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.pl-card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+.pl-key {
+  flex: none;
+  margin-top: 1px;
+  color: var(--tb-faint);
+  font-size: 11px;
+  opacity: 0.7;
+}
+.pl-card:hover .pl-key {
+  opacity: 1;
+}
+/* 本文は先頭の数行だけを見せる。全文は編集画面で見る。 */
+.pl-card-body {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  color: var(--tb-muted);
+  font-size: 13px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pl-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pl-card-tag {
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--tb-accent-ink);
+  background: var(--tb-tint);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.8;
+  cursor: pointer;
+  transition:
+    background-color var(--tb-transition),
+    border-color var(--tb-transition);
+}
+.pl-card-tag:hover {
+  border-color: var(--tb-line-strong);
+}
+.pl-card-tag[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--tb-gold) 60%, var(--tb-line));
+  background: var(--tb-gold-tint);
+}
+.pl-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.pl-copy {
+  min-width: 120px;
+}
+.pl-card[data-copied] .pl-copy {
+  background: var(--tb-success);
+}
+
+/* ── 編集画面 ── */
+.tb-dialog.pl-editor {
+  width: min(680px, calc(100% - 28px));
+}
+.pl-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 8px;
+}
+.pl-form .tb-input {
+  width: 100%;
+}
+.pl-body {
+  min-height: 14em;
+  max-height: 52dvh;
+}
+.pl-tag-choices {
+  margin-top: -6px;
+}
+.pl-form .pl-alert {
+  margin: 0;
+}
+/* 削除は保存・キャンセルから離して左に置く。 */
+.pl-delete {
+  margin-right: auto;
+}
