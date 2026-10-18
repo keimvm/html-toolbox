@@ -424,6 +424,8 @@ function create() {
 
   /** 左の列の1枚。押すと開き、ドラッグで並べ替える。 */
   function RailItem({ item, index }: { item: Item; index: number }) {
+    // signal を読む部品は、props が同じなら親が描き直しても省かれる。item は直接書き換えるため、revision を読んで変換の済んだ画像を描き直す。
+    void store.revision.value;
     const pending = isPending(item);
     const result = item.result;
     const over = !pending && !item.error && result?.fits === false;
