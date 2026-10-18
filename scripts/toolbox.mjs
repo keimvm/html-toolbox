@@ -35,7 +35,9 @@ export function assertVersion(version) {
 export function assertDistribution(html, version) {
   if (!html.includes('http-equiv="Content-Security-Policy"'))
     throw new Error('配布物に通信を止める CSP がありません。');
-  if (!html.includes(JSON.stringify(version)))
+  // 縮めた JavaScript は文字列をバッククォートで書くことがあるため、引用符の種類を問わない。
+  const literal = new RegExp(`[\`'"]${version.replaceAll('.', '\\.')}[\`'"]`);
+  if (!literal.test(html))
     throw new Error(
       `配布物に版「${version}」が埋め込まれていません。版を付けてビルドし直してください。`,
     );

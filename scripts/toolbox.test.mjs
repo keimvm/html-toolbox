@@ -34,6 +34,12 @@ const sample = (version) =>
 test('配布物は CSP・版・PDF のデータを持つ必要がある', () => {
   expect(() => assertDistribution(sample('2026.10.18'), '2026.10.18')).not.toThrow();
   expect(() => assertDistribution(sample('dev'), '2026.10.18')).toThrow(/版/);
+  // ビルドの縮めた JavaScript はテンプレート文字列で書く。
+  expect(() =>
+    assertDistribution(sample('2026.10.18').replace('"2026.10.18"', '`2026.10.18`'), '2026.10.18'),
+  ).not.toThrow();
+  // 版の一部だけが一致しても通さない。
+  expect(() => assertDistribution(sample('2026.10.180'), '2026.10.18')).toThrow(/版/);
   expect(() =>
     assertDistribution(sample('2026.10.18').replace('Content-Security-Policy', 'x'), '2026.10.18'),
   ).toThrow(/CSP/);

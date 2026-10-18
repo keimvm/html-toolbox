@@ -47,7 +47,12 @@ function show(next: Route) {
   );
 }
 
-addEventListener('hashchange', () => show(parseRoute(location.hash)));
+// 戻る・進む・アドレス欄で、まだ開いていないツールへ移ったときも、そのツールを用意してから見せる。
+addEventListener('hashchange', () => {
+  const next = parseRoute(location.hash);
+  if (next.kind === 'tool') instance(toolById(next.id)!);
+  show(next);
+});
 
 function instance(tool: ToolDefinition) {
   let created = instances.value.get(tool.id);

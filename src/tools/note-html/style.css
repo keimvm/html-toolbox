@@ -36,7 +36,12 @@
 /* ── 共通ヘッダーの中の、ノートの操作 ── */
 .nh .tb-header {
   container: note-header / inline-size;
-  flex-wrap: nowrap;
+}
+/* 狭い画面では、ノートの操作を2行目に回す。 */
+@media (max-width: 640px) {
+  .nh .tb-header-start {
+    flex-basis: 100%;
+  }
 }
 .nh .tb-header-center {
   gap: 4px;
