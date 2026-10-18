@@ -359,22 +359,25 @@ function create() {
 
   addEventListener('keydown', (event) => {
     if (!active || document.querySelector('dialog[open]')) return;
-    if (event.key === 'Escape') {
-      // 変換中の Esc は日本語入力の取り消しに任せる。確定した後の Esc だけを終了にする。
-      if (event.isComposing || composing.value || event.keyCode === 229) return;
-      if (phase.value === 'countdown') {
-        event.preventDefault();
-        toSetup();
-      } else if (phase.value === 'typing') {
-        event.preventDefault();
-        void finish();
-      }
+    // 変換中のキーは日本語入力に任せる。
+    const imeKey = event.isComposing || composing.value || event.keyCode === 229;
+    if (phase.value === 'countdown' && event.key === 'Escape' && !imeKey) {
+      event.preventDefault();
+      toSetup();
       return;
     }
-    if (phase.value === 'setup' && event.key === 'Enter' && hasMod(event)) {
-      event.preventDefault();
-      startCountdown();
-      return;
+    if (event.key === 'Enter' && hasMod(event)) {
+      if (phase.value === 'setup') {
+        event.preventDefault();
+        startCountdown();
+        return;
+      }
+      // 確定した後の ⌘ / Ctrl + Enter だけを終了にする。
+      if (phase.value === 'typing' && !imeKey) {
+        event.preventDefault();
+        void finish();
+        return;
+      }
     }
     // 入力欄の外をクリックした後でも、打ち始めれば入力欄に戻る。
     if (
@@ -507,11 +510,11 @@ function create() {
               <h2 id="tg-input-title">入力</h2>
               {current === 'typing' && (
                 <p
-                  class="tg-esc-hint"
-                  id="tg-esc-hint"
+                  class="tg-end-hint"
+                  id="tg-end-hint"
                   data-composing={composing.value ? '' : undefined}
                 >
-                  確定後に <kbd>Esc</kbd> で終了
+                  確定後に <kbd>{modKey}</kbd> + <kbd>Enter</kbd> で終了
                 </p>
               )}
               {(current === 'countdown' || current === 'typing' || current === 'judging') && (
@@ -543,7 +546,9 @@ function create() {
                   <ol class="tg-steps">
                     <li>左の欄に文章を貼り付けます（テキストファイルを置いても入ります）</li>
                     <li>「開始」を押すと、3秒後にスタートします</li>
-                    <li>いつもの日本語入力で打ち、確定後に Esc で終了します</li>
+                    <li>
+                      いつもの日本語入力で打ち、確定後に {modKey} + Enter で終了します
+                    </li>
                   </ol>
                 </div>
               )}
@@ -553,7 +558,7 @@ function create() {
                 }}
                 class="tb-input tg-text"
                 aria-labelledby="tg-input-title"
-                aria-describedby="tg-esc-hint"
+                aria-describedby="tg-end-hint"
                 placeholder="ここに打ちます"
                 spellcheck={false}
                 autocomplete="off"

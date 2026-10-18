@@ -78,7 +78,7 @@ test.each(['before', 'after'] as const)(
       typed.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
     });
     expect(host.querySelectorAll('.tg-ch.is-done')).toHaveLength(0);
-    expect(host.querySelector('.tg-esc-hint')!.hasAttribute('data-composing')).toBe(true);
+    expect(host.querySelector('.tg-end-hint')!.hasAttribute('data-composing')).toBe(true);
 
     act(() => {
       typed.value = '今日';
@@ -89,14 +89,21 @@ test.each(['before', 'after'] as const)(
         typed.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: false }));
     });
     expect(host.querySelectorAll('.tg-ch.is-done')).toHaveLength(2);
-    expect(host.querySelector('.tg-esc-hint')!.hasAttribute('data-composing')).toBe(false);
+    expect(host.querySelector('.tg-end-hint')!.hasAttribute('data-composing')).toBe(false);
 
     // 次の変換でも確定するまで進めず、isComposing のない input でも同じ扱いにする。
     act(() => {
       typed.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
       typed.value = '今日は';
       typed.dispatchEvent(new InputEvent('input', { bubbles: true }));
-      typed.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      typed.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          ctrlKey: true,
+          metaKey: true,
+          bubbles: true,
+        }),
+      );
     });
     expect(host.querySelectorAll('.tg-ch.is-done')).toHaveLength(2);
     expect(host.querySelector('.tg')!.getAttribute('data-state')).toBe('typing');
@@ -113,4 +120,24 @@ test('IME を使わない確定済みの入力も、その input だけで進む
     typed.dispatchEvent(new InputEvent('input', { bubbles: true }));
   });
   expect(host.querySelectorAll('.tg-ch.is-done')).toHaveLength(2);
+});
+
+test('確定後の ⌘ / Ctrl + Enter で終了し、Esc では終了しない', () => {
+  act(() => {
+    typed.value = '今日';
+    typed.dispatchEvent(new InputEvent('input', { bubbles: true }));
+    typed.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  });
+  expect(host.querySelector('.tg')!.getAttribute('data-state')).toBe('typing');
+  act(() => {
+    typed.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Enter',
+        ctrlKey: true,
+        metaKey: true,
+        bubbles: true,
+      }),
+    );
+  });
+  expect(host.querySelector('.tg')!.getAttribute('data-state')).toMatch(/^(judging|result)$/);
 });

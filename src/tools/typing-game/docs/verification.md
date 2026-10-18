@@ -82,3 +82,16 @@ Claude デスクトップアプリ内蔵のブラウザー（Chromium）で、`p
 - `node scripts/toolbox.mjs build 2026.10.18`：型チェック・Vite ビルド・zip 作成に成功。`dist/index.html` と `out/toolbox-2026.10.18.zip`（約6.5 MB）を更新した。
 - 実行中に見つかった回帰テストの WASM 読み込み・入力欄の選択・`act` の戻り値の不備を修正し、上記のテストとビルドを再実行して成功した。
 - 未実施：整形チェック・lint・配布物のテスト、上記の実 IME と `file://`・ネット遮断での手動確認。今回の成功は模擬イベントによる確認であり、実機確認ではない。
+
+## 終了のキーを ⌘ / Ctrl + Enter に変更（2026年10月18日）
+
+- 打っている間の終了を、確定後の Esc から確定後の Ctrl + Enter（Mac は ⌘ + Enter。開始と同じ `hasMod()`）に改めた。打っている間の Esc では終了しない。カウントダウン中の Esc での取り消しはそのまま。変換中（`isComposing`・`keyCode` 229・`compositionstart` から `compositionend` まで）の ⌘ / Ctrl + Enter は終了にしない。
+- `index.test.tsx`：変換中の終了の抑止を ⌘ / Ctrl + Enter で確かめる形に改め、「確定後の ⌘ / Ctrl + Enter で終了し、Esc では終了しない」を追加した。イベントを模擬するテストであり、実 IME の動作確認ではない。
+- 今回はテスト・lint・型チェック・ビルドを実行していない。配布物も作り直していない。
+- 未実施：Windows の Edge・Microsoft IME と Mac の Chrome・日本語入力で、変換中の Ctrl + Enter・⌘ + Enter で終了せず、確定後に押すと終了すること。
+
+### テスト・ローカルビルド（2026年10月18日）
+
+- `node scripts/toolbox.mjs test`：35ファイル・332件成功。追加した「確定後の ⌘ / Ctrl + Enter で終了し、Esc では終了しない」を含む。
+- `node scripts/toolbox.mjs build 2026.10.18`：型チェック・Vite ビルド・zip 作成に成功。`dist/index.html` と `out/toolbox-2026.10.18.zip`（約6.5 MB）を更新した。
+- 未実施：整形チェック・lint・配布物のテスト、実 IME と `file://`・ネット遮断での手動確認。

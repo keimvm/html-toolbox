@@ -373,7 +373,7 @@ textarea.tg-text:disabled {
 }
 
 /* 打っている間の案内 */
-.tg-esc-hint {
+.tg-end-hint {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -384,15 +384,15 @@ textarea.tg-text:disabled {
     opacity var(--tb-transition),
     color var(--tb-transition);
 }
-/* 変換中は Esc で終了しないため、案内を薄くする。 */
-.tg-esc-hint[data-composing] {
+/* 変換中は ⌘ / Ctrl + Enter で終了しないため、案内を薄くする。 */
+.tg-end-hint[data-composing] {
   opacity: 0.4;
 }
-/* 見本の最後まで進んだら、Esc を促す。 */
-.tg[data-complete] .tg-esc-hint {
+/* 見本の最後まで進んだら、終了のキーを促す。 */
+.tg[data-complete] .tg-end-hint {
   color: var(--tb-ink);
 }
-.tg[data-complete] .tg-esc-hint kbd {
+.tg[data-complete] .tg-end-hint kbd {
   border-color: var(--tb-gold);
   animation: tg-nudge 1.6s ease-in-out infinite;
 }

@@ -35,9 +35,9 @@
 | 役割                       | 標準機能                                                          | 補足                                                              |
 | -------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
 | 入力欄                     | `textarea`                                                        | IME の変換表示はブラウザーに任せる                                |
-| 変換中かどうか             | `compositionstart`・`compositionend`、`KeyboardEvent.isComposing` | 変換中の Esc を終了に使わない。見本を進めるのも確定のときだけ。composition イベントは `addEventListener` で小文字のイベント名を直接登録する |
+| 変換中かどうか             | `compositionstart`・`compositionend`、`KeyboardEvent.isComposing` | 変換中の ⌘ / Ctrl + Enter を終了に使わない。見本を進めるのも確定のときだけ。composition イベントは `addEventListener` で小文字のイベント名を直接登録する |
 | 全角・半角をそろえる       | `String.prototype.normalize('NFKC')`                              | 自前の変換表は持たない                                            |
-| 時間の計測                 | `performance.now()`                                               | カウントダウンの終わりから、確定後の Esc までを測る               |
+| 時間の計測                 | `performance.now()`                                               | カウントダウンの終わりから、確定後の ⌘ / Ctrl + Enter までを測る  |
 | 見た目・ヘッダー・表示切替 | toolbox の `theme.css`・`ToolFrame`・`src/lib/theme.ts` | [共通部品](../../../../docs/development.md#共通部品) に従う |
 | 1文字の単位                | `Intl.Segmenter`（書記素）                                        | 「𠮷」・濁点つきの半角カナ（「ｶﾞ」）を1文字として数え、色を変える |
 | 動き                       | CSS アニメーション・Web Animations API、`prefers-reduced-motion`  | 色の変化・カウントダウン・結果の光。動きを減らす設定では止める    |
@@ -82,7 +82,7 @@
 
 ## 未検証事項
 
-- Windows の Edge（Microsoft IME）と Mac の Chrome（日本語入力）で、変換中に押した Esc を `isComposing` などで見分けられ、変換の取り消しと終了を取り違えないか。
+- Windows の Edge（Microsoft IME）と Mac の Chrome（日本語入力）で、変換中に押した Ctrl + Enter・⌘ + Enter を `isComposing` などで見分けられ、確定と終了を取り違えないか。
 - 差分の WebAssembly：計算時間（ふつうに打った場合・全く違う長い文章）、`file://`・CSP のある配布物での読み込み、会社の PC の設定で WebAssembly が止められていないか。
 - 配布物に入る Rust の標準ライブラリ（MIT OR Apache-2.0）のライセンス文を、「このアプリについて」に載せるか。今はライセンスの収集が npm のパッケージだけを対象にしている。
 
