@@ -63,3 +63,22 @@ Claude デスクトップアプリ内蔵のブラウザー（Chromium）で、`p
 - `node scripts/toolbox.mjs build 2026.10.18`：型チェック、Rust の WebAssembly を含む Vite ビルド、単一 HTML と zip の作成に成功。出力は `out/toolbox-2026.10.18.zip`（約6.5 MB）。
 - `git diff --check`：成功。
 - 今回はテスト・整形チェック・lint・配布物のテストを実行していない。実ブラウザーでの操作、`file://`・ネット遮断・CSP 下での読み込み、計算時間、GitHub Actions（3 OS）は引き続き未確認。
+
+## IME 確定時の進み具合の更新（2026年10月18日）
+
+- 確定後に追加の Enter が必要になる報告への対応。Preact の JSX では DOM プロパティのない composition イベント名が大文字のまま登録される場合があるため、`compositionstart`・`compositionend` を標準の `addEventListener` で登録するようにした。最後の `input` が `isComposing: true` でも、`compositionend` で見本を更新する。変換中のフラグが立っている間は、`isComposing` がない `input` でも進めない。
+- `index.test.tsx` に回帰テストを追加：確定の `input` が `compositionend` の前／後に届く順序、変換中の進み具合と Esc の抑止、次の変換の確定、IME を使わない入力。イベントを模擬するテストであり、実 IME の動作確認ではない。
+- 今回はテスト・lint・型チェック・ビルドを実行していない。配布物も作り直していない。
+
+実機での確認手順（未実施。Windows の Edge・Microsoft IME と、Mac の Chrome・日本語入力で確認する）：
+
+1. 見本「今日はいい天気」で開始し、「きょう」を変換して「今日」にする。変換中は見本が進まず、Esc で変換を取り消してもゲームが終わらないことを確かめる。
+2. 改めて「今日」を変換して1回の Enter で確定する。追加の Enter を押さずに見本の「今日」が進み、次の文字が「は」になることを確かめる。「は」など次の確定でも同じように進むことを確かめる。
+3. 確定後の Esc で終了でき、時間と結果が出ることを確かめる。新しい配布物を作った後は `file://`・ネット遮断でも同じ操作を確認する。
+
+### テスト・ローカルビルド（2026年10月18日）
+
+- `node scripts/toolbox.mjs test`：31ファイル・286件成功。追加した画面の回帰テスト3件を含む。jsdom では WASM の初期化だけを Node.js のファイル読み込みに置き換え、差分の WASM 本体を使っている。
+- `node scripts/toolbox.mjs build 2026.10.18`：型チェック・Vite ビルド・zip 作成に成功。`dist/index.html` と `out/toolbox-2026.10.18.zip`（約6.5 MB）を更新した。
+- 実行中に見つかった回帰テストの WASM 読み込み・入力欄の選択・`act` の戻り値の不備を修正し、上記のテストとビルドを再実行して成功した。
+- 未実施：整形チェック・lint・配布物のテスト、上記の実 IME と `file://`・ネット遮断での手動確認。今回の成功は模擬イベントによる確認であり、実機確認ではない。

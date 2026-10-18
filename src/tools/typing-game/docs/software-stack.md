@@ -34,7 +34,7 @@
 | 役割                       | 標準機能                                                          | 補足                                                              |
 | -------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
 | 入力欄                     | `textarea`                                                        | IME の変換表示はブラウザーに任せる                                |
-| 変換中かどうか             | `compositionstart`・`compositionend`、`KeyboardEvent.isComposing` | 変換中の Esc を終了に使わない。見本を進めるのも確定のときだけ     |
+| 変換中かどうか             | `compositionstart`・`compositionend`、`KeyboardEvent.isComposing` | 変換中の Esc を終了に使わない。見本を進めるのも確定のときだけ。composition イベントは `addEventListener` で小文字のイベント名を直接登録する |
 | 全角・半角をそろえる       | `String.prototype.normalize('NFKC')`                              | 自前の変換表は持たない                                            |
 | 時間の計測                 | `performance.now()`                                               | カウントダウンの終わりから、確定後の Esc までを測る               |
 | 見た目・ヘッダー・表示切替 | toolbox の `theme.css`・`ToolFrame`・`src/lib/theme.ts` | [共通部品](../../../../docs/development.md#共通部品) に従う |

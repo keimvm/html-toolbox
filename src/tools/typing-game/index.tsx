@@ -408,6 +408,23 @@ function create() {
   function View({ active: visible }: { active: boolean }) {
     active = visible;
     useEffect(() => {
+      const typed = elements.typed!;
+      const start = () => (composing.value = true);
+      const end = () => {
+        composing.value = false;
+        updateProgress();
+      };
+      // composition イベントには oncompositionend などの DOM プロパティがなく、
+      // Preact の JSX ではイベント名の大文字・小文字が一致しない場合がある。
+      // 最後の input が isComposing=true でも、確定の通知で必ず進み具合を更新する。
+      typed.addEventListener('compositionstart', start);
+      typed.addEventListener('compositionend', end);
+      return () => {
+        typed.removeEventListener('compositionstart', start);
+        typed.removeEventListener('compositionend', end);
+      };
+    }, []);
+    useEffect(() => {
       // カウントダウン中にほかの画面へ移ったら、開始をやめる。打っている間はそのまま時間を数える。
       if (!visible && phase.value === 'countdown') toSetup();
       if (visible && phase.value === 'setup') focusLater(() => elements.source);
@@ -543,13 +560,8 @@ function create() {
                 autocapitalize="off"
                 hidden={!['countdown', 'typing', 'judging'].includes(current)}
                 disabled={current === 'countdown'}
-                onCompositionStart={() => (composing.value = true)}
-                onCompositionEnd={() => {
-                  composing.value = false;
-                  updateProgress();
-                }}
                 onInput={(event) => {
-                  if ((event as InputEvent).isComposing) return;
+                  if (composing.value || (event as InputEvent).isComposing) return;
                   updateProgress();
                 }}
               />
