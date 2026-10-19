@@ -3,12 +3,14 @@
 // - 重いバイナリ（PDFium の WebAssembly と日本語フォント）は JavaScript に入れず、gzip と Base64 にして
 //   HTML の末尾に「実行しない script 要素」として置く。画面の準備を待たせず、使うときにだけ展開する。
 // - 配布物に入ったパッケージのライセンス文を集め、同じく HTML の末尾に置く（「このアプリについて」で表示）。
+//   パッケージに入っていない分（PDFium の wasm の中のライブラリ、Rust の標準ライブラリ）は vite/licenses/ から足す。
 // - 外部と通信させない CSP を付ける。
 // - 開発サーバーでは、同じ仮想モジュールがファイルの URL と依存関係のライセンスを返す。
 import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import type { Plugin } from 'vite';
+import { CRATES } from './rust.ts';
 
 /** HTML の末尾に置くバイナリ。名前は src/engine/pdf/payload.ts と合わせる。 */
 const PAYLOADS = {
@@ -69,10 +71,63 @@ function licenseText(dir: string, id: string) {
   return files.map((name) => readFileSync(join(dir, name), 'utf8').trim());
 }
 
-function renderLicenses(packages: Map<string, string>) {
-  return [...packages]
+/** パッケージに入っていないライセンス文の置き場所。入手元と確かめ直す手順は README.md に書く。 */
+const NOTICES = 'vite/licenses';
+
+/**
+ * パッケージのライセンス文に足す、中のバイナリに入ったほかのライブラリの分。
+ * 版が変わると中のライブラリも変わりうるため、確かめた版と違えばビルドを止める。
+ */
+const PACKAGE_NOTICES: Record<string, { version: string; file: string }> = {
+  '@embedpdf/pdfium': { version: '2.15.0', file: 'pdfium-wasm.txt' },
+};
+
+/** Rust の WebAssembly に入る標準ライブラリの分。確かめた Rust の版と違えばビルドを止める。 */
+const RUST_NOTICE = { version: '1.96.0', file: 'rust-std.txt' };
+
+/** vite/rust.ts がビルドした wasm のモジュール。前半がクレートのフォルダ。 */
+const RUST_WASM = /^(.+)\/target\/wasm32-unknown-unknown\/release\/[^/]+\.wasm$/;
+
+function notice(root: string, file: string) {
+  return readFileSync(join(root, NOTICES, file), 'utf8').trim();
+}
+
+function recheck(what: string, file: string, version: string) {
+  return new Error(
+    `${what} は、${NOTICES}/${file} を確かめた版（${version}）と違います。${NOTICES}/README.md の手順で確かめ直してください。`,
+  );
+}
+
+function packageLicenses(root: string, dir: string, id: string) {
+  const texts = licenseText(dir, id);
+  const at = id.lastIndexOf(' ');
+  const extra = PACKAGE_NOTICES[id.slice(0, at)];
+  if (!extra) return texts;
+  if (id.slice(at + 1) !== extra.version) throw recheck(id, extra.file, extra.version);
+  return [...texts, notice(root, extra.file)];
+}
+
+function rustVersion(crate: string) {
+  const toml = readFileSync(join(crate, 'rust-toolchain.toml'), 'utf8');
+  const version = /^channel\s*=\s*"([^"]+)"/m.exec(toml)?.[1];
+  if (!version) throw new Error(`${crate} の rust-toolchain.toml に Rust の版がありません。`);
+  return version;
+}
+
+/** packages はパッケージ（名前と版 → フォルダ）、crates は配布物に入った Rust のクレートのフォルダ。 */
+function renderLicenses(root: string, packages: Map<string, string>, crates: Iterable<string>) {
+  const entries: [string, string[]][] = [...packages].map(([id, dir]) => [
+    id,
+    packageLicenses(root, dir, id),
+  ]);
+  for (const version of new Set([...crates].map(rustVersion))) {
+    if (version !== RUST_NOTICE.version)
+      throw recheck(`Rust ${version}`, RUST_NOTICE.file, RUST_NOTICE.version);
+    entries.push([`Rust standard library ${version}`, [notice(root, RUST_NOTICE.file)]]);
+  }
+  return entries
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([id, dir]) => [id, '', ...licenseText(dir, id)].join('\n'))
+    .map(([id, texts]) => [id, '', ...texts].join('\n'))
     .join('\n\n────────\n\n');
 }
 
@@ -112,8 +167,12 @@ export function toolbox({ root }: { root: string }): Plugin[] {
   let command: 'build' | 'serve' = 'serve';
   /** 本体と Worker の両方の、配布物に入ったパッケージ。 */
   const bundled = new Map<string, string>();
+  /** 配布物に入った Rust のクレートのフォルダ。 */
+  const crates = new Set<string>();
   const collect = (ids: Iterable<string>) => {
     for (const id of ids) {
+      const crate = RUST_WASM.exec(id.replace(/^\0/, '').replace(/\?.*$/, ''))?.[1];
+      if (crate) crates.add(crate);
       const info = packageOf(resolve(id.replace(/^\0/, '')));
       if (info) bundled.set(info.id, info.dir);
     }
@@ -162,7 +221,11 @@ export function payloadSource(name) {
   const element = document.getElementById('tb-licenses');
   return element ? JSON.parse(element.textContent) : '';
 }`;
-        const text = renderLicenses(dependencyPackages(root));
+        const text = renderLicenses(
+          root,
+          dependencyPackages(root),
+          CRATES.map((crate) => join(root, crate)),
+        );
         return `export function licenses() { return ${JSON.stringify(text)}; }`;
       }
       return undefined;
@@ -184,7 +247,7 @@ export function payloadSource(name) {
         const data = gzipSync(readFileSync(join(dir, file)), { level: 9 });
         return `<script type="application/octet-stream" id="tb-payload-${name}" data-encoding="gzip-base64">${data.toString('base64')}</script>`;
       });
-      const licenses = `<script type="application/json" id="tb-licenses">${scriptJson(renderLicenses(bundled))}</script>`;
+      const licenses = `<script type="application/json" id="tb-licenses">${scriptJson(renderLicenses(root, bundled, crates))}</script>`;
 
       let source = html.source;
       // 本体の script を、画面の要素の後・重いデータの前で実行する普通の script にする。

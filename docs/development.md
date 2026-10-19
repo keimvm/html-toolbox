@@ -19,6 +19,7 @@ toolbox は、全ツールを1つの HTML に入れた1つのアプリです。�
 | `src/engine/pdf/` | PDF エンジン。PDF編集と画像変換が同じ Worker（PDFium）を使う |
 | `src/engine/diff/` | 差分。タイピングゲームと文章比較が同じ Rust の WebAssembly（`wasm/`）を使う |
 | `vite/toolbox.ts` | 1つの HTML にまとめる Vite のプラグイン（重いデータの埋め込み・ライセンスの収集・CSP） |
+| `vite/licenses/` | パッケージに入っていないライセンス文（PDFium の wasm の中のライブラリ、Rust の標準ライブラリ）。入手元と確かめ直す手順は [README](../vite/licenses/README.md) |
 | `vite/rust.ts` | Rust のクレート（いまは差分の `src/engine/diff/wasm/`）を、Vite の起動時に cargo で WebAssembly にビルドするプラグイン |
 | `scripts/toolbox.mjs` | テスト・ビルド・総合検証・zip の作成（Node.js の標準機能だけ） |
 | `scripts/cdp.mjs` | `file://` の画面を確かめるための、Chrome を操作する小さな道具（自動テストには含めない） |
@@ -121,7 +122,7 @@ pnpm dev
 - 差分の WebAssembly（Rust、約20 KB。タイピングゲームと文章比較が使う）は小さいため、Vite の `?init` で Base64 にして本体の JavaScript に入れます。
 - PDFium の WebAssembly と Noto Sans JP は、gzip と Base64 にして HTML の末尾の `<script type="application/octet-stream" id="tb-payload-…">` に置きます。PDF を初めて使うとき、文書を読み終えてから Worker に渡し、Worker の中で `DecompressionStream` で展開します（`vite/toolbox.ts`・`src/engine/pdf/`）。
 - CSP（`vite/toolbox.ts` の `CONTENT_SECURITY_POLICY`）で外部との通信と外部の読み込みを止めます。Worker は `blob:`、WebAssembly は `'wasm-unsafe-eval'` で動かします。
-- 配布物に実際に入ったパッケージのライセンス文を集めて HTML の末尾に置き、「このアプリについて」で表示します。
+- 配布物に実際に入ったパッケージのライセンス文を集めて HTML の末尾に置き、「このアプリについて」で表示します。パッケージに入っていない PDFium の wasm の中のライブラリと Rust の標準ライブラリの分は `vite/licenses/` から足します。`@embedpdf/pdfium` か Rust の版を上げると、確かめ直すまでビルドが止まります（[手順](../vite/licenses/README.md)）。
 - 配布物のテスト（`tests/dist/`）は、1ファイルであること・CSP・script の並び・埋め込み・ライセンスを確かめます。
 
 ## 画面を確かめる

@@ -34,7 +34,7 @@
 - **重いデータは HTML の末尾**：PDFium の wasm と Noto Sans JP（日本語のフォントを含まない PDF を描くため）を gzip と Base64 にし、実行しない script 要素として HTML の末尾に置く。本体の script（IIFE）はその前に置き、画面を先に出す。PDF を初めて使うとき、文書を読み終えてから Worker に渡し、Worker の中で標準の `DecompressionStream` で展開する。JavaScript の文字列として取り込まないため、起動時に読み込む量が増えない。実測（`file://`・ネット遮断・ヘッドレス Chrome 155）：画面の準備 約10ms、読み込み完了 約40ms、PDFium の起動 約45ms。
 - **通信を止める**：CSP（`default-src 'none'`・`connect-src 'none'`）で外部との通信と外部の読み込みを止める。Worker は `blob:`、wasm は `'wasm-unsafe-eval'` だけを許す。
 - **小さな WebAssembly は JavaScript の中**：差分（Rust、wasm は約20 KB。タイピングゲームと文章比較が使う）は、Vite の `?init` で Base64 にして本体の JavaScript に入れ、ツールを開いたときに読み込む。cargo でのビルドは `vite/rust.ts` が Vite の起動時に行う。
-- **ライセンス**：ビルドの中で、配布物に実際に入ったパッケージ（本体と Worker のモジュール、埋め込んだバイナリ）を集め、そのライセンス文を HTML の末尾に置く。「このアプリについて」で表示する。Rust の WebAssembly に入る標準ライブラリのライセンス文は、まだ対象にしていない（未決）。
+- **ライセンス**：ビルドの中で、配布物に実際に入ったパッケージ（本体と Worker のモジュール、埋め込んだバイナリ）を集め、そのライセンス文を HTML の末尾に置く。「このアプリについて」で表示する。`@embedpdf/pdfium` の wasm に入っている PDFium 以外のライブラリ（FreeType・libjpeg-turbo など）と、Rust の WebAssembly に入る標準ライブラリは、パッケージにライセンス文がないため、入手元で確かめた文を `vite/licenses/` に置いて足す（2026-10-19）。確かめた版と違うとビルドを止め、版を上げたときに確かめ直させる。
 - **配色**：色は CSS の `light-dark()` で持ち、切り替えは `:root` の `data-tb-theme` で `color-scheme` を上書きする。Vite（Lightning CSS）が `light-dark()` を OS の設定だけに従う形へ変換しないよう、`build.cssTarget` を Chrome・Edge 129 にする。
 
 ## 選定に関わる制約

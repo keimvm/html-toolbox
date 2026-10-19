@@ -62,6 +62,10 @@ test('配布物に入れたライブラリのライセンス文を持つ', () =>
   for (const name of ['@embedpdf/pdfium', '@embedpdf/fonts-jp', 'preact', '@preact/signals-core'])
     expect(licenses).toContain(`${name} `);
   expect(licenses).toContain('SIL OPEN FONT LICENSE');
+  // パッケージに入っていない分（vite/licenses/）：PDFium の wasm の中のライブラリと、Rust の標準ライブラリ。
+  expect(licenses).toContain('The FreeType Project');
+  expect(licenses).toContain('based in part on the work of the Independent JPEG Group');
+  expect(licenses).toMatch(/^Rust standard library \S+$/m);
   expect(licenses).toMatch(/<[^<>\s]+@[^<>\s]+>/);
   expect(licenses).not.toMatch(/&(lt|amp);/);
 });
