@@ -8,7 +8,7 @@
 
 | 技術 | 役割 | 採用理由 |
 | --- | --- | --- |
-| GitHub（private リポジトリ1つ）・Releases・Actions | ソースと履歴、版の記録と zip の置き場、検証と zip の自動作成 | 既に使っている。リリースを作る操作が版を出す操作になり、手元の PC に何も入れずに手作業をなくせる |
+| GitHub（public リポジトリ1つ）・Releases・Actions | ソースと履歴、版の記録と zip の置き場、検証と zip の自動作成 | 既に使っている。リリースを作る操作が版を出す操作になり、手元の PC に何も入れずに手作業をなくせる |
 | Node.js 24・pnpm 12 | 開発・ビルド・テストの実行 | 旧構成から使っている。`scripts/` は Node.js の標準機能だけで書く |
 | TypeScript 6 | アプリと共通部品・各ツールの型 | 6つのツールと共通部品の受け渡しの形（ツールの約束事・PDF エンジンの操作）を型で守る |
 | Vite 8（Rolldown）・vite-plugin-singlefile | 1つの HTML へのビルド、開発サーバー | 旧 PDF編集・画像変換で使っていた。JavaScript・CSS・画像を1つの HTML に入れられ、Worker も `?worker&inline` で同じ HTML に入る |
